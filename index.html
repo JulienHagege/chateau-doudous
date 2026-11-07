@@ -1229,11 +1229,12 @@ GAMES.revision = { intro:'On revoit ce qui a posé problème.', gen(level, i, n)
 /* =========================================================
    MOTEUR DE SALLE : enchaîne les épreuves, chrono, cœurs, billes, étoiles
    ========================================================= */
-let run = null, timerIv = null;
+let run = null, timerIv = null, lastRoom = null;
 function startRoom(room){
   const rs = roomState(room.id); const level = room.rev ? 1 : Math.min(MAX_LEVEL, rs.level || 1);
   // 5 niveaux de contenu par salle ; le chrono se resserre un peu à chaque niveau
   run = { room:room.id, level, gen:level, tfactor:Math.pow(.92, level-1), i:0, n:room.n, errors:0, hearts:maxHearts(), billes:0, results:[], asked:0, retry:[], q:null, answered:false, t0:0 };
+  lastRoom = room.rev ? lastRoom : room;
   MUSIC.play(MUSIC_TRACKS['room_'+room.id] ? 'room_'+room.id : (room.floor===3 ? 'tower' : 'floor'+room.floor));
   SFX.door();
   show('room'); renderRoomHead(); nextQuestion();
@@ -1458,8 +1459,8 @@ function drawMap(){
   // vignette
   const vg = g.createRadialGradient(W/2,H/2,H*.45,W/2,H/2,H*1.05); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.55)'); g.fillStyle = vg; g.fillRect(0,0,W,H);
 }
-function heroStart(f){
-  const L = floorLayout(f); const cur = L.rooms.find(r => !isDone(r.id) && roomUnlocked(r));
+function heroStart(f, at){
+  const L = floorLayout(f); const cur = (at && at.floor===f) ? at : L.rooms.find(r => !isDone(r.id) && roomUnlocked(r));
   if (cur){ const below = cur.door[1] > cur.rect[1]; return {x:cur.door[0], y:cur.door[1] + (below ? 1 : -1), dir: below ? 'n' : 's'}; }
   if (L.rooms.every(r => isDone(r.id)) && L.stairs) return {x:L.stairs[0]-1, y:L.stairs[1], dir:'e'};
   return {x:10, y:11, dir:'n'};
@@ -1492,9 +1493,10 @@ document.addEventListener('keydown', e => {
 $('#dpad').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const [dx,dy] = b.dataset.d.split(',').map(Number); heroMove(dx,dy); });
 let mapAnim = null;
 function mapLoop(){ if (screen!=='mapscreen'){ mapAnim = null; return; } drawMap(); mapAnim = requestAnimationFrame(mapLoop); }
-function openMap(f){
+// openMap(étage, salle) : revient à cet étage, l'héroïne devant la porte de cette salle (sortie ou fin de salle)
+function openMap(f, at){
   if (f==null){ const cur = currentRoom(); f = cur ? cur.floor : 3; }
-  if (hero.floor!==f){ hero = Object.assign(heroStart(f), {floor:f}); }
+  if (at || hero.floor!==f){ hero = Object.assign(heroStart(f, at), {floor:f}); }
   mapFloor = f; $('#map-title').textContent = FLOORS[f].name;
   const fl = $('#floors'); fl.innerHTML = ''; FLOORS.forEach((F, i) => { const b = document.createElement('button'); b.textContent = F.short; b.disabled = !floorUnlocked(i); b.setAttribute('aria-current', i===f); b.onclick = () => { SFX.click(); openMap(i); }; fl.appendChild(b); });
   const cur = ROOMS.find(r => r.floor===f && !isDone(r.id) && roomUnlocked(r));
@@ -1706,9 +1708,9 @@ $('#btn-revise').onclick = () => { SFX.click(); startRoom(ROOM.revision); };
 $('#btn-celebrate').onclick = () => { SFX.click(); $('#celebrate').hidden = true; const then = celebrateThen; celebrateThen = null; maybeCelebrate(then); };
 $('#btn-album-back').onclick = () => { SFX.click(); renderHome(); show('home'); };
 $('#btn-map-back').onclick = () => { SFX.click(); renderHome(); show('home'); MUSIC.play('home'); };
-$('#btn-quit').onclick = () => { if (!run) return; clearInterval(timerIv); window.onkeydown = null; run = null; S.celebrateQueue = S.celebrateQueue || []; SFX.click(); hero.floor = -1; openMap(); };
+$('#btn-quit').onclick = () => { if (!run) return; const room = ROOM[run.room]; clearInterval(timerIv); window.onkeydown = null; run = null; S.celebrateQueue = S.celebrateQueue || []; SFX.click(); if (room.rev){ renderHome(); show('home'); MUSIC.play('home'); } else openMap(room.floor, room); };
 $('#btn-clearerr').onclick = () => { delete S.lastErr; save(); $('#lasterr').textContent = ''; };
-$('#btn-res-map').onclick = () => { SFX.click(); hero.floor = -1; if (ROOMS.every(r => isDone(r.id))) startCycle(); else openMap(); };
+$('#btn-res-map').onclick = () => { SFX.click(); if (ROOMS.every(r => isDone(r.id))) return startCycle(); if (lastRoom && $('#res-img').getAttribute('src')!==IMG.hero) openMap(lastRoom.floor, lastRoom); else { renderHome(); show('home'); MUSIC.play('home'); } };
 $('#btn-res-again').onclick = () => { SFX.click(); if ($('#res-img').getAttribute('src')===IMG.hero) return startRoom(ROOM.revision); const room = ROOMS.find(r => IMG[r.dd]===$('#res-img').getAttribute('src')); if (room) enterRoom(room); else openMap(); };
 $('#tg-sound').onclick = () => { S.sound = !S.sound; save(); renderHome(); if (S.sound) SFX.ok(); };
 function toggleMusic(){ S.music = !S.music; save(); const cur = MUSIC.cur; if (!S.music) MUSIC.stop(); else { MUSIC.cur = null; MUSIC.play(cur || 'home'); } $('#fab-music').setAttribute('aria-pressed', !!S.music); $('#fab-music').textContent = S.music ? '🎵' : '🔇'; $('#tg-music').setAttribute('aria-pressed', !!S.music); SFX.click(); }

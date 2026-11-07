@@ -160,26 +160,26 @@ details.parents summary{cursor:pointer; font-weight:800; color:var(--muted)}
 .redo b{font-family:var(--font-display); font-size:20px}
 .redo small{display:block; font-size:15px; font-weight:700; margin-top:4px; color:#4a3608}
 .redo .exshape{width:84px; height:84px; display:block; margin:4px auto 0}
-.prompt{background:rgba(10,8,25,.45); border-radius:14px; padding:8px 14px; backdrop-filter:blur(2px)}
-.prompt{font-family:var(--font-display); font-size:clamp(22px, 4.5vw, 32px); text-align:center; color:#fff; text-shadow:0 2px 0 rgba(0,0,0,.4); margin:0 0 14px; text-wrap:balance}
+.prompt{background:rgba(10,8,25,.6); border-radius:14px; padding:8px 14px; backdrop-filter:blur(2px)}
+.prompt{font-family:var(--font-display); font-size:clamp(24px, 4.5vw, 34px); font-weight:700; text-align:center; color:#fff; text-shadow:0 2px 0 rgba(0,0,0,.5); margin:0 0 14px; text-wrap:balance}
 .prompt b{color:var(--acc)}
 .prompt.calc{font-size:clamp(36px, 8vw, 58px); padding:6px 14px; letter-spacing:.02em}
-.story-line{text-align:center; color:#fff; font-size:clamp(15px, 3vw, 19px); font-weight:700; background:rgba(10,8,25,.45); border-radius:12px; padding:6px 12px; margin:0 0 8px; text-wrap:balance}
+.story-line{text-align:center; color:#fff; font-size:clamp(15px, 3vw, 19px); font-weight:700; background:rgba(10,8,25,.6); border-radius:12px; padding:6px 12px; margin:0 0 8px; text-wrap:balance}
 .sub{text-align:center; color:var(--muted); font-size:15px; margin:-8px 0 12px}
 .opts{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px}
 @media (min-width:640px){.opts{grid-template-columns:repeat(4,minmax(0,1fr))} .opts.three{grid-template-columns:repeat(3,minmax(0,1fr))}}
-.opt{padding:18px 10px; border-radius:16px; background:rgba(255,255,255,.1); border:3px solid rgba(255,255,255,.18); font-family:var(--font-display); font-size:30px; font-weight:600; color:#fff; transition:transform .08s, background .15s}
+.opt{padding:18px 10px; border-radius:16px; background:rgba(28,22,56,.86); border:3px solid rgba(255,255,255,.35); font-family:var(--font-display); font-size:clamp(34px, 5vw, 44px); font-weight:700; color:#fff; text-shadow:0 2px 0 rgba(0,0,0,.5); box-shadow:0 4px 0 rgba(0,0,0,.35); transition:transform .08s, background .15s}
 .opt:active{transform:scale(.96)}
 .opt.ok{background:var(--mint2); border-color:var(--mint); color:#06301f}
 .opt.ko{background:#8a2a2a; border-color:var(--danger); animation:shake .4s}
 @keyframes shake{0%,100%{transform:none} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)}}
 .pad{display:grid; grid-template-columns:repeat(3,72px); gap:8px; justify-content:center; margin-top:8px}
-.pad button{height:58px; border-radius:14px; background:rgba(255,255,255,.12); border:2px solid rgba(255,255,255,.2); font-family:var(--font-display); font-size:26px; color:#fff}
+.pad button{height:62px; border-radius:14px; background:rgba(28,22,56,.86); border:2px solid rgba(255,255,255,.35); font-family:var(--font-display); font-size:32px; font-weight:700; color:#fff; text-shadow:0 2px 0 rgba(0,0,0,.5); box-shadow:0 3px 0 rgba(0,0,0,.35)}
 .pad button:active{background:rgba(255,255,255,.25)}
 .pad button.go{background:var(--mint2); border-color:var(--mint); color:#06301f}
 .pad button.del{font-size:20px}
-.entry{display:flex; justify-content:center; align-items:center; gap:10px; font-family:var(--font-display); font-size:40px; min-height:60px; color:#fff}
-.entry .val{min-width:110px; text-align:center; background:rgba(0,0,0,.3); border-radius:12px; padding:2px 14px; border-bottom:4px solid var(--acc)}
+.entry{display:flex; justify-content:center; align-items:center; gap:10px; font-family:var(--font-display); font-size:46px; font-weight:700; min-height:64px; color:#fff; text-shadow:0 2px 0 rgba(0,0,0,.5)}
+.entry .val{min-width:120px; text-align:center; background:rgba(10,8,25,.7); border-radius:12px; padding:2px 16px; border-bottom:4px solid var(--acc)}
 .entry .val:empty::before{content:"?"; color:rgba(255,255,255,.3)}
 .feedback{position:absolute; left:0; right:0; bottom:0; padding:12px 16px; text-align:center; font-family:var(--font-display); font-size:22px; background:rgba(0,0,0,.55); backdrop-filter:blur(4px); color:#fff; animation:enter .2s ease}
 .feedback.ok{color:var(--mint)} .feedback.ko{color:#ffb3a3}
@@ -188,9 +188,13 @@ details.parents summary{cursor:pointer; font-weight:800; color:var(--muted)}
 .gain{font-weight:900; color:var(--bille)}
 .custom{display:flex; flex-direction:column; align-items:center; gap:12px}
 .toolrow{display:flex; gap:10px; flex-wrap:wrap; justify-content:center}
-.tool{padding:10px 14px; border-radius:14px; background:rgba(255,255,255,.12); border:2px solid rgba(255,255,255,.22); font-family:var(--font-display); font-size:20px; color:#fff; display:inline-flex; align-items:center; gap:6px}
+.tool{padding:10px 14px; border-radius:14px; background:rgba(28,22,56,.86); border:2px solid rgba(255,255,255,.35); font-family:var(--font-display); font-size:22px; font-weight:700; color:#fff; text-shadow:0 2px 0 rgba(0,0,0,.5); display:inline-flex; align-items:center; gap:6px}
 .tool:active{transform:scale(.95)}
 .tool.go{background:var(--mint2); border-color:var(--mint); color:#06301f}
+.library{display:flex; flex-wrap:wrap; gap:8px 14px; justify-content:center; width:100%; max-width:660px; margin-bottom:6px}
+.library .shelf{width:min(100%, 300px); height:auto; flex:1 1 240px; max-width:320px}
+.library .bk{animation:bookin .35s ease both; transform-origin:bottom}
+@keyframes bookin{from{transform:translateY(-14px) scale(.6); opacity:0} to{transform:none; opacity:1}}
 svg.shapes{width:100%; max-width:620px; height:auto; display:block}
 svg.shapes .sh{cursor:pointer; transition:transform .1s}
 svg.shapes .sh:active{opacity:.8}
@@ -237,7 +241,7 @@ canvas.ruler{width:100%; max-width:640px; height:auto; display:block; border-rad
 .numline{position:relative; width:100%; max-width:640px; height:120px}
 .numline .ln{position:absolute; left:4%; right:4%; top:46px; height:6px; background:#fff; border-radius:3px}
 .numline .tk{position:absolute; top:32px; width:48px; margin-left:-24px; text-align:center}
-.numline .tk button{width:46px; height:46px; border-radius:50%; background:var(--panel2); border:3px solid var(--gold); font-family:var(--font-display); font-size:15px; color:#fff}
+.numline .tk button{width:48px; height:48px; border-radius:50%; background:#2b2560; border:3px solid var(--gold); font-family:var(--font-display); font-size:16px; font-weight:700; color:#fff}
 .numline .tk button:active{background:var(--gold); color:#3a2a05}
 .numline .tk.small{top:40px} .numline .tk.small i{display:block; width:3px; height:18px; background:#fff; margin:0 auto}
 .numline .cursor{position:absolute; top:0; margin-left:-22px; width:44px; text-align:center; font-family:var(--font-display); font-size:22px; color:var(--gold)}
@@ -968,17 +972,31 @@ GAMES.longueurs = { intro:'Hugo le kangourou saute sur la grande règle. Mesure 
   }};
 }};
 
-/* ---------- Doubles et moitiés (Pandou, la Bibliothèque) ---------- */
+/* ---------- Doubles et moitiés (Pandou, la Bibliothèque) : les quantités sont des livres sur des étagères ---------- */
+const BOOK_COLORS = ['#ff8fb1','#ffd166','#8de3c0','#7cc4ff','#c9b6ff','#ffb347','#ff7a5c','#9ef0ff'];
+// Une étagère : n livres (paquets de 10 = gros livre marqué 10, puis les unités), ou vide avec un « ? »
+function shelfSvg(n, label, opts={}){
+  const W = 300, H = 92; const tens = Math.floor(n/10), ones = n%10; let x = 10; let items = '';
+  const showTens = n>20 || opts.tens; let i = 0;
+  if (n===0 || opts.empty){ items = `<text x="${W/2}" y="58" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="30" font-weight="700" fill="#ffd166">?</text>`; }
+  else if (showTens){ for (let k=0;k<tens;k++){ items += `<g class="bk" style="animation-delay:${(i++*.04).toFixed(2)}s"><rect x="${x}" y="22" width="22" height="50" rx="3" fill="${BOOK_COLORS[k%8]}" stroke="#2a1f05" stroke-width="2"/><text x="${x+11}" y="52" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="13" font-weight="700" fill="#2a1f05">10</text></g>`; x += 26; }
+    for (let k=0;k<ones;k++){ items += `<g class="bk" style="animation-delay:${(i++*.04).toFixed(2)}s"><rect x="${x}" y="${34 + (k%2)*4}" width="9" height="${38 - (k%2)*4}" rx="2" fill="${BOOK_COLORS[(k+3)%8]}" stroke="#2a1f05" stroke-width="1.5"/></g>`; x += 11; } }
+  else { const w = n>12 ? 12 : 16, gap = n>12 ? 14 : 18; for (let k=0;k<n;k++){ items += `<g class="bk" style="animation-delay:${(i++*.05).toFixed(2)}s"><rect x="${x}" y="${30 + (k%3)*4}" width="${w}" height="${42 - (k%3)*4}" rx="2" fill="${BOOK_COLORS[k%8]}" stroke="#2a1f05" stroke-width="2"/><rect x="${x+2}" y="${36 + (k%3)*4}" width="${w-4}" height="3" fill="rgba(255,255,255,.5)"/></g>`; x += gap; } }
+  return `<svg viewBox="0 0 ${W} ${H}" class="shelf"><rect x="4" y="74" width="${W-8}" height="10" rx="3" fill="#8a5a2a" stroke="#3a2410" stroke-width="2"/><rect x="4" y="84" width="${W-8}" height="4" fill="#5a3a1a"/>${items}<text x="${W/2}" y="16" text-anchor="middle" font-family="Nunito, sans-serif" font-size="13" font-weight="800" fill="#fff">${label}</text></svg>`;
+}
+function booksScene(stage, shelves){ const d = document.createElement('div'); d.className = 'library'; d.innerHTML = shelves.map(([n, label, opts]) => shelfSvg(n, label, opts)).join(''); stage.appendChild(d); }
 GAMES.doubles = { intro:'Dans la bibliothèque, Pandou voit tout en double… ou en moitié !', gen(level){
-  const what = pick(['livres','bambous','étagères','marque-pages']);
-  if (level>=5 && Math.random()<.3){ const n = pick([rnd(1,25)*4]); return Math.random()<.5 ? num(`Pandou a ${n} ${what}. Le <b>quart</b> de ${n} ?`, n/4, {sub:'le quart = partager en 4', explain:`Le quart de ${n} : ${n/4} + ${n/4} + ${n/4} + ${n/4} = ${n}, donc ${n/4}.`}) : num(`Le <b>quadruple</b> de ${n/4} ${what} ?`, n, {sub:'4 fois plus', explain:`Le quadruple de ${n/4} = ${n/4} × 4 = ${n}.`}); }
-  if (level>=4 && Math.random()<.3){ const n = rnd(2,30); return num(`Pandou empile 3 fois ${n} ${what}. Le <b>triple</b> de ${n} ?`, n*3, {sub:`${n} + ${n} + ${n}`, explain:`Le triple de ${n} = ${n} + ${n} + ${n} = ${n*3}.`}); }
+  const what = pick(['livres','albums','BD','contes']);
+  if (level>=5 && Math.random()<.3){ const n = pick([rnd(1,25)*4]);
+    if (Math.random()<.5) return num(`Pandou a ${n} ${what}. Le <b>quart</b> de ${n} ?`, n/4, {sub:'le quart = partager en 4 paniers égaux', explain:`Le quart de ${n} : ${n/4} + ${n/4} + ${n/4} + ${n/4} = ${n}, donc ${n/4}.`, render(st){ booksScene(st, [[n, `${n} ${what}`, {tens:true}], [0,'panier 1',{empty:true}], [0,'panier 2',{empty:true}], [0,'panier 3',{empty:true}], [0,'panier 4',{empty:true}]]); }});
+    return num(`Le <b>quadruple</b> de ${n/4} ${what} ?`, n, {sub:'4 fois plus', explain:`Le quadruple de ${n/4} = ${n/4} × 4 = ${n}.`, render(st){ booksScene(st, [[n/4,'Pandou'],[n/4,'son jumeau'],[n/4,'sa cousine'],[n/4,'son cousin']]); }}); }
+  if (level>=4 && Math.random()<.3){ const n = rnd(2,30); return num(`Pandou empile 3 fois ${n} ${what}. Le <b>triple</b> de ${n} ?`, n*3, {sub:`${n} + ${n} + ${n}`, explain:`Le triple de ${n} = ${n} + ${n} + ${n} = ${n*3}.`, render(st){ booksScene(st, [[n,'étagère 1'],[n,'étagère 2'],[n,'étagère 3']]); }}); }
   if (Math.random()<.5){
     const n = L(level, [rnd(1,10), pick([rnd(1,15),20,25,30,40,50]), pick([rnd(11,50),rnd(1,30)*2,100]), rnd(26,99), pick([rnd(100,250), rnd(51,99)*2])]);
-    return num(`Pandou a ${n} ${what} et son jumeau autant. Le <b>double</b> de ${n} ?`, n*2, {sub:`${n} + ${n}`, explain:`Le double de ${n}, c'est ${n} + ${n} = ${n*2}.`});
+    return num(`Pandou a ${n} ${what} et son jumeau autant. Le <b>double</b> de ${n} ?`, n*2, {sub:`${n} + ${n}`, explain:`Le double de ${n}, c'est ${n} + ${n} = ${n*2}.`, render(st){ booksScene(st, [[n,`Pandou : ${n}`],[n,`son jumeau : ${n}`]]); }});
   }
   const n = L(level, [rnd(1,10)*2, pick([rnd(1,20)*2,50,100]), rnd(10,50)*2, rnd(25,100)*2, rnd(50,250)*2]);
-  return num(`Pandou partage ${n} ${what} en deux piles égales. La <b>moitié</b> de ${n} ?`, n/2, {sub:'la moitié = partager en 2 parts égales', explain:`La moitié de ${n} : ${n/2} + ${n/2} = ${n}, donc ${n/2}.`});
+  return num(`Pandou partage ${n} ${what} en deux piles égales. La <b>moitié</b> de ${n} ?`, n/2, {sub:'la moitié = partager en 2 paniers égaux', explain:`La moitié de ${n} : ${n/2} + ${n/2} = ${n}, donc ${n/2}.`, render(st){ booksScene(st, [[n, `${n} ${what} à partager`, {tens:n>20}], [0,'panier de Pandou',{empty:true}], [0,'panier du jumeau',{empty:true}]]); }});
 }};
 
 /* ---------- Symétrie (Manchou, la Salle des miroirs) ---------- */
@@ -1213,11 +1231,12 @@ GAMES.revision = { intro:'On revoit ce qui a posé problème.', gen(level, i, n)
 /* =========================================================
    MOTEUR DE SALLE : enchaîne les épreuves, chrono, cœurs, billes, étoiles
    ========================================================= */
-let run = null, timerIv = null;
+let run = null, timerIv = null, lastRoom = null;
 function startRoom(room){
   const rs = roomState(room.id); const level = room.rev ? 1 : Math.min(MAX_LEVEL, rs.level || 1);
   // 5 niveaux de contenu par salle ; le chrono se resserre un peu à chaque niveau
   run = { room:room.id, level, gen:level, tfactor:Math.pow(.92, level-1), i:0, n:room.n, errors:0, hearts:maxHearts(), billes:0, results:[], asked:0, retry:[], q:null, answered:false, t0:0 };
+  lastRoom = room.rev ? lastRoom : room;
   MUSIC.play(MUSIC_TRACKS['room_'+room.id] ? 'room_'+room.id : (room.floor===3 ? 'tower' : 'floor'+room.floor));
   SFX.door();
   show('room'); renderRoomHead(); nextQuestion();
@@ -1442,8 +1461,8 @@ function drawMap(){
   // vignette
   const vg = g.createRadialGradient(W/2,H/2,H*.45,W/2,H/2,H*1.05); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.55)'); g.fillStyle = vg; g.fillRect(0,0,W,H);
 }
-function heroStart(f){
-  const L = floorLayout(f); const cur = L.rooms.find(r => !isDone(r.id) && roomUnlocked(r));
+function heroStart(f, at){
+  const L = floorLayout(f); const cur = (at && at.floor===f) ? at : L.rooms.find(r => !isDone(r.id) && roomUnlocked(r));
   if (cur){ const below = cur.door[1] > cur.rect[1]; return {x:cur.door[0], y:cur.door[1] + (below ? 1 : -1), dir: below ? 'n' : 's'}; }
   if (L.rooms.every(r => isDone(r.id)) && L.stairs) return {x:L.stairs[0]-1, y:L.stairs[1], dir:'e'};
   return {x:10, y:11, dir:'n'};
@@ -1476,9 +1495,10 @@ document.addEventListener('keydown', e => {
 $('#dpad').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const [dx,dy] = b.dataset.d.split(',').map(Number); heroMove(dx,dy); });
 let mapAnim = null;
 function mapLoop(){ if (screen!=='mapscreen'){ mapAnim = null; return; } drawMap(); mapAnim = requestAnimationFrame(mapLoop); }
-function openMap(f){
+// openMap(étage, salle) : revient à cet étage, l'héroïne devant la porte de cette salle (sortie ou fin de salle)
+function openMap(f, at){
   if (f==null){ const cur = currentRoom(); f = cur ? cur.floor : 3; }
-  if (hero.floor!==f){ hero = Object.assign(heroStart(f), {floor:f}); }
+  if (at || hero.floor!==f){ hero = Object.assign(heroStart(f, at), {floor:f}); }
   mapFloor = f; $('#map-title').textContent = FLOORS[f].name;
   const fl = $('#floors'); fl.innerHTML = ''; FLOORS.forEach((F, i) => { const b = document.createElement('button'); b.textContent = F.short; b.disabled = !floorUnlocked(i); b.setAttribute('aria-current', i===f); b.onclick = () => { SFX.click(); openMap(i); }; fl.appendChild(b); });
   const cur = ROOMS.find(r => r.floor===f && !isDone(r.id) && roomUnlocked(r));
@@ -1690,9 +1710,9 @@ $('#btn-revise').onclick = () => { SFX.click(); startRoom(ROOM.revision); };
 $('#btn-celebrate').onclick = () => { SFX.click(); $('#celebrate').hidden = true; const then = celebrateThen; celebrateThen = null; maybeCelebrate(then); };
 $('#btn-album-back').onclick = () => { SFX.click(); renderHome(); show('home'); };
 $('#btn-map-back').onclick = () => { SFX.click(); renderHome(); show('home'); MUSIC.play('home'); };
-$('#btn-quit').onclick = () => { if (!run) return; clearInterval(timerIv); window.onkeydown = null; run = null; S.celebrateQueue = S.celebrateQueue || []; SFX.click(); hero.floor = -1; openMap(); };
+$('#btn-quit').onclick = () => { if (!run) return; const room = ROOM[run.room]; clearInterval(timerIv); window.onkeydown = null; run = null; S.celebrateQueue = S.celebrateQueue || []; SFX.click(); if (room.rev){ renderHome(); show('home'); MUSIC.play('home'); } else openMap(room.floor, room); };
 $('#btn-clearerr').onclick = () => { delete S.lastErr; save(); $('#lasterr').textContent = ''; };
-$('#btn-res-map').onclick = () => { SFX.click(); hero.floor = -1; if (ROOMS.every(r => isDone(r.id))) startCycle(); else openMap(); };
+$('#btn-res-map').onclick = () => { SFX.click(); if (ROOMS.every(r => isDone(r.id))) return startCycle(); if (lastRoom && $('#res-img').getAttribute('src')!==IMG.hero) openMap(lastRoom.floor, lastRoom); else { renderHome(); show('home'); MUSIC.play('home'); } };
 $('#btn-res-again').onclick = () => { SFX.click(); if ($('#res-img').getAttribute('src')===IMG.hero) return startRoom(ROOM.revision); const room = ROOMS.find(r => IMG[r.dd]===$('#res-img').getAttribute('src')); if (room) enterRoom(room); else openMap(); };
 $('#tg-sound').onclick = () => { S.sound = !S.sound; save(); renderHome(); if (S.sound) SFX.ok(); };
 function toggleMusic(){ S.music = !S.music; save(); const cur = MUSIC.cur; if (!S.music) MUSIC.stop(); else { MUSIC.cur = null; MUSIC.play(cur || 'home'); } $('#fab-music').setAttribute('aria-pressed', !!S.music); $('#fab-music').textContent = S.music ? '🎵' : '🔇'; $('#tg-music').setAttribute('aria-pressed', !!S.music); SFX.click(); }
@@ -1856,6 +1876,7 @@ document.addEventListener('pointerdown', function first(){ if (S.music && screen
     let badSym = 0, nonCount = 0; for (let lv=2; lv<=5; lv++) for (let i=0;i<400;i++){ const q = GAMES.symetrie.gen(lv); if (q.answer===false){ nonCount++; const st = document.createElement('div'); q.render(st, {done:false, answer(){}}); const on = [...st.querySelectorAll('.c[data-k]')].filter(e => e.classList.contains('on')||e.classList.contains('on2')).map(e => e.dataset.k+':'+(e.classList.contains('on2')?2:1)); const cols = Math.max(...on.map(k=>+k.split(',')[1].split(':')[0]))+1; const horiz = !!st.querySelector('.ax-h'); const ks = [...st.querySelectorAll('.c[data-k]')].map(e=>e.dataset.k.split(',').map(Number)); const C = Math.max(...ks.map(k=>k[1]))+1, R = Math.max(...ks.map(k=>k[0]))+1; const set = new Set(on); let sym = true; for (const k of on){ const [r,c] = k.split(':')[0].split(',').map(Number); const v = k.split(':')[1]; const m = horiz ? (R-1-r)+','+c : r+','+(C-1-c); if (!set.has(m+':'+v)) sym = false; } if (sym) badSym++; } } log('symétrie non', nonCount, 'dont symétriques (bug)', badSym);
     let split = 0, tot = 0; for (const r of ROOMS){ if (r.boss) continue; for (let lv=1; lv<=5; lv++) for (let i=0;i<10;i++){ const q = GAMES[r.id].gen(lv); tot++; if (q.story || splitPrompt(q.prompt)) split++; } } log('découpe histoire/calcul', split, 'sur', tot);
     startRoom(ROOM.doubles); submit(true); $('#btn-quit').click(); let crashed = false; try{ nextQuestion(); maybeCelebrate(nextQuestion); }catch(e){ crashed = true; } log('quitter pendant le délai : crash', crashed, 'écran', screen, 'run', run);
+    S.unlockAll = true; startRoom(ROOM.arrondi); $('#btn-quit').click(); log('retour étage après quitter', mapFloor, 'hero', JSON.stringify(hero), 'attendu étage 2 porte', JSON.stringify(ROOM.arrondi.door)); S.unlockAll = false;
     const picks = {}; for (let i=0;i<300;i++){ const [a,b] = pickFact(activeTables()); picks[a] = (picks[a]||0)+1; } log('tirages par table', JSON.stringify(picks));
     for (let f=0; f<4; f++){ openMap(f); drawMap(); } log('carte OK');
     startStorm(null, true); log('orage phase', storm && storm.phase); if (storm){ if (storm.phase!=='play'){ storm.phase='play'; launchPumpkin(); } stormHit(true); if (storm) { launchPumpkin(); stormHit(false); } } log('orage OK, storm =', storm ? 'actif' : 'fermé', 'billes', S.billes);
