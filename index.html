@@ -889,15 +889,22 @@ function drawRuler(cv, maxCm, ribbons, kanga){
   g.strokeStyle = '#3a2a05'; g.lineWidth = 2; g.font = 'bold 14px Nunito, sans-serif'; g.fillStyle = '#3a2a05'; g.textAlign = 'center';
   const step = maxCm>40 ? 10 : maxCm>20 ? 5 : 1;
   for (let i=0;i<=maxCm;i++){ const x = x0+i*sc; g.beginPath(); g.moveTo(x, y-10); g.lineTo(x, y-10 + (i%10===0?24:i%5===0?18:12)); g.stroke(); if (i%step===0 || i===maxCm) g.fillText(i, x, y+34); }
-  g.fillText('cm', x1+12, y+34);
+  g.textAlign='left'; g.fillText('cm', x1+10, y+10); g.textAlign='center';
   (ribbons||[]).forEach((r, k) => { g.fillStyle = r.color; const ry = 40 + k*34; g.fillRect(x0+r.a*sc, ry, (r.b-r.a)*sc, 22); g.strokeStyle='#fff'; g.lineWidth=2; g.strokeRect(x0+r.a*sc, ry, (r.b-r.a)*sc, 22); if (r.label){ g.fillStyle='#fff'; g.font='bold 16px Fredoka, sans-serif'; g.fillText(r.label, x0+(r.a+r.b)/2*sc, ry+17); } });
-  if (kanga){ const sp = SPR.hugo; const kx = x0 + kanga.pos*sc, ky = y-12 - (kanga.h||0); if (kanga.flag!=null){ g.fillStyle='#ff8fb1'; g.fillRect(x0+kanga.flag*sc-2, y-40, 4, 30); g.beginPath(); g.moveTo(x0+kanga.flag*sc+2, y-40); g.lineTo(x0+kanga.flag*sc+22, y-33); g.lineTo(x0+kanga.flag*sc+2, y-26); g.fill(); }
+  // repères explicites : trait pointillé jusqu'à la règle, flèche et étiquette en cm (départ en bleu, arrivée en jaune)
+  const marker = (cm, color, label, yTop) => { const mx = x0 + cm*sc; g.save(); g.setLineDash([4,4]); g.strokeStyle = color; g.lineWidth = 3; g.beginPath(); g.moveTo(mx, yTop); g.lineTo(mx, y-12); g.stroke(); g.restore();
+    g.fillStyle = color; g.beginPath(); g.moveTo(mx, y-8); g.lineTo(mx-7, y-20); g.lineTo(mx+7, y-20); g.closePath(); g.fill();
+    if (label!=null){ g.font = 'bold 15px Fredoka, Nunito, sans-serif'; const tw = g.measureText(label).width + 12; g.fillStyle = color; g.fillRect(mx-tw/2, yTop-22, tw, 20); g.fillStyle = '#1a1030'; g.textAlign='center'; g.fillText(label, mx, yTop-7); } };
+  if (kanga){ const sp = SPR.hugo; const kx = x0 + kanga.pos*sc, ky = y-12 - (kanga.h||0);
+    if (kanga.flag!=null){ g.fillStyle='#ff8fb1'; g.fillRect(x0+kanga.flag*sc-2, y-40, 4, 30); g.beginPath(); g.moveTo(x0+kanga.flag*sc+2, y-40); g.lineTo(x0+kanga.flag*sc+22, y-33); g.lineTo(x0+kanga.flag*sc+2, y-26); g.fill(); }
+    if (kanga.start!=null) marker(kanga.start, '#7cc4ff', kanga.labels ? kanga.start+' cm' : null, 30);
+    if (kanga.land!=null) marker(kanga.land, '#ffd166', kanga.labels ? kanga.land+' cm' : null, 30);
     if (sp && sp.complete) g.drawImage(sp, kx-28, ky-56, 56, 56); else { g.fillStyle='#c58a4a'; g.fillRect(kx-10, ky-30, 20, 30); } }
 }
-function hopAnim(cv, maxCm, ribbons, from, to, hops, flag, onEnd){
+function hopAnim(cv, maxCm, ribbons, from, to, hops, flag, onEnd, labels){
   const start = performance.now(); const dur = 520*hops;
   function frame(t){ const k = clamp((t-start)/dur,0,1); const hk = k*hops, i = Math.min(Math.floor(hk), hops-1), f = hk - i; const pa = from + (to-from)*i/hops, pb = from + (to-from)*(i+1)/hops; const pos = pa + (pb-pa)*f, h = Math.sin(f*Math.PI)*55;
-    drawRuler(cv, maxCm, ribbons, {pos, h, flag}); if (k<1) requestAnimationFrame(frame); else if (onEnd) onEnd(); }
+    drawRuler(cv, maxCm, ribbons, {pos, h, flag, start:from, land: k>=1 ? to : null, labels}); if (k<1) requestAnimationFrame(frame); else if (onEnd) onEnd(); }
   requestAnimationFrame(frame);
 }
 function cmFromClick(cv, maxCm, e){ const r = cv.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width * 640; return Math.round((x - RUL.x0) / ((RUL.x1-RUL.x0)/maxCm)); }
@@ -928,14 +935,14 @@ GAMES.longueurs = { intro:'Hugo le kangourou saute sur la grande règle. Mesure 
   }
   if (t==='jump'){
     const from = level>=3 ? rnd(1, Math.floor(max*.4)) : 0; const d = rnd(2, Math.min(L(level,[9,9,12,20,30]), max-from)); const to = from+d;
-    return {prompt:`Regarde bien… Hugo a sauté de <b>combien de cm</b> ?`, sub:'Touche Hugo pour revoir le saut', kind:'num', answer:d, suffix:'cm', show:d+' cm', explain:`Hugo est parti de ${from} et arrivé à ${to} : ${to} − ${from} = ${d} cm.`, render(stage){ const cv = document.createElement('canvas'); cv.className='ruler'; stage.appendChild(cv); const play = () => hopAnim(cv, max, [], from, to, 1, null, () => drawRuler(cv, max, [], {pos:to, flag:from})); drawRuler(cv, max, [], {pos:from}); setTimeout(play, 600); cv.onclick = play; }};
+    return {prompt:`Regarde bien… Hugo a sauté de <b>combien de cm</b> ?`, sub:'Touche Hugo pour revoir le saut', kind:'num', answer:d, suffix:'cm', show:d+' cm', explain:`Hugo est parti de ${from} et arrivé à ${to} : ${to} − ${from} = ${d} cm.`, render(stage){ const cv = document.createElement('canvas'); cv.className='ruler'; stage.appendChild(cv); const labels = level>=3; const play = () => hopAnim(cv, max, [], from, to, 1, null, () => drawRuler(cv, max, [], {pos:to, start:from, land:to, labels}), labels); drawRuler(cv, max, [], {pos:from, start:from, labels}); setTimeout(play, 600); cv.onclick = play; }};
   }
   const hops = L(level, [1, rnd(2,3), rnd(2,4), rnd(3,5), rnd(3,6)]); let d = rnd(2, L(level,[8,7,7,10,15])); const from = level>=3 ? rnd(0, Math.floor(max*.2)) : 0; while (from + hops*d > max) d--; const to = from + hops*d;
   const txt = hops===1 ? `Hugo part de <b>${from}</b> et saute de <b>${d} cm</b>.` : `Hugo part de <b>${from}</b> et fait <b>${hops} sauts</b> de <b>${d} cm</b>.`;
   return {prompt:`${txt} Touche la règle là où il va atterrir !`, kind:'custom', answer:to, show:to+' cm', explain:`${hops} saut${hops>1?'s':''} de ${d} cm = ${Array(hops).fill(d).join(' + ')} = ${hops*d} cm${from ? `, et ${from} + ${hops*d} = ${to}` : ''}.`, timeMult:1.5, render(stage, api){
-    const cv = document.createElement('canvas'); cv.className='ruler'; stage.appendChild(cv); drawRuler(cv, max, [], {pos:from});
+    const cv = document.createElement('canvas'); cv.className='ruler'; stage.appendChild(cv); drawRuler(cv, max, [], {pos:from, start:from, labels:true});
     const hint = document.createElement('p'); hint.className='sub'; hint.style.marginTop='6px'; hint.textContent = 'Touche un nombre sur la règle'; stage.appendChild(hint);
-    cv.onclick = e => { if (api.done) return; api.done = true; const cm = clamp(cmFromClick(cv, max, e), 0, max); const ok = cm===to; hint.textContent = ok ? 'Hugo saute… et atterrit pile sur ton drapeau !' : `Tu as touché ${cm} cm, Hugo atterrit à ${to} cm`; hopAnim(cv, max, [], from, to, hops, cm, () => api.answer(ok, ok ? '' : `Hugo est arrivé à ${to} cm, pas à ${cm} cm`)); };
+    cv.onclick = e => { if (api.done) return; api.done = true; const cm = clamp(cmFromClick(cv, max, e), 0, max); const ok = cm===to; hint.textContent = ok ? 'Hugo saute… et atterrit pile sur ton drapeau !' : `Tu as touché ${cm} cm, Hugo atterrit à ${to} cm`; hopAnim(cv, max, [], from, to, hops, cm, () => api.answer(ok, ok ? '' : `Hugo est arrivé à ${to} cm, pas à ${cm} cm`), true); };
   }};
 }};
 
