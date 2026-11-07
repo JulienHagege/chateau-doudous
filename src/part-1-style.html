@@ -249,6 +249,25 @@ canvas.ruler{width:100%; max-width:640px; height:auto; display:block; border-rad
 .sparkle{position:absolute; pointer-events:none; font-size:28px; animation:pop .8s ease-out forwards}
 @keyframes pop{from{transform:translateY(0) scale(.6); opacity:1} to{transform:translateY(-70px) scale(1.4); opacity:0}}
 
+/* ---------- Dés et jetons ---------- */
+.dicebox{display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:8px}
+.dice{display:flex; gap:16px; justify-content:center; flex-wrap:wrap}
+.die{width:74px; height:74px; border-radius:16px; background:var(--dc,#fff); box-shadow:inset -4px -6px 0 rgba(0,0,0,.12), 0 6px 0 rgba(0,0,0,.35); display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); padding:9px; gap:2px}
+.die i{display:block; border-radius:50%; background:transparent; width:14px; height:14px; margin:auto}
+.die i.on{background:#1a1030; box-shadow:inset 2px 2px 0 rgba(255,255,255,.25)}
+.die.rolling{animation:roll .85s ease-out}
+.die.settle{animation:settle .4s ease-out}
+@keyframes roll{0%{transform:translateY(-70px) rotate(0)} 40%{transform:translateY(0) rotate(260deg)} 70%{transform:translateY(-22px) rotate(520deg)} 100%{transform:translateY(0) rotate(720deg)}}
+@keyframes settle{0%{transform:scale(1.15)} 60%{transform:scale(.94)} 100%{transform:none}}
+.jetons{display:flex; gap:14px; align-items:flex-end; justify-content:center; flex-wrap:wrap; background:rgba(10,8,25,.55); border-radius:14px; padding:10px 14px}
+.jetons .pile{display:flex; flex-direction:column; align-items:center; gap:2px}
+.jetons .pile span{font-family:var(--font-display); font-weight:700; color:#ffd166; font-size:15px}
+.jetons .stack{display:flex; flex-direction:column-reverse}
+.jetons .stack .jeton{margin-top:-15px}
+.jetons .singles{display:flex; gap:6px; flex-wrap:wrap; max-width:260px; align-items:flex-end}
+.jeton{display:block; width:28px; height:28px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #fff 0, var(--jc) 30%, var(--jc) 70%, rgba(0,0,0,.35) 100%); border:2px solid #fff; box-shadow:0 2px 0 rgba(0,0,0,.4); animation:jetonin .3s ease both}
+@keyframes jetonin{from{transform:scale(0); opacity:0} to{transform:none; opacity:1}}
+
 /* ---------- Résultat ---------- */
 .result{text-align:center; display:flex; flex-direction:column; align-items:center; gap:12px; padding-block:10px}
 .result .big{width:160px; height:160px; object-fit:contain; animation:bounce .9s ease-in-out infinite}

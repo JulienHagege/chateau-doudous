@@ -60,7 +60,7 @@ const ROOMS = [
 
   {id:'addition', floor:2, dd:'chioune',  name:'La Cour des os',          skill:'Additions jusquà 100',  acc:'#ffb347', bg:'#2a2a1a', rect:[1,1,5,4],   door:[3,4],  n:8},
   {id:'arrondi',  floor:2, dd:'pegs',     name:"L'Observatoire",          skill:'Arrondir à la dizaine',    acc:'#c9b6ff', bg:'#141a3a', rect:[7,1,6,4],   door:[10,4], n:8},
-  {id:'complements100',floor:2, dd:'fanfan', name:'La Salle du trésor',   skill:'Compléments à 50 et 100',  acc:'#ffd166', bg:'#3a2a0a', rect:[14,1,5,4],  door:[16,4], n:8},
+  {id:'des',      floor:2, dd:'fanfan',   name:'La Salle de jeux',        skill:'Dés et jetons à additionner', acc:'#ffd166', bg:'#3a2a0a', rect:[14,1,5,4],  door:[16,4], n:8},
   {id:'rapides',  floor:2, dd:'minion',   name:'La Forge',                skill:'Additions éclair',         acc:'#ff7a5c', bg:'#3a1510', rect:[2,8,7,3],   door:[5,7],  n:12},
   {id:'tables2',  floor:2, dd:'pengouins',name:'La Salle du trône',       skill:'Toutes les tables',        acc:'#ffd166', bg:'#2a1a3a', rect:[11,8,7,3],  door:[14,7], n:10},
 
@@ -101,7 +101,10 @@ const DEFAULT = () => ({ name:'', billes:0, stars:0, sound:true, music:true, roo
 let S = DEFAULT();
 function load(){ try{ const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(DEFAULT(), JSON.parse(raw)); }catch(e){} migrate(); }
 // Anciennes sauvegardes : found = salle terminée, level = prochain niveau à jouer (sans plafond)
-function migrate(){ for (const id in S.rooms){ const rs = S.rooms[id]; if (rs.found==null) rs.found = rs.done>0; if (rs.level==null) rs.level = Math.min(3, (rs.done||0)+1); rs.level = Math.min(MAX_LEVEL, rs.level); } }
+function migrate(){
+  // 2026-11-08 : la Salle du trésor (compléments à 100) devient la Salle de jeux (dés) ; on garde l'avancement de la salle
+  if (S.rooms.complements100 && !S.rooms.des){ S.rooms.des = S.rooms.complements100; delete S.rooms.complements100; } if (S.skills && S.skills.complements100 && !S.skills.des){ S.skills.des = S.skills.complements100; delete S.skills.complements100; }
+  for (const id in S.rooms){ const rs = S.rooms[id]; if (rs.found==null) rs.found = rs.done>0; if (rs.level==null) rs.level = Math.min(3, (rs.done||0)+1); rs.level = Math.min(MAX_LEVEL, rs.level); } }
 function save(){ S.updated = Date.now(); try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} cloudSave(); }
 function logErr(e, where){ try{ S.lastErr = { t:new Date().toISOString(), where:where||'', msg:String(e && (e.stack||e.message||e)).slice(0,400), ua:navigator.userAgent.slice(0,80) }; save(); const el = $('#lasterr'); if (el) el.textContent = 'Dernière erreur : ' + S.lastErr.msg; }catch(_){} }
 window.addEventListener('error', e => logErr(e.error || e.message, 'window'));
@@ -160,6 +163,7 @@ const SFX = {
   pour(){ if(!S.sound) return; noise(.35,.12,1800); tone(500,0,.2,'sine',.05); tone(700,.1,.2,'sine',.05); },
   coin(){ if(!S.sound) return; tone(2349,0,.05,'square',.06); tone(3136,.05,.15,'square',.06); },
   bubble(){ if(!S.sound) return; tone(600,0,.08,'sine',.1); tone(1200,.05,.12,'sine',.08); },
+  dice(){ if(!S.sound) return; for (let i=0;i<7;i++) setTimeout(() => { noise(.05,.25,1800); tone(300+Math.random()*300,0,.04,'square',.05); }, i*110); },
   pop(){ if(!S.sound) return; noise(.08,.35,5000); tone(900,0,.05,'sine',.14); tone(1500,.03,.08,'sine',.1); tone(2600,.06,.06,'sine',.06); },
   boom(){ if(!S.sound) return; noise(.5,.45,400); tone(90,0,.5,'sawtooth',.2); },
   thunder(){ if(!S.sound) return; noise(1.4,.6,320); tone(45,0,1.2,'sawtooth',.25); tone(60,.3,1,'sawtooth',.15); },
@@ -227,9 +231,9 @@ const MUSIC_TRACKS = {
   room_arrondi:{bpm:72, lead:'sine', bass:'triangle', vol:.07, perc:'x.......',               // observatoire : spatial, notes longues
           melody:[[0,4],[7,4],[11,4],[12,4],[9,4],[7,4],[4,4],[2,4],[0,4],[7,4],[14,4],[12,4],[11,8],[null,8]],
           bassl:[[-24,8],[-17,8],[-20,8],[-22,8],[-24,8],[-17,8],[-19,8],[-24,8]]},
-  room_complements100:{bpm:104, lead:'triangle', bass:'sawtooth', vol:.05, perc:'x..hx.h.',   // trésor : mystérieux, mineur
-          melody:[[0,2],[3,2],[7,2],[8,2],[7,2],[3,2],[0,4],[-2,2],[2,2],[5,2],[7,2],[5,2],[2,2],[-2,4],[0,2],[3,2],[7,2],[10,2],[12,4],[10,2],[7,2]],
-          bassl:[[-24,4],[-21,4],[-19,4],[-26,4],[-24,4],[-21,4],[-17,4],[-24,4]]},
+  room_des:{bpm:116, lead:'square', bass:'triangle', vol:.05, perc:'x.h.xhh.x.h.x.hh',   // salle de jeux : sautillant, ragtime
+          melody:[[0,1],[4,1],[7,1],[12,1],[9,2],[7,2],[4,1],[5,1],[7,1],[9,1],[7,2],[4,2],[0,1],[4,1],[7,1],[12,1],[14,2],[12,2],[11,1],[9,1],[7,1],[4,1],[0,4]],
+          bassl:[[-24,2],[-12,2],[-19,2],[-7,2],[-22,2],[-10,2],[-17,2],[-5,2],[-24,2],[-12,2],[-20,2],[-8,2],[-19,2],[-7,2],[-24,4]]},
   room_rapides:{bpm:150, lead:'sawtooth', bass:'square', vol:.04, perc:'x.x.x.x.xxx.x.x.',    // forge : marteaux
           melody:[[0,1],[0,1],[3,1],[0,1],[5,1],[0,1],[3,1],[0,1],[2,1],[2,1],[5,1],[2,1],[7,1],[2,1],[5,1],[2,1],[0,1],[3,1],[7,1],[10,1],[12,2],[10,1],[7,1],[5,1],[3,1],[0,2]],
           bassl:[[-24,1],[-24,1],[-24,1],[-24,1],[-24,1],[-24,1],[-21,1],[-22,1],[-22,1],[-22,1],[-22,1],[-22,1],[-22,1],[-22,1],[-19,1],[-20,1],[-24,2],[-24,2],[-19,2],[-17,2]]},

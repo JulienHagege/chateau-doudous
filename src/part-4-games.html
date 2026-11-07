@@ -394,16 +394,33 @@ GAMES.arrondi = { intro:"À l'observatoire, Pegs range les étoiles près de la 
   }};
 }};
 
-/* ---------- Compléments à 50, 100 et plus (Fanfan, la Salle du trésor) ---------- */
-GAMES.complements100 = { intro:'Fanfan remplit le coffre au trésor. Combien manque-t-il ?', gen(level){
-  let a, T;
-  if (level===1){ T = 50; a = pick([rnd(1,4)*10, rnd(1,9)*5]); }
-  else if (level===2){ T = pick([50,100]); a = T===100 ? rnd(1,9)*10 : rnd(1,49); }
-  else if (level===3){ T = 100; a = rnd(11,99); while (a%10===0) a = rnd(11,99); }
-  else if (level===4){ T = pick([200,500]); a = rnd(1, T/10-1)*10; }
-  else { T = 1000; a = pick([rnd(1,99)*10, rnd(101,999)]); }
-  const up = a%10 ? 10-(a%10) : 0; const ex = up ? `${a} + ${up} = ${a+up}, puis ${a+up} + ${T-a-up} = ${T}. En tout ${T-a}.` : `De ${a}, compte de 10 en 10 jusqu'à ${T} : il manque ${T-a}.`;
-  return num(`Le coffre de Fanfan contient ${a} pièces, il en faut ${T}. ${a} + <b>?</b> = ${T}`, T-a, {sub: level>=3 ? "d'abord la dizaine, puis le reste" : '', explain:ex, timeMult: level===1 ? 1.5 : 1}); // niveau 1 : 50 % de temps en plus (demande de Julien)
+/* ---------- Dés et jetons (Fanfan, la Salle de jeux) : lancer de dés animé, puis jetons à compter ---------- */
+const PIPS = {1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+function dieHtml(v, color){ return `<div class="die" data-v="${v}" style="--dc:${color}">${Array.from({length:9},(_,i)=>`<i class="${PIPS[v].includes(i)?'on':''}"></i>`).join('')}</div>`; }
+function rollDice(box, values, onEnd){
+  const dies = [...box.querySelectorAll('.die')]; dies.forEach(d => d.classList.add('rolling')); SFX.dice();
+  const t0 = performance.now(); const iv = setInterval(() => { dies.forEach(d => { const v = rnd(1,6); d.querySelectorAll('i').forEach((p,i) => p.classList.toggle('on', PIPS[v].includes(i))); }); if (performance.now()-t0 > 850){ clearInterval(iv); dies.forEach((d,k) => { d.classList.remove('rolling'); d.classList.add('settle'); d.querySelectorAll('i').forEach((p,i) => p.classList.toggle('on', PIPS[values[k]].includes(i))); }); if (onEnd) onEnd(); } }, 70);
+}
+function jetonsHtml(n, stack){
+  // jetons en piles de `stack` (5 ou 10) étiquetées, puis les unités
+  const piles = stack ? Math.floor(n/stack) : 0, singles = stack ? n%stack : n; const colors = ['#ff6b8a','#7cc4ff','#ffd166','#8de3c0','#c9b6ff'];
+  let h = '';
+  for (let p=0;p<piles;p++) h += `<div class="pile"><div class="stack">${Array.from({length:stack},(_,i)=>`<b class="jeton" style="--jc:${colors[p%5]}; animation-delay:${(p*.08+i*.03).toFixed(2)}s"></b>`).join('')}</div><span>${stack}</span></div>`;
+  h += `<div class="singles">${Array.from({length:singles},(_,i)=>`<b class="jeton" style="--jc:${colors[(piles+i)%5]}; animation-delay:${(piles*.08+i*.06).toFixed(2)}s"></b>`).join('')}</div>`;
+  return `<div class="jetons">${h}</div>`;
+}
+GAMES.des = { intro:'Dans la salle de jeux, Fanfan lance les dés. Additionne les points !', gen(level){
+  const nd = L(level, [2,3,2,3,4]); const dice = Array.from({length:nd}, () => rnd(1,6));
+  const stack = level===4 ? 5 : level===5 ? 10 : 0; const tokens = level===3 ? rnd(2,9) : level===4 ? rnd(6,29) : level===5 ? rnd(12,59) : 0;
+  const ans = dice.reduce((x,y)=>x+y,0) + tokens; const colors = ['#fff','#ffe08a','#b6f2dc','#ffd1dc'];
+  const calc = dice.map(()=>'🎲').join(' + ') + (tokens ? ' + 🔴' : '') + ' = <b>?</b>';
+  return {story:`Fanfan lance ${nd} dés${tokens ? ' et sort ses jetons' : ''}. Combien de points en tout ?`, prompt:calc, kind:'num', answer:ans, show:String(ans), timeMult: tokens ? 2.5 : 1.8,
+    explain:`Les dés : ${dice.join(' + ')} = ${ans-tokens}${tokens ? `, plus ${tokens} jeton${tokens>1?'s':''}${stack ? ' (piles de '+stack+')' : ''} : ${ans}` : ''}.`,
+    render(st){ const box = document.createElement('div'); box.className = 'dicebox'; box.innerHTML = `<div class="dice">${dice.map((v,i)=>dieHtml(v, colors[i%4])).join('')}</div>${tokens ? jetonsHtml(tokens, stack) : ''}<div class="toolrow"><button class="tool" id="reroll">🎲 Revoir le lancer</button></div>`; st.appendChild(box);
+      const jet = box.querySelector('.jetons'); if (jet) jet.style.visibility = 'hidden';
+      const go = () => { if (jet) jet.style.visibility = 'hidden'; rollDice(box, dice, () => { if (jet){ jet.style.visibility = 'visible'; jet.querySelectorAll('.jeton').forEach(j => { j.style.animation = 'none'; void j.offsetWidth; j.style.animation = ''; }); } }); };
+      setTimeout(go, 150); box.querySelector('#reroll').onclick = go; }
+  };
 }};
 
 /* ---------- Additions éclair (Minion, la Forge) ---------- */
@@ -418,7 +435,7 @@ GAMES.rapides = { intro:'À la forge, Minion frappe vite. Réponds en un éclair
 /* ---------- Boss (Vachou) : mélange de tout le château, au niveau déjà réussi dans chaque salle ---------- */
 GAMES.boss = { intro:'Vachou se cache au sommet. Toutes les énigmes du château, en trois vagues !', gen(level, i, n){
   const phase = i < n/3 ? 0 : i < 2*n/3 ? 1 : 2;
-  const pool = phase===0 ? ['formes','doubles','complements','longueurs','bains'] : phase===1 ? ['monnaie','horloge','tables1','soustraction','symetrie','arrondi'] : ['addition','complements100','tables2','rapides','tables2'];
+  const pool = phase===0 ? ['formes','doubles','complements','longueurs','bains'] : phase===1 ? ['monnaie','horloge','tables1','soustraction','symetrie','arrondi'] : ['addition','des','tables2','rapides','tables2'];
   const g = pick(pool); const q = GAMES[g].gen(Math.min(MAX_LEVEL, playedLevel(g))); q.from = g; return q;
 }};
 
