@@ -155,7 +155,7 @@ details.parents summary{cursor:pointer; font-weight:800; color:var(--muted)}
 .stage::before{content:""; position:absolute; inset:0; z-index:-1; background:var(--room-img) center/cover no-repeat; image-rendering:pixelated; opacity:.55}
 .stage::after{content:""; position:absolute; inset:0; z-index:-1; background:linear-gradient(180deg, rgba(10,8,25,.55), rgba(10,8,25,.35) 40%, rgba(10,8,25,.7))}
 .stage > *{position:relative}
-.redo{text-align:center; font-weight:900; color:#3a2a05; background:linear-gradient(180deg,#ffe08a,var(--gold2)); border-radius:12px; padding:8px 14px; margin-bottom:10px; font-size:17px}
+.redo{text-align:center; font-weight:900; color:#3a2a05; background:linear-gradient(180deg,#ffe08a,var(--gold2)); border-radius:12px; padding:8px 14px; margin-top:12px; font-size:17px}
 .redo b{font-family:var(--font-display); font-size:20px}
 .redo small{display:block; font-size:15px; font-weight:700; margin-top:4px; color:#4a3608}
 .redo .exshape{width:84px; height:84px; display:block; margin:4px auto 0}
@@ -1381,7 +1381,7 @@ function redoQuestion(){
   renderQuestion(run.q);
   const q = run.q; const b = document.createElement('div'); b.className = 'redo';
   b.innerHTML = `<div>🔁 Refais-la : la réponse est <b>${esc(q.show)}</b></div>` + (q.explain ? `<small>${fr(esc(q.explain))}</small>` : '') + (q.explainShape ? `<svg viewBox="0 0 120 120" class="exshape">${shapeSvg(q.explainShape, 60, 60, 36, '#ffd166', 0, '', q.explainShape)}</svg>` : '');
-  $('#stage').prepend(b);
+  $('#stage').appendChild(b); // en bas, comme le message d'erreur (demande de Julien)
 }
 function splitPrompt(pr){ const m = pr.match(/^(.+?[.!]) (.+)$/); if (!m) return null; const calc = m[2]; const plain = calc.replace(/<[^>]+>/g,''); if (/^[\d\s+−×÷=?€,cLm]+$/.test(plain) || /^(Le|La) <b>(double|moitié|triple|quart|quadruple)<\/b> de \d+ \?$/.test(calc)) return {story:m[1], calc}; return null; }
 function startTimer(sec){
