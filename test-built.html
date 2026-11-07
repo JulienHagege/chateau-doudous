@@ -1224,7 +1224,7 @@ mapCv.addEventListener('click', e => {
 function enterRoom(room){
   const d = DD[room.dd]; const rs = roomState(room.id); const level = clamp(rs.done+1,1,3);
   // Orage surprise : jamais sur la première salle, jamais au donjon, environ une salle sur trois une fois lancé
-  if (!room.boss && freedCount()>=1 && (S.sinceStorm||0)>=2 && Math.random()<.22){ S.sinceStorm = 0; save(); return startStorm(() => startRoom(room)); }
+  if (!room.boss && freedCount()>=1 && (S.sinceStorm||0)>=2 && Math.random()<STORM_BY_FLOOR[room.floor].p){ S.sinceStorm = 0; save(); return startStorm(() => startRoom(room), false, room.floor); }
   toast(`${GAMES[room.id].intro}`, 3200);
   startRoom(room);
 }
@@ -1233,11 +1233,19 @@ function enterRoom(room){
    ORAGE : les éclairs se rapprochent, la lumière s'éteint, les citrouilles attaquent (multiplications rapides)
    ========================================================= */
 let storm = null;
-function stormTables(){ const n = freedCount(); return n<5 ? [2,3,10] : n<10 ? [2,3,4,5,10] : [2,3,4,5,6,7,8,9,10]; }
-function startStorm(after, test){
-  storm = { after, test, n:6, i:0, hits:0, misses:0, hearts:3, phase:'intro', q:null, done:false, bolts:[], parts:[], drops:[], shake:0, lurk:[], nextBolt:0 };
+// L'orage se corse avec les étages : probabilité, nombre de citrouilles, tables, vitesse
+const STORM_BY_FLOOR = [
+  {p:.10, n:4, tables:[2,10],            bmax:5, dur:9500},
+  {p:.16, n:5, tables:[2,3,5,10],        bmax:9, dur:7500},
+  {p:.22, n:6, tables:[2,3,4,5,6,7,8,9,10], bmax:9, dur:6000},
+  {p:.22, n:6, tables:[3,4,6,7,8,9],     bmax:9, dur:5500}
+];
+function stormTables(){ return STORM_BY_FLOOR[storm.floor].tables; }
+function startStorm(after, test, floor){
+  if (floor==null){ const cur = currentRoom(); floor = cur ? cur.floor : 2; }
+  storm = { after, test, floor, n:STORM_BY_FLOOR[floor].n, i:0, hits:0, misses:0, hearts:3, phase:'intro', q:null, done:false, bolts:[], parts:[], drops:[], shake:0, lurk:[], nextBolt:0 };
   const el = $('#storm'); el.hidden = false; $('#storm-opts').innerHTML = ''; $('#storm-q').textContent = ''; $('#storm-title').textContent = '⛈️ Un orage approche…';
-  $('#storm-score').textContent = '🎃 0 / 6'; $('#storm-hearts').textContent = '❤️❤️❤️';
+  $('#storm-score').textContent = '🎃 0 / ' + storm.n; $('#storm-hearts').textContent = '❤️❤️❤️';
   $('#app').classList.add('dim'); MUSIC.stop();
   const cv = $('#storm-cv'); stormResize();
   for (let i=0;i<220;i++) storm.drops.push({x:Math.random(), y:Math.random(), v:.6+Math.random()*.9, l:8+Math.random()*14});
@@ -1263,8 +1271,8 @@ function flash(op){ const f = $('#storm-flash'); f.style.transition='none'; f.st
 function launchPumpkin(){
   if (!storm || storm.done) return;
   if (storm.i >= storm.n) return endStorm();
-  const tables = stormTables(); const a = pick(tables), b = rnd(2,9); const ans = a*b;
-  const dur = clamp(7500 - freedCount()*160, 4500, 7500);
+  const F = STORM_BY_FLOOR[storm.floor]; const a = pick(F.tables), b = rnd(2, F.bmax); const ans = a*b;
+  const dur = clamp(F.dur - freedCount()*100, 4500, F.dur);
   storm.q = {a,b,ans, born:Date.now(), dur, x:.15+Math.random()*.7, hit:false};
   $('#storm-q').innerHTML = `${a} × ${b} = ?`;
   const box = $('#storm-opts'); box.innerHTML = '';
