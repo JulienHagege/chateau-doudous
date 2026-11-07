@@ -67,7 +67,8 @@ function submit(ok, shown){
     fb.innerHTML = pick(['Bravo !','Super !','Oui !','Génial !','Exact !','Trop fort !']) + ` <small>+${gain} billes</small>`; SFX.ok(); setTimeout(SFX.bille, 150); sparkle($('#room-billes'), '✨');
   } else {
     S.tot.w++; run.errors++; run.hearts--; renderHearts(); SFX.ko(); setTimeout(SFX.lose, 250);
-    fb.innerHTML = fr(shown || ('La réponse était ' + q.show)) + ' <small>On la reverra tout à l\'heure</small>';
+    const loss = Math.min(S.billes, Math.ceil(floor.billes/2)); S.billes -= loss; run.billes -= loss; $('#room-billes').textContent = run.billes;
+    fb.innerHTML = fr(shown || ('La réponse était ' + q.show)) + ` <small>${loss ? '−'+loss+' billes · ' : ''}On la reverra tout à l\'heure</small>`;
     if (run.retry.length<3) run.retry.push({q, at:run.i});
   }
   stage.appendChild(fb); renderProgress(); save();
@@ -80,7 +81,7 @@ function endRoom(won){
   const room = ROOM[run.room], d = DD[room.dd], rs = roomState(room.id);
   const rewards = [];
   if (won){
-    const first = rs.done===0; rs.done++; const bonus = room.boss ? 300 : 50; S.billes += bonus; run.billes += bonus; rewards.push(`<span class="rw" style="color:var(--bille)">+${run.billes} billes</span>`);
+    const first = rs.done===0; rs.done++; const bonus = room.boss ? 300 : 50; S.billes += bonus; run.billes += bonus; rewards.push(`<span class="rw" style="color:var(--bille)">${run.billes>=0?'+':''}${run.billes} billes</span>`);
     if (run.errors===0){ const st = room.boss ? 3 : 1; S.stars += st; rs.perfect++; rewards.push(`<span class="rw" style="color:var(--star)">⭐ ${st===1?'Une étoile : sans faute !':'Trois étoiles : sans faute !'}</span>`); }
     if (rs.best===null || run.errors<rs.best) rs.best = run.errors;
     S.sinceStorm = (S.sinceStorm||0) + 1;
@@ -90,7 +91,7 @@ function endRoom(won){
     const prevH = maxHearts(); save(); if (maxHearts()>prevH){ rewards.push('<span class="rw" style="color:var(--heart)">❤️ Un cœur de plus !</span>'); setTimeout(SFX.heart, 1200); }
     SFX.freed(); confetti(); if (room.boss) setTimeout(MUSIC.play.bind(MUSIC,'home'), 100);
   } else {
-    rewards.push(`<span class="rw" style="color:var(--bille)">+${run.billes} billes quand même</span>`);
+    rewards.push(`<span class="rw" style="color:var(--bille)">${run.billes>=0?'+':''}${run.billes} billes</span>`);
     $('#res-img').src = IMG[d.id]; $('#res-title').textContent = 'Plus de cœurs…'; $('#res-text').textContent = `${d.name} t'attend encore dans ${room.name}. Repose-toi et réessaie, tu vas y arriver !`;
     SFX.fail(); save();
   }
@@ -280,7 +281,7 @@ function stormHit(ok){
     storm.hits++; storm.swing = {t:Date.now(), x, y, sz}; setTimeout(SFX.squash, 180); setTimeout(SFX.bille, 320); const gain = 20; S.billes += gain; $('#storm-score').textContent = `🎃 ${storm.hits} / ${storm.n}`;
     setTimeout(() => { if (!storm) return; for (let i=0;i<70;i++){ const a = Math.random()*Math.PI*2, v = 2+Math.random()*10; storm.parts.push({x, y, vx:Math.cos(a)*v, vy:Math.sin(a)*v-3, s:4+Math.random()*sz*.12, c:pick(['#ff8c00','#ffb347','#ffe066','#c45500','#5a8f29']), t:Date.now(), life:700+Math.random()*600}); } storm.shake = Math.max(storm.shake, 12); }, 180);
   } else {
-    storm.misses++; storm.hearts--; SFX.boom(); flash(.6); storm.shake = 26; storm.redAt = Date.now(); storm.knock = Date.now();
+    storm.misses++; storm.hearts--; SFX.boom(); flash(.6); storm.shake = 26; storm.redAt = Date.now(); storm.knock = Date.now(); S.billes = Math.max(0, S.billes-10);
     $('#storm-hearts').textContent = '❤️'.repeat(storm.hearts) + '🖤'.repeat(3-storm.hearts); $('#storm-q').innerHTML = `${q.a} × ${q.b} = <span style="color:#8de3c0">${q.ans}</span>`;
   }
   setTimeout(() => { if (!storm) return; if (storm.hearts<=0) endStorm(); else launchPumpkin(); }, ok ? 650 : 1400);
