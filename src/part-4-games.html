@@ -47,7 +47,7 @@ function shapeSvg(id, cx, cy, r, color, rot, cls, data){
     if (id==='cone') return g + `<path d="M${-r},${r*.7} L0,${-r*1.2} L${r},${r*.7} a${r},${r*.35} 0 0 1 ${-2*r},0 z" ${st(color)}/><path d="M${-r},${r*.7} a${r},${r*.35} 0 0 0 ${2*r},0" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="4 4"/></g>`;
     if (id==='pyramide') return g + `<polygon points="0,${-r*1.2} ${-r*1.1},${r*.8} ${r*.3},${r*1.05}" ${st(color)}/><polygon points="0,${-r*1.2} ${r*.3},${r*1.05} ${r*1.1},${r*.5}" ${st(d)}/></g>`;
   }
-  const s = SHAPES[id]; const st = `fill="${color}" fill-opacity=".85" stroke="#fff" stroke-width="3" stroke-linejoin="round"`;
+  const s = SHAPES[id]; const st = `fill="${color}" stroke="#fff" stroke-width="3" stroke-linejoin="round"`;
   if (s.circle) return g + `<circle r="${r}" ${st}/></g>`;
   if (s.ellipse) return g + `<ellipse rx="${r*1.3}" ry="${r*.8}" ${st}/></g>`;
   return g + `<polygon points="${s.pts(r).map(p=>p.join(',')).join(' ')}" ${st}/></g>`;
