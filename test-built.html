@@ -127,14 +127,21 @@ details.parents summary{cursor:pointer; font-weight:800; color:var(--muted)}
 
 /* ---------- Salle (mini-jeu) ---------- */
 .room{--acc:var(--gold); --room-bg:#2a2560}
-.roomhead{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px}
+.roomhead{display:grid; grid-template-columns:64px minmax(0,1fr) auto auto; align-items:center; gap:10px; margin-bottom:8px}
+@media (max-width:640px){.roomhead{grid-template-columns:64px minmax(0,1fr) auto} .roomhead .hearts{grid-column:1 / -1; justify-content:center}}
 .roomhead .hide{position:relative; width:64px; height:64px; flex:none}
 .roomhead .hide img{width:64px; height:64px; object-fit:contain; filter:brightness(0) opacity(.5); transition:filter .8s}
 .roomhead .hide::after{content:"?"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-size:30px; color:var(--gold); pointer-events:none}
 .roomhead .hide.free img{filter:none} .roomhead .hide.free::after{display:none}
-.roomhead .meta{min-width:0; flex:1}
+.roomhead .meta{min-width:0}
 .roomhead .meta h2{font-size:20px; color:var(--acc)}
 .roomhead .meta p{margin:0; color:var(--muted); font-size:14px}
+.lvlbadge{display:flex; flex-direction:column; align-items:center; gap:4px; background:linear-gradient(180deg,#ffe08a,var(--gold2)); color:#3a2a05; border-radius:14px; padding:7px 14px; box-shadow:0 3px 0 #8a6a1c; flex:none}
+.lvlbadge b{font-family:var(--font-display); font-size:19px; line-height:1}
+.lvlbadge .dots{display:flex; gap:4px}
+.lvlbadge .dots i{width:10px; height:10px; border-radius:50%; background:rgba(58,42,5,.25)}
+.lvlbadge .dots i.on{background:#3a2a05}
+.lvlbadge.rev{background:linear-gradient(180deg,#b6f2dc,var(--mint2)); color:#06301f; box-shadow:0 3px 0 #1d6b52}
 .hearts{display:flex; gap:3px; flex-wrap:wrap}
 .hearts span{width:22px; height:22px; display:inline-block; background:var(--heart); clip-path:path("M11 20 L2 11 A5 5 0 0 1 11 4 A5 5 0 0 1 20 11 Z"); filter:drop-shadow(0 0 4px rgba(255,107,138,.6))}
 .hearts span.off{background:rgba(255,255,255,.15); filter:none}
@@ -406,6 +413,7 @@ canvas.ruler{width:100%; max-width:640px; height:auto; display:block; border-rad
   <div class="roomhead">
     <div class="hide" id="cage"><img id="cage-img" class="px" alt=""></div>
     <div class="meta"><h2 id="room-name"></h2><p id="room-skill"></p></div>
+    <div class="lvlbadge" id="room-level"><b>Niveau 1</b><span class="dots"></span></div>
     <div class="hearts" id="hearts"></div>
   </div>
   <div class="progress" id="progress"></div>
@@ -891,15 +899,22 @@ function drawRuler(cv, maxCm, ribbons, kanga){
   g.strokeStyle = '#3a2a05'; g.lineWidth = 2; g.font = 'bold 14px Nunito, sans-serif'; g.fillStyle = '#3a2a05'; g.textAlign = 'center';
   const step = maxCm>40 ? 10 : maxCm>20 ? 5 : 1;
   for (let i=0;i<=maxCm;i++){ const x = x0+i*sc; g.beginPath(); g.moveTo(x, y-10); g.lineTo(x, y-10 + (i%10===0?24:i%5===0?18:12)); g.stroke(); if (i%step===0 || i===maxCm) g.fillText(i, x, y+34); }
-  g.fillText('cm', x1+12, y+34);
+  g.textAlign='left'; g.fillText('cm', x1+10, y+10); g.textAlign='center';
   (ribbons||[]).forEach((r, k) => { g.fillStyle = r.color; const ry = 40 + k*34; g.fillRect(x0+r.a*sc, ry, (r.b-r.a)*sc, 22); g.strokeStyle='#fff'; g.lineWidth=2; g.strokeRect(x0+r.a*sc, ry, (r.b-r.a)*sc, 22); if (r.label){ g.fillStyle='#fff'; g.font='bold 16px Fredoka, sans-serif'; g.fillText(r.label, x0+(r.a+r.b)/2*sc, ry+17); } });
-  if (kanga){ const sp = SPR.hugo; const kx = x0 + kanga.pos*sc, ky = y-12 - (kanga.h||0); if (kanga.flag!=null){ g.fillStyle='#ff8fb1'; g.fillRect(x0+kanga.flag*sc-2, y-40, 4, 30); g.beginPath(); g.moveTo(x0+kanga.flag*sc+2, y-40); g.lineTo(x0+kanga.flag*sc+22, y-33); g.lineTo(x0+kanga.flag*sc+2, y-26); g.fill(); }
+  // repères explicites : trait pointillé jusqu'à la règle, flèche et étiquette en cm (départ en bleu, arrivée en jaune)
+  const marker = (cm, color, label, yTop) => { const mx = x0 + cm*sc; g.save(); g.setLineDash([4,4]); g.strokeStyle = color; g.lineWidth = 3; g.beginPath(); g.moveTo(mx, yTop); g.lineTo(mx, y-12); g.stroke(); g.restore();
+    g.fillStyle = color; g.beginPath(); g.moveTo(mx, y-8); g.lineTo(mx-7, y-20); g.lineTo(mx+7, y-20); g.closePath(); g.fill();
+    if (label!=null){ g.font = 'bold 15px Fredoka, Nunito, sans-serif'; const tw = g.measureText(label).width + 12; g.fillStyle = color; g.fillRect(mx-tw/2, yTop-22, tw, 20); g.fillStyle = '#1a1030'; g.textAlign='center'; g.fillText(label, mx, yTop-7); } };
+  if (kanga){ const sp = SPR.hugo; const kx = x0 + kanga.pos*sc, ky = y-12 - (kanga.h||0);
+    if (kanga.flag!=null){ g.fillStyle='#ff8fb1'; g.fillRect(x0+kanga.flag*sc-2, y-40, 4, 30); g.beginPath(); g.moveTo(x0+kanga.flag*sc+2, y-40); g.lineTo(x0+kanga.flag*sc+22, y-33); g.lineTo(x0+kanga.flag*sc+2, y-26); g.fill(); }
+    if (kanga.start!=null) marker(kanga.start, '#7cc4ff', kanga.labels ? kanga.start+' cm' : null, 30);
+    if (kanga.land!=null) marker(kanga.land, '#ffd166', kanga.labels ? kanga.land+' cm' : null, 30);
     if (sp && sp.complete) g.drawImage(sp, kx-28, ky-56, 56, 56); else { g.fillStyle='#c58a4a'; g.fillRect(kx-10, ky-30, 20, 30); } }
 }
-function hopAnim(cv, maxCm, ribbons, from, to, hops, flag, onEnd){
+function hopAnim(cv, maxCm, ribbons, from, to, hops, flag, onEnd, labels){
   const start = performance.now(); const dur = 520*hops;
   function frame(t){ const k = clamp((t-start)/dur,0,1); const hk = k*hops, i = Math.min(Math.floor(hk), hops-1), f = hk - i; const pa = from + (to-from)*i/hops, pb = from + (to-from)*(i+1)/hops; const pos = pa + (pb-pa)*f, h = Math.sin(f*Math.PI)*55;
-    drawRuler(cv, maxCm, ribbons, {pos, h, flag}); if (k<1) requestAnimationFrame(frame); else if (onEnd) onEnd(); }
+    drawRuler(cv, maxCm, ribbons, {pos, h, flag, start:from, land: k>=1 ? to : null, labels}); if (k<1) requestAnimationFrame(frame); else if (onEnd) onEnd(); }
   requestAnimationFrame(frame);
 }
 function cmFromClick(cv, maxCm, e){ const r = cv.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width * 640; return Math.round((x - RUL.x0) / ((RUL.x1-RUL.x0)/maxCm)); }
@@ -930,14 +945,14 @@ GAMES.longueurs = { intro:'Hugo le kangourou saute sur la grande règle. Mesure 
   }
   if (t==='jump'){
     const from = level>=3 ? rnd(1, Math.floor(max*.4)) : 0; const d = rnd(2, Math.min(L(level,[9,9,12,20,30]), max-from)); const to = from+d;
-    return {prompt:`Regarde bien… Hugo a sauté de <b>combien de cm</b> ?`, sub:'Touche Hugo pour revoir le saut', kind:'num', answer:d, suffix:'cm', show:d+' cm', explain:`Hugo est parti de ${from} et arrivé à ${to} : ${to} − ${from} = ${d} cm.`, render(stage){ const cv = document.createElement('canvas'); cv.className='ruler'; stage.appendChild(cv); const play = () => hopAnim(cv, max, [], from, to, 1, null, () => drawRuler(cv, max, [], {pos:to, flag:from})); drawRuler(cv, max, [], {pos:from}); setTimeout(play, 600); cv.onclick = play; }};
+    return {prompt:`Regarde bien… Hugo a sauté de <b>combien de cm</b> ?`, sub:'Touche Hugo pour revoir le saut', kind:'num', answer:d, suffix:'cm', show:d+' cm', explain:`Hugo est parti de ${from} et arrivé à ${to} : ${to} − ${from} = ${d} cm.`, render(stage){ const cv = document.createElement('canvas'); cv.className='ruler'; stage.appendChild(cv); const labels = level>=3; const play = () => hopAnim(cv, max, [], from, to, 1, null, () => drawRuler(cv, max, [], {pos:to, start:from, land:to, labels}), labels); drawRuler(cv, max, [], {pos:from, start:from, labels}); setTimeout(play, 600); cv.onclick = play; }};
   }
   const hops = L(level, [1, rnd(2,3), rnd(2,4), rnd(3,5), rnd(3,6)]); let d = rnd(2, L(level,[8,7,7,10,15])); const from = level>=3 ? rnd(0, Math.floor(max*.2)) : 0; while (from + hops*d > max) d--; const to = from + hops*d;
   const txt = hops===1 ? `Hugo part de <b>${from}</b> et saute de <b>${d} cm</b>.` : `Hugo part de <b>${from}</b> et fait <b>${hops} sauts</b> de <b>${d} cm</b>.`;
   return {prompt:`${txt} Touche la règle là où il va atterrir !`, kind:'custom', answer:to, show:to+' cm', explain:`${hops} saut${hops>1?'s':''} de ${d} cm = ${Array(hops).fill(d).join(' + ')} = ${hops*d} cm${from ? `, et ${from} + ${hops*d} = ${to}` : ''}.`, timeMult:1.5, render(stage, api){
-    const cv = document.createElement('canvas'); cv.className='ruler'; stage.appendChild(cv); drawRuler(cv, max, [], {pos:from});
+    const cv = document.createElement('canvas'); cv.className='ruler'; stage.appendChild(cv); drawRuler(cv, max, [], {pos:from, start:from, labels:true});
     const hint = document.createElement('p'); hint.className='sub'; hint.style.marginTop='6px'; hint.textContent = 'Touche un nombre sur la règle'; stage.appendChild(hint);
-    cv.onclick = e => { if (api.done) return; api.done = true; const cm = clamp(cmFromClick(cv, max, e), 0, max); const ok = cm===to; hint.textContent = ok ? 'Hugo saute… et atterrit pile sur ton drapeau !' : `Tu as touché ${cm} cm, Hugo atterrit à ${to} cm`; hopAnim(cv, max, [], from, to, hops, cm, () => api.answer(ok, ok ? '' : `Hugo est arrivé à ${to} cm, pas à ${cm} cm`)); };
+    cv.onclick = e => { if (api.done) return; api.done = true; const cm = clamp(cmFromClick(cv, max, e), 0, max); const ok = cm===to; hint.textContent = ok ? 'Hugo saute… et atterrit pile sur ton drapeau !' : `Tu as touché ${cm} cm, Hugo atterrit à ${to} cm`; hopAnim(cv, max, [], from, to, hops, cm, () => api.answer(ok, ok ? '' : `Hugo est arrivé à ${to} cm, pas à ${cm} cm`), true); };
   }};
 }};
 
@@ -956,13 +971,21 @@ GAMES.doubles = { intro:'Dans la bibliothèque, Pandou voit tout en double… ou
 
 /* ---------- Symétrie (Manchou, la Salle des miroirs) ---------- */
 GAMES.symetrie = { intro:'Les miroirs de Manchou sont cassés. Complète le reflet !', gen(level){
-  const horiz = level===3 || (level>=4 && Math.random()<.5); const cols = level>=4 ? 8 : 6, rows = horiz ? 6 : 5; const nOn = L(level, [3,5,6,8,10]); const twoColors = level>=5;
+  // grilles de plus en plus grandes : 6x5, 6x5, 6x6, 10x6 (ou 8x8), 12x7 (ou 10x8), avec davantage de cases
+  const horiz = level===3 || (level>=4 && Math.random()<.5); const cols = L(level, [6,6,6, horiz?8:10, horiz?10:12]), rows = horiz ? L(level,[6,6,6,8,8]) : L(level,[5,5,5,6,7]); const nOn = L(level, [3,5,6,11,16]); const twoColors = level>=5;
   const half = horiz ? rows/2 : cols/2; const src = new Map();
   while (src.size<nOn){ const c = horiz ? rnd(0,cols-1) : rnd(0,half-1), r = horiz ? rnd(0,half-1) : rnd(0,rows-1); src.set(r+','+c, twoColors ? rnd(1,2) : 1); }
   const mirror = k => { const [r,c] = k.split(',').map(Number); return horiz ? (rows-1-r)+','+c : r+','+(cols-1-c); };
   const expect = new Map([...src].map(([k,v]) => [mirror(k), v]));
   if (level>=2 && Math.random()<.3){
-    const ok = Math.random()<.5; const shown = new Map([...src, ...expect]); if (!ok){ const arr = [...expect.keys()]; const rm = pick(arr); const v = shown.get(rm); shown.delete(rm); const [r,c] = rm.split(',').map(Number); shown.set(clamp(r+(horiz?0:1),0,rows-1)+','+clamp(c+(horiz?1:0),0,cols-1), v); }
+    const ok = Math.random()<.5; const shown = new Map([...src, ...expect]);
+    if (!ok){
+      // on déplace une case du reflet vers une case voisine libre, du même côté de l'axe : la figure n'est alors plus symétrique
+      const cand = []; for (const rm of shuffle([...expect.keys()])){ const [r,c] = rm.split(',').map(Number);
+        for (const [dr,dc] of shuffle([[1,0],[-1,0],[0,1],[0,-1]])){ const nr = r+dr, nc = c+dc; if (nr<0||nr>=rows||nc<0||nc>=cols) continue; const sameSide = horiz ? nr>=rows/2 : nc>=cols/2; const nk = nr+','+nc; if (!sameSide || shown.has(nk)) continue; cand.push([rm, nk]); break; } if (cand.length) break; }
+      if (cand.length){ const [rm, nk] = cand[0]; const v = shown.get(rm); shown.delete(rm); shown.set(nk, v); }
+      else { const rm = pick([...expect.keys()]); shown.delete(rm); }
+    }
     return {prompt:`Cette figure est-elle <b>symétrique</b> ?`, kind:'custom', answer:ok, show:ok?'oui':'non', explain: ok ? 'Chaque case a sa jumelle de l\'autre côté de la ligne, à la même distance : la figure est symétrique.' : 'Une case n\'a pas sa jumelle à la même distance de l\'autre côté de la ligne : ce n\'est pas symétrique.', render(stage, api){
       stage.innerHTML = `<div class="custom"><div class="sym" id="sym"></div><div class="opts" style="width:min(100%,360px)"><button class="opt" data-v="1">Oui</button><button class="opt" data-v="0">Non</button></div></div>`;
       buildSym(stage.querySelector('#sym'), cols, rows, horiz, shown, null);
@@ -977,10 +1000,11 @@ GAMES.symetrie = { intro:'Les miroirs de Manchou sont cassés. Complète le refl
   }};
 }};
 function buildSym(grid, cols, rows, horiz, on, onTap){
-  grid.style.gridTemplateColumns = `repeat(${cols + (horiz?0:1)}, ${cols>6?34:40}px)`; grid.innerHTML = '';
+  const ncols = cols + (horiz?0:1); const size = Math.max(22, Math.min(40, Math.floor((Math.min(innerWidth, 940) - 80) / ncols) - 4));
+  grid.style.gridTemplateColumns = `repeat(${ncols}, ${size}px)`; grid.innerHTML = '';
   for (let r=0;r<rows + (horiz?1:0);r++){
     for (let c=0;c<cols + (horiz?0:1);c++){
-      const el = document.createElement('div'); el.className = 'c'; if (cols>6){ el.style.width='34px'; el.style.height='34px'; }
+      const el = document.createElement('div'); el.className = 'c'; el.style.width = size+'px'; el.style.height = size+'px';
       if (!horiz && c===cols/2){ el.classList.add('axis','ax-v'); grid.appendChild(el); continue; }
       if (horiz && r===rows/2){ el.classList.add('axis','ax-h'); grid.appendChild(el); continue; }
       const rr = horiz && r>rows/2 ? r-1 : r, cc = !horiz && c>cols/2 ? c-1 : c; const k = rr+','+cc;
@@ -1116,11 +1140,11 @@ GAMES.arrondi = { intro:"À l'observatoire, Pegs range les étoiles près de la 
   const hundreds = level===4 || (level===5 && Math.random()<.5); const span = hundreds ? 1000 : 100; const step = hundreds ? 100 : 10;
   const base = (level===3 || (level===5 && !hundreds)) ? pick([0,100,200,500]) : 0;
   let n = base + rnd(1, span-1); const bad = x => (x%step===0) || (level===1 && x%10===5) || (hundreds && x%100===50 && level<5); while (bad(n)) n = base + rnd(1, span-1);
-  const ans = Math.round(n/step)*step;
+  const ans = Math.round(n/step)*step; const tie = n%step===step/2; // pile au milieu : les deux arrondis sont acceptés
   const lo2 = Math.floor(n/step)*step, hi2 = lo2+step;
-  return {prompt:`Pegs a compté <b>${n}</b> étoiles. Arrondis à la ${hundreds?'centaine':'dizaine'} la plus proche`, sub: level>=2 ? (hundreds ? 'à 50, on arrondit au-dessus' : 'à 5, on arrondit au-dessus') : '', kind:'custom', answer:ans, show:String(ans), explain:`${n} est entre ${lo2} et ${hi2}, plus près de ${ans}${n%step===step/2 ? ' (juste au milieu, on arrondit au-dessus)' : ''}.`, render(stage, api){
+  return {prompt:`Pegs a compté <b>${n}</b> étoiles. Arrondis à la ${hundreds?'centaine':'dizaine'} la plus proche`, sub: level>=2 ? (hundreds ? 'pile à 50, les deux sont justes' : 'pile à 5, les deux sont justes') : '', kind:'custom', answer:ans, show: tie ? `${lo2} ou ${hi2}` : String(ans), explain: tie ? `${n} est juste au milieu entre ${lo2} et ${hi2} : les deux réponses sont justes.` : `${n} est entre ${lo2} et ${hi2}, plus près de ${ans}.`, render(stage, api){
     const lo = base, hi = base+span; const nl = document.createElement('div'); nl.className='numline'; nl.innerHTML = `<div class="ln"></div>`;
-    for (let v=lo; v<=hi; v+=step){ const tk = document.createElement('div'); tk.className='tk'; tk.style.left = (4 + (v-lo)/(hi-lo)*92)+'%'; const b = document.createElement('button'); b.textContent = v; if (hundreds) b.style.fontSize='13px'; b.onclick = () => { if (api.done) return; const ok = v===ans; b.style.background = ok ? '#8de3c0' : '#c9452c'; api.answer(ok); }; tk.appendChild(b); nl.appendChild(tk); }
+    for (let v=lo; v<=hi; v+=step){ const tk = document.createElement('div'); tk.className='tk'; tk.style.left = (4 + (v-lo)/(hi-lo)*92)+'%'; const b = document.createElement('button'); b.textContent = v; if (hundreds) b.style.fontSize='13px'; b.onclick = () => { if (api.done) return; const ok = v===ans || (tie && (v===lo2 || v===hi2)); b.style.background = ok ? '#8de3c0' : '#c9452c'; api.answer(ok); }; tk.appendChild(b); nl.appendChild(tk); }
     const wrap = document.createElement('div'); wrap.className='custom'; wrap.appendChild(nl); stage.appendChild(wrap);
   }};
 }};
@@ -1179,7 +1203,8 @@ function renderRoomHead(){
   el.style.setProperty('--acc', room.acc); el.style.setProperty('--room-bg', room.bg); el.style.setProperty('--room-img', `url(${IMG['bg_'+(room.rev ? 'boss' : room.id)] || IMG.castle})`);
   $('#result').style.setProperty('--room-img', `url(${IMG['bg_'+(room.rev ? 'boss' : room.id)] || IMG.castle})`); $('#result').style.setProperty('--acc', room.acc);
   $('#cage').classList.toggle('free', !!room.rev); $('#cage-img').src = room.rev ? IMG.hero : IMG[d.id]; $('#cage-img').alt = room.rev ? 'Révision' : d.name;
-  $('#room-name').textContent = room.name; $('#room-skill').textContent = room.rev ? room.skill : `${room.skill} · niveau ${run.level} · ${d.name} se cache ici`;
+  $('#room-name').textContent = room.name; $('#room-skill').textContent = room.rev ? room.skill : `${room.skill} · ${d.name} se cache ici`;
+  const lb = $('#room-level'); lb.classList.toggle('rev', !!room.rev); lb.querySelector('b').textContent = room.rev ? 'Révision' : 'Niveau ' + run.level; lb.querySelector('.dots').innerHTML = room.rev ? '' : Array.from({length:MAX_LEVEL}, (_,i) => `<i class="${i<run.level?'on':''}"></i>`).join('');
   renderHearts(); renderProgress(); $('#room-billes').textContent = run.billes;
 }
 function renderHearts(){ const h = $('#hearts'); h.innerHTML = ''; for (let i=0;i<maxHearts();i++){ const s = document.createElement('span'); if (i>=run.hearts) s.className='off'; h.appendChild(s); } }
@@ -1316,6 +1341,14 @@ function cobbleTex(){
 function silhouette(sp, key){ if (SIL[key]) return SIL[key]; const c = document.createElement('canvas'); c.width = sp.width; c.height = sp.height; const g = c.getContext('2d'); g.drawImage(sp,0,0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#0a0818'; g.fillRect(0,0,c.width,c.height); SIL[key] = c; return c; }
 function roundRect(g,x,y,w,h,r){ g.beginPath(); g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r); g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath(); }
 function torch(g,x,y,t){ g.fillStyle='#5a3a1a'; g.fillRect(x-2,y+2,4,9); const fl = 3+Math.sin(t/120)*1.4; const gr = g.createRadialGradient(x,y,1,x,y,30); gr.addColorStop(0,'rgba(255,190,80,.5)'); gr.addColorStop(1,'rgba(255,190,80,0)'); g.fillStyle=gr; g.fillRect(x-30,y-30,60,60); g.fillStyle='#ff9a3c'; g.beginPath(); g.arc(x,y,fl,0,Math.PI*2); g.fill(); g.fillStyle='#fff0a0'; g.beginPath(); g.arc(x,y,fl*.5,0,Math.PI*2); g.fill(); }
+// Badge « Niveau N » avec cinq points, bien visible en bas à droite de chaque salle
+function levelBadge(g, r, px, py, pw, ph, done){
+  const lvl = roomLevel(r.id); const bw = 52, bh = 20, bx = px+12, by = py+ph-bh-12;
+  for (let i=0;i<MAX_LEVEL;i++){ g.fillStyle = i < lvl ? '#ffd166' : 'rgba(255,255,255,.25)'; g.fillRect(bx+2+i*10, by-9, 7, 5); }
+  g.fillStyle = done ? '#ffd166' : 'rgba(10,8,25,.85)'; roundRect(g, bx, by, bw, bh, 7); g.fill(); g.strokeStyle = done ? '#8a6a1c' : 'rgba(255,209,102,.6)'; g.lineWidth = 2; g.stroke();
+  g.font = 'bold 12px Fredoka, Nunito, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = done ? '#3a2a05' : '#ffd166'; g.fillText('Niv. ' + lvl, bx+bw/2, by+bh/2+1);
+  g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+}
 function drawMap(){
   const cv = mapCv; const W = MW*TILE, H = MH*TILE; cv.width = W; cv.height = H; const g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
   const f = mapFloor, L = floorLayout(f); const now = Date.now();
@@ -1353,12 +1386,12 @@ function drawMap(){
     // doudou retrouvé, ou silhouette et point d'interrogation
     const sp = SPR[r.dd]; const cx = px+pw/2, cy = py+ph/2+10;
     if (done){ if (sp && sp.complete){ const bob = Math.sin(now/350 + x)*2; g.drawImage(sp, cx-28, cy-28+bob, 56, 56); }
-      const st = roomState(r.id); g.font='13px sans-serif'; g.fillStyle='#ffe066'; g.fillText('⭐'.repeat(Math.min(3, st.perfect)) || '✔', cx, py+ph-12);
-      g.font='bold 11px Nunito,sans-serif'; g.fillStyle='rgba(255,255,255,.85)'; g.textAlign='right'; g.fillText('niv. '+roomLevel(r.id), px+pw-14, py+ph-12); g.textAlign='center'; }
+      const st = roomState(r.id); g.font='13px sans-serif'; g.fillStyle='#ffe066'; g.textAlign='right'; g.fillText('⭐'.repeat(Math.min(3, st.perfect)) || '✔', px+pw-14, py+ph-16); g.textAlign='center';
+      levelBadge(g, r, px, py, pw, ph, true); }
     else { if (sp && sp.complete){ g.globalAlpha = .55; g.drawImage(silhouette(sp, r.dd), cx-28, cy-28, 56, 56); g.globalAlpha = 1; }
       g.font='bold 26px Fredoka, sans-serif'; g.fillStyle='#ffd166'; g.shadowColor='#ffd166'; g.shadowBlur = 12; g.fillText('?', cx, cy+10); g.shadowBlur = 0;
       if (open){ g.font='16px sans-serif'; g.fillText('✨', cx+34, cy-12+Math.sin(now/300)*3); }
-      g.font='bold 11px Nunito,sans-serif'; g.fillStyle='rgba(255,255,255,.7)'; g.textAlign='right'; g.fillText('niv. '+roomLevel(r.id), px+pw-14, py+ph-12); g.textAlign='center'; }
+      levelBadge(g, r, px, py, pw, ph, false); }
     // porte voûtée (dans la salle pour les salles du haut, sur sa case pour celles du bas)
     const [dx,dy] = r.door; const inside = dy>=y && dy<y+h;
     if (!inside){ g.fillStyle = pat; g.fillRect(dx*TILE+3, dy*TILE, TILE-6, TILE); g.strokeStyle='#1a1530'; g.lineWidth=4; g.strokeRect(dx*TILE+3, dy*TILE-2, TILE-6, TILE+4); }
@@ -1789,6 +1822,8 @@ document.addEventListener('pointerdown', function first(){ if (S.music && screen
     startRoom(ROOM.bains); let prev = null, dup = 0; for (let i=0;i<30;i++){ const sig = run.q.prompt; if (sig===prev) dup++; prev = sig; run.answered = true; run.i = 0; nextQuestion(); } log('doublons consécutifs baignoire', dup); run = null;
     // refaire : une erreur puis la bonne réponse
     startRoom(ROOM.doubles); const q0 = run.q; submit(false); redoQuestion(); log('après erreur : redo', run.redo, 'bandeau', !!$('#stage .redo'), 'cœurs', run.hearts); submit(true); log('bonne réponse au refaire : redo', run.redo, 'i', run.i, 'billes', run.billes); run = null; 
+    // symétrie : les figures annoncées « non » ne doivent jamais être symétriques
+    let badSym = 0, nonCount = 0; for (let lv=2; lv<=5; lv++) for (let i=0;i<400;i++){ const q = GAMES.symetrie.gen(lv); if (q.answer===false){ nonCount++; const st = document.createElement('div'); q.render(st, {done:false, answer(){}}); const on = [...st.querySelectorAll('.c[data-k]')].filter(e => e.classList.contains('on')||e.classList.contains('on2')).map(e => e.dataset.k+':'+(e.classList.contains('on2')?2:1)); const cols = Math.max(...on.map(k=>+k.split(',')[1].split(':')[0]))+1; const horiz = !!st.querySelector('.ax-h'); const ks = [...st.querySelectorAll('.c[data-k]')].map(e=>e.dataset.k.split(',').map(Number)); const C = Math.max(...ks.map(k=>k[1]))+1, R = Math.max(...ks.map(k=>k[0]))+1; const set = new Set(on); let sym = true; for (const k of on){ const [r,c] = k.split(':')[0].split(',').map(Number); const v = k.split(':')[1]; const m = horiz ? (R-1-r)+','+c : r+','+(C-1-c); if (!set.has(m+':'+v)) sym = false; } if (sym) badSym++; } } log('symétrie non', nonCount, 'dont symétriques (bug)', badSym);
     const picks = {}; for (let i=0;i<300;i++){ const [a,b] = pickFact(activeTables()); picks[a] = (picks[a]||0)+1; } log('tirages par table', JSON.stringify(picks));
     for (let f=0; f<4; f++){ openMap(f); drawMap(); } log('carte OK');
     startStorm(null, true); log('orage phase', storm && storm.phase); if (storm){ if (storm.phase!=='play'){ storm.phase='play'; launchPumpkin(); } stormHit(true); if (storm) { launchPumpkin(); stormHit(false); } } log('orage OK, storm =', storm ? 'actif' : 'fermé', 'billes', S.billes);

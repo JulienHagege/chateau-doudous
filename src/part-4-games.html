@@ -190,13 +190,21 @@ GAMES.doubles = { intro:'Dans la bibliothèque, Pandou voit tout en double… ou
 
 /* ---------- Symétrie (Manchou, la Salle des miroirs) ---------- */
 GAMES.symetrie = { intro:'Les miroirs de Manchou sont cassés. Complète le reflet !', gen(level){
-  const horiz = level===3 || (level>=4 && Math.random()<.5); const cols = level>=4 ? 8 : 6, rows = horiz ? 6 : 5; const nOn = L(level, [3,5,6,8,10]); const twoColors = level>=5;
+  // grilles de plus en plus grandes : 6x5, 6x5, 6x6, 10x6 (ou 8x8), 12x7 (ou 10x8), avec davantage de cases
+  const horiz = level===3 || (level>=4 && Math.random()<.5); const cols = L(level, [6,6,6, horiz?8:10, horiz?10:12]), rows = horiz ? L(level,[6,6,6,8,8]) : L(level,[5,5,5,6,7]); const nOn = L(level, [3,5,6,11,16]); const twoColors = level>=5;
   const half = horiz ? rows/2 : cols/2; const src = new Map();
   while (src.size<nOn){ const c = horiz ? rnd(0,cols-1) : rnd(0,half-1), r = horiz ? rnd(0,half-1) : rnd(0,rows-1); src.set(r+','+c, twoColors ? rnd(1,2) : 1); }
   const mirror = k => { const [r,c] = k.split(',').map(Number); return horiz ? (rows-1-r)+','+c : r+','+(cols-1-c); };
   const expect = new Map([...src].map(([k,v]) => [mirror(k), v]));
   if (level>=2 && Math.random()<.3){
-    const ok = Math.random()<.5; const shown = new Map([...src, ...expect]); if (!ok){ const arr = [...expect.keys()]; const rm = pick(arr); const v = shown.get(rm); shown.delete(rm); const [r,c] = rm.split(',').map(Number); shown.set(clamp(r+(horiz?0:1),0,rows-1)+','+clamp(c+(horiz?1:0),0,cols-1), v); }
+    const ok = Math.random()<.5; const shown = new Map([...src, ...expect]);
+    if (!ok){
+      // on déplace une case du reflet vers une case voisine libre, du même côté de l'axe : la figure n'est alors plus symétrique
+      const cand = []; for (const rm of shuffle([...expect.keys()])){ const [r,c] = rm.split(',').map(Number);
+        for (const [dr,dc] of shuffle([[1,0],[-1,0],[0,1],[0,-1]])){ const nr = r+dr, nc = c+dc; if (nr<0||nr>=rows||nc<0||nc>=cols) continue; const sameSide = horiz ? nr>=rows/2 : nc>=cols/2; const nk = nr+','+nc; if (!sameSide || shown.has(nk)) continue; cand.push([rm, nk]); break; } if (cand.length) break; }
+      if (cand.length){ const [rm, nk] = cand[0]; const v = shown.get(rm); shown.delete(rm); shown.set(nk, v); }
+      else { const rm = pick([...expect.keys()]); shown.delete(rm); }
+    }
     return {prompt:`Cette figure est-elle <b>symétrique</b> ?`, kind:'custom', answer:ok, show:ok?'oui':'non', explain: ok ? 'Chaque case a sa jumelle de l\'autre côté de la ligne, à la même distance : la figure est symétrique.' : 'Une case n\'a pas sa jumelle à la même distance de l\'autre côté de la ligne : ce n\'est pas symétrique.', render(stage, api){
       stage.innerHTML = `<div class="custom"><div class="sym" id="sym"></div><div class="opts" style="width:min(100%,360px)"><button class="opt" data-v="1">Oui</button><button class="opt" data-v="0">Non</button></div></div>`;
       buildSym(stage.querySelector('#sym'), cols, rows, horiz, shown, null);
@@ -211,10 +219,11 @@ GAMES.symetrie = { intro:'Les miroirs de Manchou sont cassés. Complète le refl
   }};
 }};
 function buildSym(grid, cols, rows, horiz, on, onTap){
-  grid.style.gridTemplateColumns = `repeat(${cols + (horiz?0:1)}, ${cols>6?34:40}px)`; grid.innerHTML = '';
+  const ncols = cols + (horiz?0:1); const size = Math.max(22, Math.min(40, Math.floor((Math.min(innerWidth, 940) - 80) / ncols) - 4));
+  grid.style.gridTemplateColumns = `repeat(${ncols}, ${size}px)`; grid.innerHTML = '';
   for (let r=0;r<rows + (horiz?1:0);r++){
     for (let c=0;c<cols + (horiz?0:1);c++){
-      const el = document.createElement('div'); el.className = 'c'; if (cols>6){ el.style.width='34px'; el.style.height='34px'; }
+      const el = document.createElement('div'); el.className = 'c'; el.style.width = size+'px'; el.style.height = size+'px';
       if (!horiz && c===cols/2){ el.classList.add('axis','ax-v'); grid.appendChild(el); continue; }
       if (horiz && r===rows/2){ el.classList.add('axis','ax-h'); grid.appendChild(el); continue; }
       const rr = horiz && r>rows/2 ? r-1 : r, cc = !horiz && c>cols/2 ? c-1 : c; const k = rr+','+cc;
@@ -350,11 +359,11 @@ GAMES.arrondi = { intro:"À l'observatoire, Pegs range les étoiles près de la 
   const hundreds = level===4 || (level===5 && Math.random()<.5); const span = hundreds ? 1000 : 100; const step = hundreds ? 100 : 10;
   const base = (level===3 || (level===5 && !hundreds)) ? pick([0,100,200,500]) : 0;
   let n = base + rnd(1, span-1); const bad = x => (x%step===0) || (level===1 && x%10===5) || (hundreds && x%100===50 && level<5); while (bad(n)) n = base + rnd(1, span-1);
-  const ans = Math.round(n/step)*step;
+  const ans = Math.round(n/step)*step; const tie = n%step===step/2; // pile au milieu : les deux arrondis sont acceptés
   const lo2 = Math.floor(n/step)*step, hi2 = lo2+step;
-  return {prompt:`Pegs a compté <b>${n}</b> étoiles. Arrondis à la ${hundreds?'centaine':'dizaine'} la plus proche`, sub: level>=2 ? (hundreds ? 'à 50, on arrondit au-dessus' : 'à 5, on arrondit au-dessus') : '', kind:'custom', answer:ans, show:String(ans), explain:`${n} est entre ${lo2} et ${hi2}, plus près de ${ans}${n%step===step/2 ? ' (juste au milieu, on arrondit au-dessus)' : ''}.`, render(stage, api){
+  return {prompt:`Pegs a compté <b>${n}</b> étoiles. Arrondis à la ${hundreds?'centaine':'dizaine'} la plus proche`, sub: level>=2 ? (hundreds ? 'pile à 50, les deux sont justes' : 'pile à 5, les deux sont justes') : '', kind:'custom', answer:ans, show: tie ? `${lo2} ou ${hi2}` : String(ans), explain: tie ? `${n} est juste au milieu entre ${lo2} et ${hi2} : les deux réponses sont justes.` : `${n} est entre ${lo2} et ${hi2}, plus près de ${ans}.`, render(stage, api){
     const lo = base, hi = base+span; const nl = document.createElement('div'); nl.className='numline'; nl.innerHTML = `<div class="ln"></div>`;
-    for (let v=lo; v<=hi; v+=step){ const tk = document.createElement('div'); tk.className='tk'; tk.style.left = (4 + (v-lo)/(hi-lo)*92)+'%'; const b = document.createElement('button'); b.textContent = v; if (hundreds) b.style.fontSize='13px'; b.onclick = () => { if (api.done) return; const ok = v===ans; b.style.background = ok ? '#8de3c0' : '#c9452c'; api.answer(ok); }; tk.appendChild(b); nl.appendChild(tk); }
+    for (let v=lo; v<=hi; v+=step){ const tk = document.createElement('div'); tk.className='tk'; tk.style.left = (4 + (v-lo)/(hi-lo)*92)+'%'; const b = document.createElement('button'); b.textContent = v; if (hundreds) b.style.fontSize='13px'; b.onclick = () => { if (api.done) return; const ok = v===ans || (tie && (v===lo2 || v===hi2)); b.style.background = ok ? '#8de3c0' : '#c9452c'; api.answer(ok); }; tk.appendChild(b); nl.appendChild(tk); }
     const wrap = document.createElement('div'); wrap.className='custom'; wrap.appendChild(nl); stage.appendChild(wrap);
   }};
 }};
