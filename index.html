@@ -189,6 +189,10 @@ details.parents summary{cursor:pointer; font-weight:800; color:var(--muted)}
 .tool{padding:10px 14px; border-radius:14px; background:rgba(255,255,255,.12); border:2px solid rgba(255,255,255,.22); font-family:var(--font-display); font-size:20px; color:#fff; display:inline-flex; align-items:center; gap:6px}
 .tool:active{transform:scale(.95)}
 .tool.go{background:var(--mint2); border-color:var(--mint); color:#06301f}
+.library{display:flex; flex-wrap:wrap; gap:8px 14px; justify-content:center; width:100%; max-width:660px; margin-bottom:6px}
+.library .shelf{width:min(100%, 300px); height:auto; flex:1 1 240px; max-width:320px}
+.library .bk{animation:bookin .35s ease both; transform-origin:bottom}
+@keyframes bookin{from{transform:translateY(-14px) scale(.6); opacity:0} to{transform:none; opacity:1}}
 svg.shapes{width:100%; max-width:620px; height:auto; display:block}
 svg.shapes .sh{cursor:pointer; transition:transform .1s}
 svg.shapes .sh:active{opacity:.8}
@@ -966,17 +970,31 @@ GAMES.longueurs = { intro:'Hugo le kangourou saute sur la grande règle. Mesure 
   }};
 }};
 
-/* ---------- Doubles et moitiés (Pandou, la Bibliothèque) ---------- */
+/* ---------- Doubles et moitiés (Pandou, la Bibliothèque) : les quantités sont des livres sur des étagères ---------- */
+const BOOK_COLORS = ['#ff8fb1','#ffd166','#8de3c0','#7cc4ff','#c9b6ff','#ffb347','#ff7a5c','#9ef0ff'];
+// Une étagère : n livres (paquets de 10 = gros livre marqué 10, puis les unités), ou vide avec un « ? »
+function shelfSvg(n, label, opts={}){
+  const W = 300, H = 92; const tens = Math.floor(n/10), ones = n%10; let x = 10; let items = '';
+  const showTens = n>20 || opts.tens; let i = 0;
+  if (n===0 || opts.empty){ items = `<text x="${W/2}" y="58" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="30" font-weight="700" fill="#ffd166">?</text>`; }
+  else if (showTens){ for (let k=0;k<tens;k++){ items += `<g class="bk" style="animation-delay:${(i++*.04).toFixed(2)}s"><rect x="${x}" y="22" width="22" height="50" rx="3" fill="${BOOK_COLORS[k%8]}" stroke="#2a1f05" stroke-width="2"/><text x="${x+11}" y="52" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="13" font-weight="700" fill="#2a1f05">10</text></g>`; x += 26; }
+    for (let k=0;k<ones;k++){ items += `<g class="bk" style="animation-delay:${(i++*.04).toFixed(2)}s"><rect x="${x}" y="${34 + (k%2)*4}" width="9" height="${38 - (k%2)*4}" rx="2" fill="${BOOK_COLORS[(k+3)%8]}" stroke="#2a1f05" stroke-width="1.5"/></g>`; x += 11; } }
+  else { const w = n>12 ? 12 : 16, gap = n>12 ? 14 : 18; for (let k=0;k<n;k++){ items += `<g class="bk" style="animation-delay:${(i++*.05).toFixed(2)}s"><rect x="${x}" y="${30 + (k%3)*4}" width="${w}" height="${42 - (k%3)*4}" rx="2" fill="${BOOK_COLORS[k%8]}" stroke="#2a1f05" stroke-width="2"/><rect x="${x+2}" y="${36 + (k%3)*4}" width="${w-4}" height="3" fill="rgba(255,255,255,.5)"/></g>`; x += gap; } }
+  return `<svg viewBox="0 0 ${W} ${H}" class="shelf"><rect x="4" y="74" width="${W-8}" height="10" rx="3" fill="#8a5a2a" stroke="#3a2410" stroke-width="2"/><rect x="4" y="84" width="${W-8}" height="4" fill="#5a3a1a"/>${items}<text x="${W/2}" y="16" text-anchor="middle" font-family="Nunito, sans-serif" font-size="13" font-weight="800" fill="#fff">${label}</text></svg>`;
+}
+function booksScene(stage, shelves){ const d = document.createElement('div'); d.className = 'library'; d.innerHTML = shelves.map(([n, label, opts]) => shelfSvg(n, label, opts)).join(''); stage.appendChild(d); }
 GAMES.doubles = { intro:'Dans la bibliothèque, Pandou voit tout en double… ou en moitié !', gen(level){
-  const what = pick(['livres','bambous','étagères','marque-pages']);
-  if (level>=5 && Math.random()<.3){ const n = pick([rnd(1,25)*4]); return Math.random()<.5 ? num(`Pandou a ${n} ${what}. Le <b>quart</b> de ${n} ?`, n/4, {sub:'le quart = partager en 4', explain:`Le quart de ${n} : ${n/4} + ${n/4} + ${n/4} + ${n/4} = ${n}, donc ${n/4}.`}) : num(`Le <b>quadruple</b> de ${n/4} ${what} ?`, n, {sub:'4 fois plus', explain:`Le quadruple de ${n/4} = ${n/4} × 4 = ${n}.`}); }
-  if (level>=4 && Math.random()<.3){ const n = rnd(2,30); return num(`Pandou empile 3 fois ${n} ${what}. Le <b>triple</b> de ${n} ?`, n*3, {sub:`${n} + ${n} + ${n}`, explain:`Le triple de ${n} = ${n} + ${n} + ${n} = ${n*3}.`}); }
+  const what = pick(['livres','albums','BD','contes']);
+  if (level>=5 && Math.random()<.3){ const n = pick([rnd(1,25)*4]);
+    if (Math.random()<.5) return num(`Pandou a ${n} ${what}. Le <b>quart</b> de ${n} ?`, n/4, {sub:'le quart = partager en 4 paniers égaux', explain:`Le quart de ${n} : ${n/4} + ${n/4} + ${n/4} + ${n/4} = ${n}, donc ${n/4}.`, render(st){ booksScene(st, [[n, `${n} ${what}`, {tens:true}], [0,'panier 1',{empty:true}], [0,'panier 2',{empty:true}], [0,'panier 3',{empty:true}], [0,'panier 4',{empty:true}]]); }});
+    return num(`Le <b>quadruple</b> de ${n/4} ${what} ?`, n, {sub:'4 fois plus', explain:`Le quadruple de ${n/4} = ${n/4} × 4 = ${n}.`, render(st){ booksScene(st, [[n/4,'Pandou'],[n/4,'son jumeau'],[n/4,'sa cousine'],[n/4,'son cousin']]); }}); }
+  if (level>=4 && Math.random()<.3){ const n = rnd(2,30); return num(`Pandou empile 3 fois ${n} ${what}. Le <b>triple</b> de ${n} ?`, n*3, {sub:`${n} + ${n} + ${n}`, explain:`Le triple de ${n} = ${n} + ${n} + ${n} = ${n*3}.`, render(st){ booksScene(st, [[n,'étagère 1'],[n,'étagère 2'],[n,'étagère 3']]); }}); }
   if (Math.random()<.5){
     const n = L(level, [rnd(1,10), pick([rnd(1,15),20,25,30,40,50]), pick([rnd(11,50),rnd(1,30)*2,100]), rnd(26,99), pick([rnd(100,250), rnd(51,99)*2])]);
-    return num(`Pandou a ${n} ${what} et son jumeau autant. Le <b>double</b> de ${n} ?`, n*2, {sub:`${n} + ${n}`, explain:`Le double de ${n}, c'est ${n} + ${n} = ${n*2}.`});
+    return num(`Pandou a ${n} ${what} et son jumeau autant. Le <b>double</b> de ${n} ?`, n*2, {sub:`${n} + ${n}`, explain:`Le double de ${n}, c'est ${n} + ${n} = ${n*2}.`, render(st){ booksScene(st, [[n,`Pandou : ${n}`],[n,`son jumeau : ${n}`]]); }});
   }
   const n = L(level, [rnd(1,10)*2, pick([rnd(1,20)*2,50,100]), rnd(10,50)*2, rnd(25,100)*2, rnd(50,250)*2]);
-  return num(`Pandou partage ${n} ${what} en deux piles égales. La <b>moitié</b> de ${n} ?`, n/2, {sub:'la moitié = partager en 2 parts égales', explain:`La moitié de ${n} : ${n/2} + ${n/2} = ${n}, donc ${n/2}.`});
+  return num(`Pandou partage ${n} ${what} en deux piles égales. La <b>moitié</b> de ${n} ?`, n/2, {sub:'la moitié = partager en 2 paniers égaux', explain:`La moitié de ${n} : ${n/2} + ${n/2} = ${n}, donc ${n/2}.`, render(st){ booksScene(st, [[n, `${n} ${what} à partager`, {tens:n>20}], [0,'panier de Pandou',{empty:true}], [0,'panier du jumeau',{empty:true}]]); }});
 }};
 
 /* ---------- Symétrie (Manchou, la Salle des miroirs) ---------- */

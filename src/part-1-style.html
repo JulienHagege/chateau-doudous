@@ -190,6 +190,10 @@ details.parents summary{cursor:pointer; font-weight:800; color:var(--muted)}
 .tool{padding:10px 14px; border-radius:14px; background:rgba(255,255,255,.12); border:2px solid rgba(255,255,255,.22); font-family:var(--font-display); font-size:20px; color:#fff; display:inline-flex; align-items:center; gap:6px}
 .tool:active{transform:scale(.95)}
 .tool.go{background:var(--mint2); border-color:var(--mint); color:#06301f}
+.library{display:flex; flex-wrap:wrap; gap:8px 14px; justify-content:center; width:100%; max-width:660px; margin-bottom:6px}
+.library .shelf{width:min(100%, 300px); height:auto; flex:1 1 240px; max-width:320px}
+.library .bk{animation:bookin .35s ease both; transform-origin:bottom}
+@keyframes bookin{from{transform:translateY(-14px) scale(.6); opacity:0} to{transform:none; opacity:1}}
 svg.shapes{width:100%; max-width:620px; height:auto; display:block}
 svg.shapes .sh{cursor:pointer; transition:transform .1s}
 svg.shapes .sh:active{opacity:.8}
