@@ -218,8 +218,10 @@ canvas.ruler{width:100%; max-width:640px; height:auto; display:block; border-rad
 .coin.c50{background:radial-gradient(circle at 35% 30%,#fff3b0,#e6c04a 60%,#a98a1f); width:52px; height:52px; font-size:14px}
 .coin.b5,.coin.b10,.coin.b20,.coin.b50{border-radius:8px; width:84px; height:48px; font-size:18px; color:#222}
 .coin.b5{background:#b7c9b5} .coin.b10{background:#e8a7a0} .coin.b20{background:#a9c6e8} .coin.b50{background:#e8c99a}
-.tray{min-height:60px; width:100%; max-width:520px; border:3px dashed rgba(255,255,255,.3); border-radius:14px; display:flex; gap:6px; flex-wrap:wrap; justify-content:center; align-items:center; padding:8px}
-.tray .coin{transform:scale(.8)}
+.tray{min-height:96px; width:100%; max-width:560px; border:3px dashed rgba(255,255,255,.3); border-radius:14px; display:flex; gap:6px; flex-wrap:wrap; justify-content:center; align-content:center; align-items:center; padding:8px}
+.tray .coin{width:44px; height:44px; font-size:12px; border-width:3px; box-shadow:0 2px 0 rgba(0,0,0,.35)}
+.tray .coin.c50{width:38px; height:38px; font-size:11px}
+.tray .coin.b5,.tray .coin.b10,.tray .coin.b20,.tray .coin.b50{width:60px; height:34px; font-size:13px}
 .clocks{display:flex; gap:14px; flex-wrap:wrap; justify-content:center}
 .clocks canvas{width:150px; height:150px; border-radius:50%; cursor:pointer}
 .clocks canvas.single{width:200px; height:200px; cursor:default}
@@ -266,7 +268,7 @@ canvas.ruler{width:100%; max-width:640px; height:auto; display:block; border-rad
   padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px)); padding-block:max(14px, env(safe-area-inset-top,0px)) max(14px, env(safe-area-inset-bottom,0px))}
 #storm .stitle{font-family:var(--font-display); font-size:clamp(24px,5vw,44px); color:#ffb347; text-shadow:0 0 24px rgba(255,140,0,.8), 0 3px 0 #3a1a00; text-align:center; min-height:44px}
 #storm .bottom{display:flex; flex-direction:column; align-items:center; gap:10px; width:min(100%,760px); pointer-events:auto}
-#storm .sq{font-family:var(--font-display); font-size:clamp(34px,8vw,64px); color:#fff; text-align:center; min-height:50px; text-shadow:0 0 20px rgba(255,140,0,.7), 0 4px 0 rgba(0,0,0,.6)}
+#storm .sq{font-family:var(--font-display); font-size:clamp(48px,11vw,96px); color:#fff; text-align:center; min-height:50px; text-shadow:0 0 20px rgba(255,140,0,.7), 0 4px 0 rgba(0,0,0,.6)}
 #storm .opts{width:100%; grid-template-columns:repeat(3,minmax(0,1fr))}
 #storm .opt{background:rgba(40,20,60,.75); border-color:rgba(255,160,60,.6); font-size:clamp(28px,6vw,40px); padding:14px 8px; backdrop-filter:blur(3px)}
 #storm .sinfo{display:flex; gap:16px; color:#ffd9a8; font-weight:900; font-size:17px; flex-wrap:wrap; justify-content:center; text-shadow:0 2px 0 rgba(0,0,0,.6)}
@@ -353,6 +355,7 @@ canvas.ruler{width:100%; max-width:640px; height:auto; display:block; border-rad
           <button class="btn ghost danger" id="btn-reset">Tout effacer</button>
         </div>
         <p id="lasterr" class="sync"></p>
+        <button class="btn ghost" id="btn-clearerr" hidden>Effacer l'erreur</button>
       </details>
     </div>
   </div>
@@ -1134,7 +1137,7 @@ GAMES.addition = { intro:'Chioune enterre ses os et les compte. Aide-le à addit
   else if (level===4){ a = rnd(11,88); b = rnd(11, 99-a); while ((a%10)+(b%10)>9) b = rnd(11, 99-a); }
   else { a = rnd(15,95); b = rnd(15,95); while ((a%10)+(b%10)<10) { a = rnd(15,95); b = rnd(15,95); } }
   const ex = c ? `${a} + ${b} = ${a+b}, puis ${a+b} + ${c} = ${a+b+c}.` : b<10 ? `${a%10} + ${b} = ${a%10+b}, donc ${a} + ${b} = ${a+b}.` : `${a} + ${b} : d'abord les dizaines ${a-(a%10)} + ${b-(b%10)} = ${a-(a%10)+b-(b%10)}, puis les unités ${a%10} + ${b%10} = ${a%10+b%10} : ${a+b}.`;
-  return num(c ? `Chioune a ${a} os, il en trouve ${b} puis ${c}. ${a} + ${b} + ${c} = <b>?</b>` : `Chioune a ${a} os, il en trouve ${b}. ${a} + ${b} = <b>?</b>`, a+b+c, {explain:ex});
+  return num(c ? `Chioune a ${a} os, il en trouve ${b} puis ${c}. ${a} + ${b} + ${c} = <b>?</b>` : `Chioune a ${a} os, il en trouve ${b}. ${a} + ${b} = <b>?</b>`, a+b+c, {explain:ex, timeMult: level===1 ? 1.5 : 1}); // niveau 1 : 50 % de temps en plus (demande de Julien)
 }};
 
 /* ---------- Arrondi (Pegs, l'Observatoire) ---------- */
@@ -1160,7 +1163,7 @@ GAMES.complements100 = { intro:'Fanfan remplit le coffre au trésor. Combien man
   else if (level===4){ T = pick([200,500]); a = rnd(1, T/10-1)*10; }
   else { T = 1000; a = pick([rnd(1,99)*10, rnd(101,999)]); }
   const up = a%10 ? 10-(a%10) : 0; const ex = up ? `${a} + ${up} = ${a+up}, puis ${a+up} + ${T-a-up} = ${T}. En tout ${T-a}.` : `De ${a}, compte de 10 en 10 jusqu'à ${T} : il manque ${T-a}.`;
-  return num(`Le coffre de Fanfan contient ${a} pièces, il en faut ${T}. ${a} + <b>?</b> = ${T}`, T-a, {sub: level>=3 ? "d'abord la dizaine, puis le reste" : '', explain:ex});
+  return num(`Le coffre de Fanfan contient ${a} pièces, il en faut ${T}. ${a} + <b>?</b> = ${T}`, T-a, {sub: level>=3 ? "d'abord la dizaine, puis le reste" : '', explain:ex, timeMult: level===1 ? 1.5 : 1}); // niveau 1 : 50 % de temps en plus (demande de Julien)
 }};
 
 /* ---------- Additions éclair (Minion, la Forge) ---------- */
@@ -1212,6 +1215,7 @@ function renderRoomHead(){
 function renderHearts(){ const h = $('#hearts'); h.innerHTML = ''; for (let i=0;i<maxHearts();i++){ const s = document.createElement('span'); if (i>=run.hearts) s.className='off'; h.appendChild(s); } }
 function renderProgress(){ const p = $('#progress'); p.innerHTML = ''; for (let i=0;i<run.n;i++){ const s = document.createElement('i'); if (run.results[i]===true) s.className='ok'; else if (run.results[i]===false) s.className='ko'; else if (i===run.i) s.className='cur'; p.appendChild(s); } }
 function nextQuestion(){
+  if (!run || screen!=='room') return; // la salle a été quittée pendant le délai après la réponse
   if (run.i >= run.n){ return endRoom(true); }
   const room = ROOM[run.room];
   let q = run.retry.length && Math.random()<.5 && run.i>run.retry[0].at+1 ? run.retry.shift().q : null;
@@ -1295,7 +1299,7 @@ function submit(ok, shown){
   setTimeout(() => maybeCelebrate(nextQuestion), ok ? 900 : 2200);
 }
 function endRoom(won){
-  clearInterval(timerIv); window.onkeydown = null;
+  if (!run) return; clearInterval(timerIv); window.onkeydown = null;
   const room = ROOM[run.room], d = room.rev ? {name:'Révision', desc:'', id:'hero'} : DD[room.dd], rs = roomState(room.id);
   const rewards = [];
   if (won){
@@ -1487,10 +1491,10 @@ function enterRoom(room){
 let storm = null;
 // L'orage se corse avec les étages : probabilité, nombre de citrouilles, tables, vitesse
 const STORM_BY_FLOOR = [
-  {p:.10, n:4, tables:[2,10],            bmax:5, dur:9500},
-  {p:.16, n:5, tables:[2,3,5,10],        bmax:9, dur:7500},
-  {p:.22, n:6, tables:[2,3,4,5,6,7,8,9,10], bmax:9, dur:6000},
-  {p:.22, n:6, tables:[3,4,6,7,8,9],     bmax:9, dur:5500}
+  {p:.07, n:4, tables:[2,10],            bmax:5, dur:9500},
+  {p:.11, n:5, tables:[2,3,5,10],        bmax:9, dur:7500},
+  {p:.15, n:6, tables:[2,3,4,5,6,7,8,9,10], bmax:9, dur:6000},
+  {p:.15, n:6, tables:[3,4,6,7,8,9],     bmax:9, dur:5500}
 ];
 // Tables de l'orage : parmi celles de l'étage, les tables maîtrisées et les deux en cours d'apprentissage
 function stormTables(){ const pool = STORM_BY_FLOOR[storm.floor].tables; const act = activeTables().filter(t => pool.includes(t)); return act.length ? act : pool.slice(0,2); }
@@ -1620,7 +1624,7 @@ function renderHome(){
   $('#btn-enter').textContent = freedCount() ? '🏰 Continuer l\'exploration' : '🏰 Entrer dans le château';
   const par = $('#parade'); par.innerHTML = ROOMS.filter(r => isDone(r.id)).map(r => `<img src="${IMG[r.dd]}" alt="${DD[r.dd].name}" class="px">`).join('');
   $('#tg-sound').setAttribute('aria-pressed', !!S.sound); $('#tg-music').setAttribute('aria-pressed', !!S.music); $('#fab-music').setAttribute('aria-pressed', !!S.music); $('#fab-music').textContent = S.music ? '🎵' : '🔇';
-  $('#lasterr').textContent = S.lastErr ? 'Dernière erreur : ' + S.lastErr.msg : '';
+  $('#lasterr').textContent = S.lastErr ? 'Dernière erreur : ' + S.lastErr.msg : ''; $('#btn-clearerr').hidden = !S.lastErr;
 }
 function renderAlbum(){
   const g = $('#album-grid'); g.innerHTML = '';
@@ -1667,7 +1671,8 @@ $('#btn-revise').onclick = () => { SFX.click(); startRoom(ROOM.revision); };
 $('#btn-celebrate').onclick = () => { SFX.click(); $('#celebrate').hidden = true; const then = celebrateThen; celebrateThen = null; maybeCelebrate(then); };
 $('#btn-album-back').onclick = () => { SFX.click(); renderHome(); show('home'); };
 $('#btn-map-back').onclick = () => { SFX.click(); renderHome(); show('home'); MUSIC.play('home'); };
-$('#btn-quit').onclick = () => { if (!run) return; clearInterval(timerIv); window.onkeydown = null; run = null; SFX.click(); hero.floor = -1; openMap(); };
+$('#btn-quit').onclick = () => { if (!run) return; clearInterval(timerIv); window.onkeydown = null; run = null; S.celebrateQueue = S.celebrateQueue || []; SFX.click(); hero.floor = -1; openMap(); };
+$('#btn-clearerr').onclick = () => { delete S.lastErr; save(); $('#lasterr').textContent = ''; };
 $('#btn-res-map').onclick = () => { SFX.click(); hero.floor = -1; if (ROOMS.every(r => isDone(r.id))) startCycle(); else openMap(); };
 $('#btn-res-again').onclick = () => { SFX.click(); if ($('#res-img').getAttribute('src')===IMG.hero) return startRoom(ROOM.revision); const room = ROOMS.find(r => IMG[r.dd]===$('#res-img').getAttribute('src')); if (room) enterRoom(room); else openMap(); };
 $('#tg-sound').onclick = () => { S.sound = !S.sound; save(); renderHome(); if (S.sound) SFX.ok(); };
@@ -1831,6 +1836,7 @@ document.addEventListener('pointerdown', function first(){ if (S.music && screen
     // symétrie : les figures annoncées « non » ne doivent jamais être symétriques
     let badSym = 0, nonCount = 0; for (let lv=2; lv<=5; lv++) for (let i=0;i<400;i++){ const q = GAMES.symetrie.gen(lv); if (q.answer===false){ nonCount++; const st = document.createElement('div'); q.render(st, {done:false, answer(){}}); const on = [...st.querySelectorAll('.c[data-k]')].filter(e => e.classList.contains('on')||e.classList.contains('on2')).map(e => e.dataset.k+':'+(e.classList.contains('on2')?2:1)); const cols = Math.max(...on.map(k=>+k.split(',')[1].split(':')[0]))+1; const horiz = !!st.querySelector('.ax-h'); const ks = [...st.querySelectorAll('.c[data-k]')].map(e=>e.dataset.k.split(',').map(Number)); const C = Math.max(...ks.map(k=>k[1]))+1, R = Math.max(...ks.map(k=>k[0]))+1; const set = new Set(on); let sym = true; for (const k of on){ const [r,c] = k.split(':')[0].split(',').map(Number); const v = k.split(':')[1]; const m = horiz ? (R-1-r)+','+c : r+','+(C-1-c); if (!set.has(m+':'+v)) sym = false; } if (sym) badSym++; } } log('symétrie non', nonCount, 'dont symétriques (bug)', badSym);
     let split = 0, tot = 0; for (const r of ROOMS){ if (r.boss) continue; for (let lv=1; lv<=5; lv++) for (let i=0;i<10;i++){ const q = GAMES[r.id].gen(lv); tot++; if (q.story || splitPrompt(q.prompt)) split++; } } log('découpe histoire/calcul', split, 'sur', tot);
+    startRoom(ROOM.doubles); submit(true); $('#btn-quit').click(); let crashed = false; try{ nextQuestion(); maybeCelebrate(nextQuestion); }catch(e){ crashed = true; } log('quitter pendant le délai : crash', crashed, 'écran', screen, 'run', run);
     const picks = {}; for (let i=0;i<300;i++){ const [a,b] = pickFact(activeTables()); picks[a] = (picks[a]||0)+1; } log('tirages par table', JSON.stringify(picks));
     for (let f=0; f<4; f++){ openMap(f); drawMap(); } log('carte OK');
     startStorm(null, true); log('orage phase', storm && storm.phase); if (storm){ if (storm.phase!=='play'){ storm.phase='play'; launchPumpkin(); } stormHit(true); if (storm) { launchPumpkin(); stormHit(false); } } log('orage OK, storm =', storm ? 'actif' : 'fermé', 'billes', S.billes);

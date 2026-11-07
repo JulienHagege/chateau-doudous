@@ -353,6 +353,7 @@ canvas.ruler{width:100%; max-width:640px; height:auto; display:block; border-rad
           <button class="btn ghost danger" id="btn-reset">Tout effacer</button>
         </div>
         <p id="lasterr" class="sync"></p>
+        <button class="btn ghost" id="btn-clearerr" hidden>Effacer l'erreur</button>
       </details>
     </div>
   </div>
@@ -1212,6 +1213,7 @@ function renderRoomHead(){
 function renderHearts(){ const h = $('#hearts'); h.innerHTML = ''; for (let i=0;i<maxHearts();i++){ const s = document.createElement('span'); if (i>=run.hearts) s.className='off'; h.appendChild(s); } }
 function renderProgress(){ const p = $('#progress'); p.innerHTML = ''; for (let i=0;i<run.n;i++){ const s = document.createElement('i'); if (run.results[i]===true) s.className='ok'; else if (run.results[i]===false) s.className='ko'; else if (i===run.i) s.className='cur'; p.appendChild(s); } }
 function nextQuestion(){
+  if (!run || screen!=='room') return; // la salle a été quittée pendant le délai après la réponse
   if (run.i >= run.n){ return endRoom(true); }
   const room = ROOM[run.room];
   let q = run.retry.length && Math.random()<.5 && run.i>run.retry[0].at+1 ? run.retry.shift().q : null;
@@ -1295,7 +1297,7 @@ function submit(ok, shown){
   setTimeout(() => maybeCelebrate(nextQuestion), ok ? 900 : 2200);
 }
 function endRoom(won){
-  clearInterval(timerIv); window.onkeydown = null;
+  if (!run) return; clearInterval(timerIv); window.onkeydown = null;
   const room = ROOM[run.room], d = room.rev ? {name:'Révision', desc:'', id:'hero'} : DD[room.dd], rs = roomState(room.id);
   const rewards = [];
   if (won){
@@ -1620,7 +1622,7 @@ function renderHome(){
   $('#btn-enter').textContent = freedCount() ? '🏰 Continuer l\'exploration' : '🏰 Entrer dans le château';
   const par = $('#parade'); par.innerHTML = ROOMS.filter(r => isDone(r.id)).map(r => `<img src="${IMG[r.dd]}" alt="${DD[r.dd].name}" class="px">`).join('');
   $('#tg-sound').setAttribute('aria-pressed', !!S.sound); $('#tg-music').setAttribute('aria-pressed', !!S.music); $('#fab-music').setAttribute('aria-pressed', !!S.music); $('#fab-music').textContent = S.music ? '🎵' : '🔇';
-  $('#lasterr').textContent = S.lastErr ? 'Dernière erreur : ' + S.lastErr.msg : '';
+  $('#lasterr').textContent = S.lastErr ? 'Dernière erreur : ' + S.lastErr.msg : ''; $('#btn-clearerr').hidden = !S.lastErr;
 }
 function renderAlbum(){
   const g = $('#album-grid'); g.innerHTML = '';
@@ -1667,7 +1669,8 @@ $('#btn-revise').onclick = () => { SFX.click(); startRoom(ROOM.revision); };
 $('#btn-celebrate').onclick = () => { SFX.click(); $('#celebrate').hidden = true; const then = celebrateThen; celebrateThen = null; maybeCelebrate(then); };
 $('#btn-album-back').onclick = () => { SFX.click(); renderHome(); show('home'); };
 $('#btn-map-back').onclick = () => { SFX.click(); renderHome(); show('home'); MUSIC.play('home'); };
-$('#btn-quit').onclick = () => { if (!run) return; clearInterval(timerIv); window.onkeydown = null; run = null; SFX.click(); hero.floor = -1; openMap(); };
+$('#btn-quit').onclick = () => { if (!run) return; clearInterval(timerIv); window.onkeydown = null; run = null; S.celebrateQueue = S.celebrateQueue || []; SFX.click(); hero.floor = -1; openMap(); };
+$('#btn-clearerr').onclick = () => { delete S.lastErr; save(); $('#lasterr').textContent = ''; };
 $('#btn-res-map').onclick = () => { SFX.click(); hero.floor = -1; if (ROOMS.every(r => isDone(r.id))) startCycle(); else openMap(); };
 $('#btn-res-again').onclick = () => { SFX.click(); if ($('#res-img').getAttribute('src')===IMG.hero) return startRoom(ROOM.revision); const room = ROOMS.find(r => IMG[r.dd]===$('#res-img').getAttribute('src')); if (room) enterRoom(room); else openMap(); };
 $('#tg-sound').onclick = () => { S.sound = !S.sound; save(); renderHome(); if (S.sound) SFX.ok(); };
