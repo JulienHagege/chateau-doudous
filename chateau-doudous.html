@@ -1135,7 +1135,7 @@ GAMES.addition = { intro:'Chioune enterre ses os et les compte. Aide-le à addit
   else if (level===4){ a = rnd(11,88); b = rnd(11, 99-a); while ((a%10)+(b%10)>9) b = rnd(11, 99-a); }
   else { a = rnd(15,95); b = rnd(15,95); while ((a%10)+(b%10)<10) { a = rnd(15,95); b = rnd(15,95); } }
   const ex = c ? `${a} + ${b} = ${a+b}, puis ${a+b} + ${c} = ${a+b+c}.` : b<10 ? `${a%10} + ${b} = ${a%10+b}, donc ${a} + ${b} = ${a+b}.` : `${a} + ${b} : d'abord les dizaines ${a-(a%10)} + ${b-(b%10)} = ${a-(a%10)+b-(b%10)}, puis les unités ${a%10} + ${b%10} = ${a%10+b%10} : ${a+b}.`;
-  return num(c ? `Chioune a ${a} os, il en trouve ${b} puis ${c}. ${a} + ${b} + ${c} = <b>?</b>` : `Chioune a ${a} os, il en trouve ${b}. ${a} + ${b} = <b>?</b>`, a+b+c, {explain:ex});
+  return num(c ? `Chioune a ${a} os, il en trouve ${b} puis ${c}. ${a} + ${b} + ${c} = <b>?</b>` : `Chioune a ${a} os, il en trouve ${b}. ${a} + ${b} = <b>?</b>`, a+b+c, {explain:ex, timeMult: level===1 ? 1.5 : 1}); // niveau 1 : 50 % de temps en plus (demande de Julien)
 }};
 
 /* ---------- Arrondi (Pegs, l'Observatoire) ---------- */
