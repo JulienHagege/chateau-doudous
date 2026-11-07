@@ -982,9 +982,10 @@ GAMES.doubles = { intro:'Dans la bibliothèque, Pandou voit tout en double… ou
 /* ---------- Symétrie (Manchou, la Salle des miroirs) ---------- */
 GAMES.symetrie = { intro:'Les miroirs de Manchou sont cassés. Complète le reflet !', gen(level){
   // grilles de plus en plus grandes : 6x5, 6x5, 6x6, 10x6 (ou 8x8), 12x7 (ou 10x8), avec davantage de cases
-  const horiz = level===3 || (level>=4 && Math.random()<.5); const cols = L(level, [6,6,6, horiz?8:10, horiz?10:12]), rows = horiz ? L(level,[6,6,6,8,8]) : L(level,[5,5,5,6,7]); const nOn = L(level, [3,5,6,11,16]); const twoColors = level>=5;
+  // niveau 1 très doux : petite grille 4x4, 2 cases, cases proches de l'axe ; puis 6x5, 6x6 (axe horizontal), 10x6 ou 8x8, 12x7 ou 10x8
+  const horiz = level===3 || (level>=4 && Math.random()<.5); const cols = L(level, [4,6,6, horiz?8:10, horiz?10:12]), rows = horiz ? L(level,[6,6,6,8,8]) : L(level,[4,5,5,6,7]); const nOn = L(level, [2,4,6,11,16]); const twoColors = level>=5;
   const half = horiz ? rows/2 : cols/2; const src = new Map();
-  while (src.size<nOn){ const c = horiz ? rnd(0,cols-1) : rnd(0,half-1), r = horiz ? rnd(0,half-1) : rnd(0,rows-1); src.set(r+','+c, twoColors ? rnd(1,2) : 1); }
+  while (src.size<nOn){ const c = horiz ? rnd(0,cols-1) : (level===1 ? rnd(Math.max(0,half-2),half-1) : rnd(0,half-1)), r = horiz ? rnd(0,half-1) : rnd(0,rows-1); src.set(r+','+c, twoColors ? rnd(1,2) : 1); }
   const mirror = k => { const [r,c] = k.split(',').map(Number); return horiz ? (rows-1-r)+','+c : r+','+(cols-1-c); };
   const expect = new Map([...src].map(([k,v]) => [mirror(k), v]));
   if (level>=2 && Math.random()<.3){
@@ -1002,7 +1003,7 @@ GAMES.symetrie = { intro:'Les miroirs de Manchou sont cassés. Complète le refl
       stage.querySelectorAll('.opt').forEach(b => b.onclick = () => { const v = b.dataset.v==='1'; b.classList.add(v===ok?'ok':'ko'); api.answer(v===ok); });
     }};
   }
-  return {prompt:`Complète le <b>reflet</b> dans le miroir de Manchou`, sub: twoColors ? 'Touche une case pour changer sa couleur, puis Vérifier' : 'Touche les cases, puis Vérifier', kind:'custom', answer:true, show:'le reflet exact', explain:'Dans un miroir, chaque case se retrouve de l\'autre côté de la ligne, à la même distance (les cases vertes).', timeMult:3, render(stage, api){
+  return {prompt:`Complète le <b>reflet</b> dans le miroir de Manchou`, sub: twoColors ? 'Touche une case pour changer sa couleur, puis Vérifier' : level===1 ? `Colorie ${nOn} cases à droite, comme dans un miroir, puis Vérifier` : 'Touche les cases, puis Vérifier', kind:'custom', answer:true, show:'le reflet exact', explain:'Dans un miroir, chaque case se retrouve de l\'autre côté de la ligne, à la même distance (les cases vertes).', timeMult:3, render(stage, api){
     stage.innerHTML = `<div class="custom"><div class="sym" id="sym"></div><div class="toolrow"><button class="tool go" id="check">✔ Vérifier</button></div></div>`;
     const sel = new Map(); const grid = stage.querySelector('#sym');
     buildSym(grid, cols, rows, horiz, src, (k, el) => { const cur = sel.get(k)||0; const next = twoColors ? (cur+1)%3 : (cur?0:1); if (next) sel.set(k, next); else sel.delete(k); el.classList.toggle('on', next===1); el.classList.toggle('on2', next===2); SFX.click(); });
