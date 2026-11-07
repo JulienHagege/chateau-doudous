@@ -47,7 +47,7 @@ function renderQuestion(q){
   if (q.kind==='custom'){ const box = document.createElement('div'); stage.appendChild(box); q.render(box, api); return; }
   if (q.render){ const box = document.createElement('div'); box.className='custom'; stage.appendChild(box); q.render(box, api); }
   if (q.kind==='qcm'){
-    const box = document.createElement('div'); box.className = 'opts' + (q.options.length===3 ? ' three' : ''); stage.appendChild(box);
+    const box = document.createElement('div'); box.className = 'opts' + (q.options.length===3 ? ' three' : q.options.length===2 ? ' two' : ''); stage.appendChild(box);
     q.options.forEach(o => { const b = document.createElement('button'); b.className='opt'; b.textContent = o; b.onclick = () => { if (run.answered) return; const ok = String(o)===String(q.answer); b.classList.add(ok?'ok':'ko'); if (!ok) box.querySelectorAll('.opt').forEach(x => { if (String(x.textContent)===String(q.answer)) x.classList.add('ok'); }); submit(ok); }; box.appendChild(b); });
   } else if (q.kind==='num'){
     const entry = document.createElement('div'); entry.className='entry'; entry.innerHTML = `<span class="val" id="val"></span>${q.suffix?'<span>'+q.suffix+'</span>':''}`; stage.appendChild(entry);
@@ -139,7 +139,7 @@ function hash(x,y){ let h = (x*374761393 + y*668265263) ^ 0x5bd1e995; h = (h ^ (
 function floorLayout(f){
   const rooms = ROOMS.filter(r => r.floor===f);
   // couloir : barre horizontale rangées 5-6 (ou autour du donjon), escalier à droite, entrée en bas au centre
-  const corr = f===3 ? [[9,9,2,3]] : [[1,5,18,2],[9,7,2,4]];
+  const corr = f===3 ? [[1,8,18,2],[9,10,2,2]] : [[1,5,18,2],[9,7,2,4]];
   const stairs = f===3 ? null : [19,5,1,1];
   return {rooms, corr, stairs};
 }
@@ -183,10 +183,10 @@ function drawMap(){
     g.fillStyle = '#e0b84a'; if (horiz){ g.fillRect(x*TILE,(y+h/2)*TILE-11,w*TILE,2); g.fillRect(x*TILE,(y+h/2)*TILE+9,w*TILE,2); } else { g.fillRect((x+w/2)*TILE-11,y*TILE,2,h*TILE); g.fillRect((x+w/2)*TILE+9,y*TILE,2,h*TILE); }
     g.strokeStyle = '#1a1530'; g.lineWidth = 5; g.strokeRect(x*TILE+2, y*TILE+2, w*TILE-4, h*TILE-4);
     g.strokeStyle = 'rgba(255,255,255,.08)'; g.lineWidth = 2; g.strokeRect(x*TILE+6, y*TILE+6, w*TILE-12, h*TILE-12);
-    if (horiz) for (let i=2;i<w;i+=4) torch(g, (x+i)*TILE, y*TILE+8, now+i*300);
+    if (horiz && w>4) for (let i=2;i<w;i+=4) torch(g, (x+i)*TILE, y*TILE+8, now+i*300);
   });
   // entrée
-  if (f<3){ g.fillStyle = pat; g.fillRect(9*TILE, 11*TILE, 2*TILE, TILE); g.fillStyle='#1a1530'; g.fillRect(9*TILE+6, 11*TILE+8, 2*TILE-12, TILE-8); g.fillStyle='#7a4a1a'; roundRect(g, 9*TILE+10, 11*TILE+10, 2*TILE-20, TILE, 12); g.fill(); g.fillStyle='#ffd166'; g.fillRect(10*TILE-2, 11*TILE+20, 4, 4); g.font='bold 12px Nunito,sans-serif'; g.fillStyle='#fff'; g.textAlign='center'; g.fillText(f===0?'Entrée':'Escalier', 10*TILE, 11*TILE+5); }
+  { g.fillStyle = pat; g.fillRect(9*TILE, 11*TILE, 2*TILE, TILE); g.fillStyle='#1a1530'; g.fillRect(9*TILE+6, 11*TILE+8, 2*TILE-12, TILE-8); g.fillStyle='#7a4a1a'; roundRect(g, 9*TILE+10, 11*TILE+10, 2*TILE-20, TILE, 12); g.fill(); g.fillStyle='#ffd166'; g.fillRect(10*TILE-2, 11*TILE+20, 4, 4); g.font='bold 12px Nunito,sans-serif'; g.fillStyle='#fff'; g.textAlign='center'; g.fillText(f===0?'Entrée':'Escalier', 10*TILE, 11*TILE+5); }
   // salles : fenêtre sur le décor
   L.rooms.forEach(r => {
     const [x,y,w,h] = r.rect; const px = x*TILE, py = y*TILE, pw = w*TILE, ph = h*TILE; const done = isDone(r.id), open = roomUnlocked(r); const bg = SPR['bg_'+r.id];
@@ -244,7 +244,7 @@ function walkable(f, x, y){
   if (room) return rev.has(room.id) ? room : 'locked';
   if (L.corr.some(c => x>=c[0] && x<c[0]+c[2] && y>=c[1] && y<c[1]+c[3])) return true;
   if (L.stairs && x===L.stairs[0] && y===L.stairs[1]) return true;
-  if (f<3 && y===11 && (x===9||x===10)) return true;
+  if (y===11 && (x===9||x===10)) return true;
   return false;
 }
 function heroMove(dx, dy){
@@ -274,7 +274,7 @@ function openMap(f, at){
   const fl = $('#floors'); fl.innerHTML = ''; FLOORS.forEach((F, i) => { const b = document.createElement('button'); b.textContent = F.short; b.disabled = !floorUnlocked(i); b.setAttribute('aria-current', i===f); b.onclick = () => { SFX.click(); openMap(i); }; fl.appendChild(b); });
   const cur = ROOMS.find(r => r.floor===f && !isDone(r.id) && roomUnlocked(r));
   const left = ROOMS.filter(r => r.floor===f && !isDone(r.id)).length;
-  $('#maphint').textContent = fr(left ? (f===3 ? `✨ Vachou se cache au sommet. ${FLOORS[f].intro}` : `✨ ${left} doudou${left>1?'s':''} à retrouver à cet étage, dans l'ordre que tu veux. ${FLOORS[f].intro}`) : (floorUnlocked(f+1) ? 'Étage terminé ! Prends l\'escalier en haut à droite.' : 'Touche une salle pour la rejouer.'));
+  $('#maphint').textContent = fr(left ? (f===3 ? (isDone('rangement') ? `✨ Vachou se cache au sommet. ${FLOORS[f].intro}` : `✨ Meryl range le grenier, Vachou attend au donjon. ${FLOORS[f].intro}`) : `✨ ${left} doudou${left>1?'s':''} à retrouver à cet étage, dans l'ordre que tu veux. ${FLOORS[f].intro}`) : (floorUnlocked(f+1) ? 'Étage terminé ! Prends l\'escalier en haut à droite.' : 'Touche une salle pour la rejouer.'));
   MUSIC.play(f===3 ? 'tower' : 'floor'+f);
   show('mapscreen'); if (!mapAnim) mapLoop();
 }
@@ -455,7 +455,7 @@ let intro = null;
 function introPanels(){
   const n = S.name || 'Notre héroïne'; const all = DOUDOUS.map(d => `<img src="${IMG[d.id]}" alt="${d.name}" class="px">`).join('');
   return [
-    {scene:`<img class="bg px" src="${IMG.castle}" alt=""><div class="night"></div>`, text:`Il était une fois un grand château, tout en haut d'une colline. ${n} y vivait avec ses 16 doudous.`},
+    {scene:`<img class="bg px" src="${IMG.castle}" alt=""><div class="night"></div>`, text:`Il était une fois un grand château, tout en haut d'une colline. ${n} y vivait avec ses ${ROOMS.length} doudous.`},
     {scene:`<div class="row" id="intro-row">${all}</div><div class="flash" id="intro-flash"></div>`, text:`Une nuit, un orage terrible a éclaté. BOUM ! Les doudous ont eu très peur et se sont enfuis.`, fx:'storm'},
     {scene:`<img class="bg px" src="${IMG.castle}" alt="" style="filter:brightness(.5)"><div class="night"></div>`, text:`Ils se sont cachés dans toutes les pièces du château. Chaque porte est fermée par une énigme.`},
     {scene:`<img class="bg px" src="${IMG.castle}" alt="" style="filter:brightness(.35) blur(1px)"><img class="hero px" src="${IMG.hero}" alt=""><img class="side px" style="left:18%" src="${IMG.crabou}" alt=""><img class="side px" style="right:18%" src="${IMG.poulpou}" alt="">`, text:`${n} prend sa lanterne. Résous l'énigme d'une salle et le doudou qui s'y cache revient avec toi ! Crabou est tout près de l'entrée.`, fx:'door'},

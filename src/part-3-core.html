@@ -30,6 +30,7 @@ const DOUDOUS = [
   {id:'manchou',  name:'Manchou',   desc:'le gorfou aux plumes jaunes'},
   {id:'pandou',   name:'Pandou',    desc:'le panda'},
   {id:'hugo',     name:'Hugo',      desc:'le petit kangourou'},
+  {id:'meryl',    name:'Meryl',     desc:'le kangourou tout clair'},
   {id:'poulpou',  name:'Poulpou',   desc:'la petite pieuvre'},
   {id:'crabou',   name:'Crabou',    desc:'le crabe'}
 ];
@@ -64,7 +65,8 @@ const ROOMS = [
   {id:'rapides',  floor:2, dd:'minion',   name:'La Forge',                skill:'Additions éclair',         acc:'#ff7a5c', bg:'#3a1510', rect:[2,8,7,3],   door:[5,7],  n:12},
   {id:'tables2',  floor:2, dd:'pengouins',name:'La Salle du trône',       skill:'Toutes les tables',        acc:'#ffd166', bg:'#2a1a3a', rect:[11,8,7,3],  door:[14,7], n:10},
 
-  {id:'boss',     floor:3, dd:'vachou',   name:'Le Donjon de la Tour',    skill:'Toutes les énigmes',       acc:'#ff8fb1', bg:'#1a1030', rect:[6,2,8,6],   door:[9,8],  n:15, boss:true}
+  {id:'rangement',floor:3, dd:'meryl',    name:'Le Grenier',              skill:'Ranger les nombres',       acc:'#c9b6ff', bg:'#2a2040', rect:[14,3,5,4],  door:[16,7], n:8},
+  {id:'boss',     floor:3, dd:'vachou',   name:'Le Donjon de la Tour',    skill:'Toutes les énigmes',       acc:'#ff8fb1', bg:'#1a1030', rect:[2,1,10,6],  door:[7,7],  n:15, boss:true}
 ];
 const ROOM = Object.fromEntries(ROOMS.map(r => [r.id, r]));
 ROOM.revision = {id:'revision', floor:1, dd:'vachou', name:'Révision du carnet', skill:'Les multiplications et notions à revoir', acc:'#ffd166', bg:'#2a2560', n:10, rev:true};
@@ -240,6 +242,9 @@ const MUSIC_TRACKS = {
   room_tables2:{bpm:108, lead:'triangle', bass:'sawtooth', vol:.055, perc:'x...h.h.x...hh..', // trône : royal
           melody:[[0,2],[4,2],[7,4],[9,1],[7,1],[4,1],[2,1],[0,4],[5,2],[9,2],[12,4],[14,1],[12,1],[9,1],[7,1],[5,4],[0,2],[7,2],[12,2],[16,2],[14,2],[12,2],[11,4],[12,4]],
           bassl:[[-24,4],[-24,4],[-19,4],[-17,4],[-22,4],[-22,4],[-17,4],[-15,4],[-24,4],[-20,4],[-19,4],[-12,4]]},
+  room_rangement:{bpm:98, lead:'triangle', bass:'triangle', vol:.06, perc:'x...h.x.',   // grenier : tranquille, boîte à musique
+          melody:[[12,1],[16,1],[19,1],[16,1],[12,1],[16,1],[19,2],[11,1],[14,1],[19,1],[14,1],[11,1],[14,1],[19,2],[9,1],[12,1],[16,1],[12,1],[9,1],[12,1],[16,2],[7,1],[11,1],[14,1],[11,1],[7,2],[12,4]],
+          bassl:[[-24,4],[-22,4],[-20,4],[-17,4],[-24,4],[-22,4],[-19,4],[-24,4]]},
   room_boss:{bpm:100, lead:'sawtooth', bass:'sawtooth', vol:.045, perc:'x.x.h.x.x.x.hhx.',     // donjon : dramatique
           melody:[[0,2],[0,1],[3,1],[5,2],[3,2],[0,2],[-2,1],[0,1],[-4,4],[0,2],[0,1],[3,1],[7,2],[5,2],[3,2],[2,1],[0,1],[-2,4],[3,2],[5,2],[7,2],[10,2],[8,2],[7,2],[5,2],[3,2],[0,8]],
           bassl:[[-24,2],[-24,2],[-21,2],[-21,2],[-22,2],[-22,2],[-26,2],[-26,2],[-24,2],[-24,2],[-21,2],[-21,2],[-19,2],[-19,2],[-17,2],[-17,2]]}

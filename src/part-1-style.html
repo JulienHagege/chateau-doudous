@@ -249,7 +249,19 @@ canvas.ruler{width:100%; max-width:640px; height:auto; display:block; border-rad
 .sparkle{position:absolute; pointer-events:none; font-size:28px; animation:pop .8s ease-out forwards}
 @keyframes pop{from{transform:translateY(0) scale(.6); opacity:1} to{transform:translateY(-70px) scale(1.4); opacity:0}}
 
+/* ---------- Ranger les nombres ---------- */
+.boxes{display:flex; gap:12px; flex-wrap:wrap; justify-content:center}
+.boxn{min-width:92px; padding:14px 16px; border-radius:12px; background:linear-gradient(180deg,#b8803c,#8a5a2a); border:3px solid #5a3a1a; box-shadow:0 5px 0 #3a2410; font-family:var(--font-display); font-size:clamp(28px,5vw,40px); font-weight:700; color:#fff7e0; text-shadow:0 2px 0 rgba(0,0,0,.5); transition:transform .1s}
+.boxn:active{transform:translateY(3px)}
+.boxn.placed{opacity:.35; transform:scale(.9)}
+.boxn.ok{background:linear-gradient(180deg,#8de3c0,#3fb48f); border-color:#1d6b52} .boxn.ok::after{content:attr(data-pos); position:absolute; margin-left:-10px; margin-top:-30px; font-size:14px; background:#fff; color:#06301f; border-radius:50%; width:22px; height:22px; line-height:22px}
+.boxn.ko{background:linear-gradient(180deg,#ff9a85,#c9452c); border-color:#6d1f10; animation:shake .4s}
+.shelfrow{display:flex; gap:10px; flex-wrap:wrap; justify-content:center; align-items:center; min-height:90px; width:100%; max-width:640px; background:rgba(10,8,25,.55); border-radius:14px; border-bottom:8px solid #8a5a2a; padding:10px}
+.shelfrow .boxn.placed{opacity:1; transform:none; min-width:72px; padding:8px 12px; font-size:26px}
+.opts.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+
 /* ---------- Dés et jetons ---------- */
+.jetonword{font-size:.55em; vertical-align:middle; color:var(--gold)}
 .dicebox{display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:8px}
 .dice{display:flex; gap:16px; justify-content:center; flex-wrap:wrap}
 .die{width:74px; height:74px; border-radius:16px; background:var(--dc,#fff); box-shadow:inset -4px -6px 0 rgba(0,0,0,.12), 0 6px 0 rgba(0,0,0,.35); display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); padding:9px; gap:2px}
