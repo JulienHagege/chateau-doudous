@@ -16,7 +16,8 @@ function renderRoomHead(){
   el.style.setProperty('--acc', room.acc); el.style.setProperty('--room-bg', room.bg); el.style.setProperty('--room-img', `url(${IMG['bg_'+(room.rev ? 'boss' : room.id)] || IMG.castle})`);
   $('#result').style.setProperty('--room-img', `url(${IMG['bg_'+(room.rev ? 'boss' : room.id)] || IMG.castle})`); $('#result').style.setProperty('--acc', room.acc);
   $('#cage').classList.toggle('free', !!room.rev); $('#cage-img').src = room.rev ? IMG.hero : IMG[d.id]; $('#cage-img').alt = room.rev ? 'Révision' : d.name;
-  $('#room-name').textContent = room.name; $('#room-skill').textContent = room.rev ? room.skill : `${room.skill} · niveau ${run.level} · ${d.name} se cache ici`;
+  $('#room-name').textContent = room.name; $('#room-skill').textContent = room.rev ? room.skill : `${room.skill} · ${d.name} se cache ici`;
+  const lb = $('#room-level'); lb.classList.toggle('rev', !!room.rev); lb.querySelector('b').textContent = room.rev ? 'Révision' : 'Niveau ' + run.level; lb.querySelector('.dots').innerHTML = room.rev ? '' : Array.from({length:MAX_LEVEL}, (_,i) => `<i class="${i<run.level?'on':''}"></i>`).join('');
   renderHearts(); renderProgress(); $('#room-billes').textContent = run.billes;
 }
 function renderHearts(){ const h = $('#hearts'); h.innerHTML = ''; for (let i=0;i<maxHearts();i++){ const s = document.createElement('span'); if (i>=run.hearts) s.className='off'; h.appendChild(s); } }

@@ -131,9 +131,16 @@ details.parents summary{cursor:pointer; font-weight:800; color:var(--muted)}
 .roomhead .hide img{width:64px; height:64px; object-fit:contain; filter:brightness(0) opacity(.5); transition:filter .8s}
 .roomhead .hide::after{content:"?"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-size:30px; color:var(--gold); pointer-events:none}
 .roomhead .hide.free img{filter:none} .roomhead .hide.free::after{display:none}
-.roomhead .meta{min-width:0; flex:1}
+.roomhead .meta{min-width:150px; flex:1 1 180px}
+@media (max-width:600px){.roomhead .hearts{order:3; width:100%} .roomhead .meta p{white-space:normal}}
 .roomhead .meta h2{font-size:20px; color:var(--acc)}
 .roomhead .meta p{margin:0; color:var(--muted); font-size:14px}
+.lvlbadge{display:flex; flex-direction:column; align-items:center; gap:4px; background:linear-gradient(180deg,#ffe08a,var(--gold2)); color:#3a2a05; border-radius:14px; padding:7px 14px; box-shadow:0 3px 0 #8a6a1c; flex:none}
+.lvlbadge b{font-family:var(--font-display); font-size:19px; line-height:1}
+.lvlbadge .dots{display:flex; gap:4px}
+.lvlbadge .dots i{width:10px; height:10px; border-radius:50%; background:rgba(58,42,5,.25)}
+.lvlbadge .dots i.on{background:#3a2a05}
+.lvlbadge.rev{background:linear-gradient(180deg,#b6f2dc,var(--mint2)); color:#06301f; box-shadow:0 3px 0 #1d6b52}
 .hearts{display:flex; gap:3px; flex-wrap:wrap}
 .hearts span{width:22px; height:22px; display:inline-block; background:var(--heart); clip-path:path("M11 20 L2 11 A5 5 0 0 1 11 4 A5 5 0 0 1 20 11 Z"); filter:drop-shadow(0 0 4px rgba(255,107,138,.6))}
 .hearts span.off{background:rgba(255,255,255,.15); filter:none}
@@ -405,6 +412,7 @@ canvas.ruler{width:100%; max-width:640px; height:auto; display:block; border-rad
   <div class="roomhead">
     <div class="hide" id="cage"><img id="cage-img" class="px" alt=""></div>
     <div class="meta"><h2 id="room-name"></h2><p id="room-skill"></p></div>
+    <div class="lvlbadge" id="room-level"><b>Niveau 1</b><span class="dots"></span></div>
     <div class="hearts" id="hearts"></div>
   </div>
   <div class="progress" id="progress"></div>
@@ -1185,7 +1193,8 @@ function renderRoomHead(){
   el.style.setProperty('--acc', room.acc); el.style.setProperty('--room-bg', room.bg); el.style.setProperty('--room-img', `url(${IMG['bg_'+(room.rev ? 'boss' : room.id)] || IMG.castle})`);
   $('#result').style.setProperty('--room-img', `url(${IMG['bg_'+(room.rev ? 'boss' : room.id)] || IMG.castle})`); $('#result').style.setProperty('--acc', room.acc);
   $('#cage').classList.toggle('free', !!room.rev); $('#cage-img').src = room.rev ? IMG.hero : IMG[d.id]; $('#cage-img').alt = room.rev ? 'Révision' : d.name;
-  $('#room-name').textContent = room.name; $('#room-skill').textContent = room.rev ? room.skill : `${room.skill} · niveau ${run.level} · ${d.name} se cache ici`;
+  $('#room-name').textContent = room.name; $('#room-skill').textContent = room.rev ? room.skill : `${room.skill} · ${d.name} se cache ici`;
+  const lb = $('#room-level'); lb.classList.toggle('rev', !!room.rev); lb.querySelector('b').textContent = room.rev ? 'Révision' : 'Niveau ' + run.level; lb.querySelector('.dots').innerHTML = room.rev ? '' : Array.from({length:MAX_LEVEL}, (_,i) => `<i class="${i<run.level?'on':''}"></i>`).join('');
   renderHearts(); renderProgress(); $('#room-billes').textContent = run.billes;
 }
 function renderHearts(){ const h = $('#hearts'); h.innerHTML = ''; for (let i=0;i<maxHearts();i++){ const s = document.createElement('span'); if (i>=run.hearts) s.className='off'; h.appendChild(s); } }
