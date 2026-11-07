@@ -377,7 +377,7 @@ GAMES.complements100 = { intro:'Fanfan remplit le coffre au trésor. Combien man
   else if (level===4){ T = pick([200,500]); a = rnd(1, T/10-1)*10; }
   else { T = 1000; a = pick([rnd(1,99)*10, rnd(101,999)]); }
   const up = a%10 ? 10-(a%10) : 0; const ex = up ? `${a} + ${up} = ${a+up}, puis ${a+up} + ${T-a-up} = ${T}. En tout ${T-a}.` : `De ${a}, compte de 10 en 10 jusqu'à ${T} : il manque ${T-a}.`;
-  return num(`Le coffre de Fanfan contient ${a} pièces, il en faut ${T}. ${a} + <b>?</b> = ${T}`, T-a, {sub: level>=3 ? "d'abord la dizaine, puis le reste" : '', explain:ex});
+  return num(`Le coffre de Fanfan contient ${a} pièces, il en faut ${T}. ${a} + <b>?</b> = ${T}`, T-a, {sub: level>=3 ? "d'abord la dizaine, puis le reste" : '', explain:ex, timeMult: level===1 ? 1.5 : 1}); // niveau 1 : 50 % de temps en plus (demande de Julien)
 }};
 
 /* ---------- Additions éclair (Minion, la Forge) ---------- */
