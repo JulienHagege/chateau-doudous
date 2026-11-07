@@ -21,36 +21,55 @@ const SHAPES = {
   triangle:{name:'le triangle', sides:3, pts:(r)=>[[0,-r*1.1],[r*1.1,r*.8],[-r*1.1,r*.8]]},
   rond:{name:'le rond', sides:0, circle:true},
   losange:{name:'le losange', sides:4, pts:(r)=>[[0,-r*1.25],[r*.8,0],[0,r*1.25],[-r*.8,0]]},
+  trapeze:{name:'le trapèze', sides:4, pts:(r)=>[[-r*.7,-r*.75],[r*.7,-r*.75],[r*1.3,r*.75],[-r*1.3,r*.75]]},
+  parallelogramme:{name:'le parallélogramme', sides:4, pts:(r)=>[[-r*.7,-r*.7],[r*1.3,-r*.7],[r*.7,r*.7],[-r*1.3,r*.7]]},
   ovale:{name:"l'ovale", sides:0, ellipse:true},
   hexagone:{name:"l'hexagone", sides:6, pts:(r)=>Array.from({length:6},(_,i)=>[r*1.05*Math.cos(i*Math.PI/3), r*1.05*Math.sin(i*Math.PI/3)])},
-  pentagone:{name:'le pentagone', sides:5, pts:(r)=>Array.from({length:5},(_,i)=>[r*1.1*Math.cos(-Math.PI/2+i*2*Math.PI/5), r*1.1*Math.sin(-Math.PI/2+i*2*Math.PI/5)])}
+  pentagone:{name:'le pentagone', sides:5, pts:(r)=>Array.from({length:5},(_,i)=>[r*1.1*Math.cos(-Math.PI/2+i*2*Math.PI/5), r*1.1*Math.sin(-Math.PI/2+i*2*Math.PI/5)])},
+  octogone:{name:"l'octogone", sides:8, pts:(r)=>Array.from({length:8},(_,i)=>[r*1.05*Math.cos(Math.PI/8+i*Math.PI/4), r*1.05*Math.sin(Math.PI/8+i*Math.PI/4)])}
+};
+// Solides (niveau 3) : dessinés en volume, faces / sommets pour les questions
+const SOLIDS = {
+  cube:{name:'le cube', faces:6}, pave:{name:'le pavé droit', faces:6}, boule:{name:'la boule', faces:0}, cylindre:{name:'le cylindre', faces:0},
+  cone:{name:'le cône', faces:0}, pyramide:{name:'la pyramide', faces:5}
 };
 const SHAPE_COLORS = ['#ff8fb1','#ffd166','#8de3c0','#7cc4ff','#c9b6ff','#ffb347','#ff7a5c','#9ef0ff'];
+function shade(hex, k){ const n = parseInt(hex.slice(1),16); const f = c => clamp(Math.round(c*k),0,255); return '#'+[(n>>16)&255,(n>>8)&255,n&255].map(f).map(x=>x.toString(16).padStart(2,'0')).join(''); }
 function shapeSvg(id, cx, cy, r, color, rot, cls, data){
-  const s = SHAPES[id]; const st = `fill="${color}" fill-opacity=".85" stroke="#fff" stroke-width="3" stroke-linejoin="round"`;
   const g = `<g class="${cls}" data-id="${data}" transform="translate(${cx} ${cy}) rotate(${rot})">`;
+  if (SOLIDS[id]){
+    const st = (c) => `fill="${c}" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"`; const d = shade(color,.7), l = shade(color,1.25); const o = r*.5;
+    if (id==='cube') return g + `<polygon points="${-r},${-r*.4} ${o-r},${-r} ${o+r},${-r} ${r},${-r*.4}" ${st(l)}/><polygon points="${r},${-r*.4} ${r+o},${-r} ${r+o},${r*.6} ${r},${r*1.2}" ${st(d)}/><rect x="${-r}" y="${-r*.4}" width="${2*r}" height="${1.6*r}" ${st(color)}/></g>`;
+    if (id==='pave') return g + `<polygon points="${-r*1.5},${-r*.2} ${o-r*1.5},${-r*.8} ${o+r*1.5},${-r*.8} ${r*1.5},${-r*.2}" ${st(l)}/><polygon points="${r*1.5},${-r*.2} ${r*1.5+o},${-r*.8} ${r*1.5+o},${r*.4} ${r*1.5},${r}" ${st(d)}/><rect x="${-r*1.5}" y="${-r*.2}" width="${3*r}" height="${1.2*r}" ${st(color)}/></g>`;
+    if (id==='boule') return g + `<circle r="${r*1.1}" ${st(color)}/><ellipse cx="${-r*.35}" cy="${-r*.4}" rx="${r*.35}" ry="${r*.22}" fill="rgba(255,255,255,.55)"/></g>`;
+    if (id==='cylindre') return g + `<path d="M${-r*.8},${-r*.9} v${1.8*r} a${r*.8},${r*.3} 0 0 0 ${1.6*r},0 v${-1.8*r}" ${st(color)}/><ellipse cx="0" cy="${-r*.9}" rx="${r*.8}" ry="${r*.3}" ${st(l)}/></g>`;
+    if (id==='cone') return g + `<path d="M${-r},${r*.7} L0,${-r*1.2} L${r},${r*.7} a${r},${r*.35} 0 0 1 ${-2*r},0 z" ${st(color)}/><path d="M${-r},${r*.7} a${r},${r*.35} 0 0 0 ${2*r},0" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="4 4"/></g>`;
+    if (id==='pyramide') return g + `<polygon points="0,${-r*1.2} ${-r*1.1},${r*.8} ${r*.3},${r*1.05}" ${st(color)}/><polygon points="0,${-r*1.2} ${r*.3},${r*1.05} ${r*1.1},${r*.5}" ${st(d)}/></g>`;
+  }
+  const s = SHAPES[id]; const st = `fill="${color}" fill-opacity=".85" stroke="#fff" stroke-width="3" stroke-linejoin="round"`;
   if (s.circle) return g + `<circle r="${r}" ${st}/></g>`;
   if (s.ellipse) return g + `<ellipse rx="${r*1.3}" ry="${r*.8}" ${st}/></g>`;
   return g + `<polygon points="${s.pts(r).map(p=>p.join(',')).join(' ')}" ${st}/></g>`;
 }
 const GAMES = {};
 GAMES.formes = { intro:'Les vitraux du hall brillent. Touche la bonne forme !', gen(level){
-  const pool = level===1 ? ['carre','rectangle','triangle','rond'] : level===2 ? ['carre','rectangle','triangle','rond','losange','ovale','hexagone'] : Object.keys(SHAPES);
-  if (level===3 && Math.random()<.4){
-    const id = pick(pool.filter(k => SHAPES[k].sides>0)); const s = SHAPES[id];
-    return {prompt:`Combien de côtés a ${s.name} ?`, kind:'custom', answer:s.sides, show:String(s.sides), render(stage, api){
+  const flat = level===1 ? ['carre','rectangle','triangle','rond','losange'] : ['carre','rectangle','triangle','rond','losange','trapeze','parallelogramme','ovale','hexagone','pentagone','octogone'];
+  const solids = Object.keys(SOLIDS);
+  const sidesQ = (id) => { const s = SHAPES[id]; return {prompt:`Combien de côtés a ${s.name} ?`, kind:'custom', answer:s.sides, show:String(s.sides), render(stage, api){
       stage.innerHTML = `<div class="custom"><svg class="shapes" viewBox="0 0 300 150">${shapeSvg(id,150,75,55,pick(SHAPE_COLORS),rnd(0,359),'',id)}</svg><div class="opts three" id="side-opts"></div></div>`;
       const opts = mkOptions(s.sides, [3,4,5,6,8], 3); const box = stage.querySelector('#side-opts');
       opts.forEach(o => { const b = document.createElement('button'); b.className='opt'; b.textContent = o; b.onclick = () => { b.classList.add(o===s.sides?'ok':'ko'); api.answer(o===s.sides); }; box.appendChild(b); });
-    }};
-  }
+    }}; };
+  if (level===2 && Math.random()<.3) return sidesQ(pick(flat.filter(k => SHAPES[k].sides>0)));
+  if (level===3 && Math.random()<.25) return sidesQ(pick(flat.filter(k => SHAPES[k].sides>0)));
+  const useSolids = level===3 && Math.random()<.75; const pool = useSolids ? solids : flat; const NAMES = useSolids ? SOLIDS : SHAPES;
   const target = pick(pool); const others = shuffle(pool.filter(k=>k!==target)).slice(0, 5);
   const items = shuffle([target, ...others]);
-  return {prompt:`Touche <b>${SHAPES[target].name}</b>`, kind:'custom', answer:target, show:SHAPES[target].name, render(stage, api){
+  return {prompt:`Touche <b>${NAMES[target].name}</b>`, sub: useSolids ? 'un solide, pas une forme plate' : '', kind:'custom', answer:target, show:NAMES[target].name, render(stage, api){
     const W = 600, H = 300; let svg = `<svg class="shapes" viewBox="0 0 ${W} ${H}">`;
     svg += `<rect width="${W}" height="${H}" rx="16" fill="rgba(0,0,0,.25)"/>`;
-    items.forEach((id, i) => { const cx = 100 + (i%3)*200 + rnd(-20,20), cy = 80 + Math.floor(i/3)*140 + rnd(-10,10); const rot = level===1 ? 0 : rnd(-40,40);
-      svg += shapeSvg(id, cx, cy, 42, SHAPE_COLORS[i%SHAPE_COLORS.length], rot, 'sh', id); });
+    items.forEach((id, i) => { const cx = 100 + (i%3)*200 + rnd(-20,20), cy = 80 + Math.floor(i/3)*140 + rnd(-10,10); const rot = (level===1 || useSolids) ? 0 : rnd(-40,40);
+      svg += shapeSvg(id, cx, cy, 40, SHAPE_COLORS[i%SHAPE_COLORS.length], rot, 'sh', id); });
     stage.innerHTML = `<div class="custom">${svg}</svg></div>`;
     stage.querySelectorAll('.sh').forEach(g => g.addEventListener('click', () => { const ok = g.dataset.id===target; g.style.filter = ok ? 'drop-shadow(0 0 12px #fff)' : 'brightness(.5)'; api.answer(ok); }));
   }};
@@ -68,7 +87,7 @@ GAMES.bains = { intro:'Poulpou veut un bain à la bonne hauteur. Verse les bons 
   return {prompt:`Remplis la baignoire jusqu'à <b>${label}</b>`, sub, kind:'custom', answer:target, show:label, timeMult:2.5, render(stage, api){
     let cur = 0; const max = Math.max(target*1.25, jugs[jugs.length-1]*1.2);
     stage.innerHTML = `<div class="custom">
-      <div class="tub"><div class="mark" style="bottom:${target/max*100}%">${label}</div><div class="water" id="water"></div></div>
+      <div class="tub"><div class="mark" style="top:${100-target/max*100}%">${label}</div><div class="water" id="water"></div></div>
       <div class="gauge" id="gauge">0 cL</div>
       <div class="toolrow" id="jugs"></div>
       <div class="toolrow"><button class="tool" id="empty">🚿 Vider</button></div></div>`;
@@ -82,19 +101,29 @@ GAMES.bains = { intro:'Poulpou veut un bain à la bonne hauteur. Verse les bons 
 }};
 
 /* ---------- Longueurs (Hugo) : la règle et les sauts ---------- */
-function drawRuler(cv, maxCm, ribbons){
-  const W = 640, H = 170; cv.width = W; cv.height = H; const g = cv.getContext('2d');
+const RUL = {x0:30, x1:610, y:120};
+function drawRuler(cv, maxCm, ribbons, kanga){
+  const W = 640, H = 190; cv.width = W; cv.height = H; const g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
   g.fillStyle = '#1d3a2e'; g.fillRect(0,0,W,H);
-  const x0 = 30, x1 = W-30, y = 120, sc = (x1-x0)/maxCm;
+  const x0 = RUL.x0, x1 = RUL.x1, y = RUL.y+20, sc = (x1-x0)/maxCm;
   g.fillStyle = '#f2d98a'; g.fillRect(x0-10, y-10, x1-x0+20, 50);
   g.strokeStyle = '#3a2a05'; g.lineWidth = 2; g.font = 'bold 14px Nunito, sans-serif'; g.fillStyle = '#3a2a05'; g.textAlign = 'center';
-  for (let i=0;i<=maxCm;i++){ const x = x0+i*sc; g.beginPath(); g.moveTo(x, y-10); g.lineTo(x, y-10 + (i%5===0?22:(i%1===0?14:8))); g.stroke(); if (i%(maxCm>20?5:1)===0 || i===maxCm) g.fillText(i, x, y+34); }
+  for (let i=0;i<=maxCm;i++){ const x = x0+i*sc; g.beginPath(); g.moveTo(x, y-10); g.lineTo(x, y-10 + (i%5===0?22:14)); g.stroke(); if (i%(maxCm>20?5:1)===0 || i===maxCm) g.fillText(i, x, y+34); }
   g.fillText('cm', x1+12, y+34);
-  ribbons.forEach((r, k) => { g.fillStyle = r.color; const ry = 30 + k*34; g.fillRect(x0+r.a*sc, ry, (r.b-r.a)*sc, 22); g.strokeStyle='#fff'; g.lineWidth=2; g.strokeRect(x0+r.a*sc, ry, (r.b-r.a)*sc, 22); if (r.label){ g.fillStyle='#fff'; g.font='bold 16px Fredoka, sans-serif'; g.fillText(r.label, x0+(r.a+r.b)/2*sc, ry+17); } });
+  (ribbons||[]).forEach((r, k) => { g.fillStyle = r.color; const ry = 40 + k*34; g.fillRect(x0+r.a*sc, ry, (r.b-r.a)*sc, 22); g.strokeStyle='#fff'; g.lineWidth=2; g.strokeRect(x0+r.a*sc, ry, (r.b-r.a)*sc, 22); if (r.label){ g.fillStyle='#fff'; g.font='bold 16px Fredoka, sans-serif'; g.fillText(r.label, x0+(r.a+r.b)/2*sc, ry+17); } });
+  if (kanga){ const sp = SPR.hugo; const kx = x0 + kanga.pos*sc, ky = y-12 - (kanga.h||0); if (kanga.flag!=null){ g.fillStyle='#ff8fb1'; g.fillRect(x0+kanga.flag*sc-2, y-40, 4, 30); g.beginPath(); g.moveTo(x0+kanga.flag*sc+2, y-40); g.lineTo(x0+kanga.flag*sc+22, y-33); g.lineTo(x0+kanga.flag*sc+2, y-26); g.fill(); }
+    if (sp && sp.complete) g.drawImage(sp, kx-28, ky-56, 56, 56); else { g.fillStyle='#c58a4a'; g.fillRect(kx-10, ky-30, 20, 30); } }
 }
+function hopAnim(cv, maxCm, ribbons, from, to, hops, flag, onEnd){
+  const start = performance.now(); const dur = 520*hops;
+  function frame(t){ const k = clamp((t-start)/dur,0,1); const hk = k*hops, i = Math.min(Math.floor(hk), hops-1), f = hk - i; const pa = from + (to-from)*i/hops, pb = from + (to-from)*(i+1)/hops; const pos = pa + (pb-pa)*f, h = Math.sin(f*Math.PI)*55;
+    drawRuler(cv, maxCm, ribbons, {pos, h, flag}); if (k<1) requestAnimationFrame(frame); else if (onEnd) onEnd(); }
+  requestAnimationFrame(frame);
+}
+function cmFromClick(cv, maxCm, e){ const r = cv.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width * 640; return Math.round((x - RUL.x0) / ((RUL.x1-RUL.x0)/maxCm)); }
 const LEN_ITEMS = [['un crayon',15,'cm'],['une porte',2,'m'],['une fourmi',5,'mm'],['un lit',2,'m'],['une gomme',4,'cm'],['un terrain de foot',100,'m'],['Paris à Marseille',800,'km'],['une cuillère',18,'cm'],['une voiture',4,'m'],['un bus',12,'m'],['un livre',25,'cm'],['une coccinelle',6,'mm']];
-GAMES.longueurs = { intro:'Hugo le kangourou mesure tout avec sa règle. Aide-le !', gen(level){
-  const t = pick(level===1 ? ['measure','measure','compare'] : level===2 ? ['measure','compare','unit','unit'] : ['measure','unit','convert','jumps','jumps']);
+GAMES.longueurs = { intro:'Hugo le kangourou saute sur la grande règle. Mesure ses bonds !', gen(level){
+  const t = pick(level===1 ? ['measure','compare','jump','catch','catch'] : level===2 ? ['measure','unit','jump','catch','catch'] : ['measure','unit','convert','catch','jump','catch']);
   if (t==='measure'){
     const max = level===1 ? 10 : level===2 ? 20 : 30; const a = level===3 ? rnd(1, max-8) : 0; const len = rnd(2, Math.min(max-a, level===1?10:15)); const b = a+len;
     return {prompt:`Combien mesure le ruban ?`, kind:'num', answer:len, suffix:'cm', show:len+' cm', render(stage){ const cv = document.createElement('canvas'); cv.className='ruler'; drawRuler(cv, max, [{a,b,color:'#ff8fb1'}]); stage.appendChild(cv); }};
@@ -116,8 +145,19 @@ GAMES.longueurs = { intro:'Hugo le kangourou mesure tout avec sa règle. Aide-le
     const c = pick([['1 m = … cm',100],['2 m = … cm',200],['1 dm = … cm',10],['1 km = … m',1000],['3 m = … cm',300],['1 cm = … mm',10],['5 m = … cm',500],['1 m = … dm',10]]);
     return num(c[0].replace('…','<b>?</b>'), c[1]);
   }
-  const k = rnd(2,5), d = rnd(2,6); const tot = k*d;
-  return {prompt:`Hugo fait <b>${k} sauts</b> de <b>${d} cm</b>. Où arrive-t-il ?`, kind:'num', answer:tot, suffix:'cm', show:tot+' cm', render(stage){ const cv = document.createElement('canvas'); cv.className='ruler'; drawRuler(cv, 30, []); stage.appendChild(cv); }};
+  if (t==='jump'){
+    // Hugo saute sous ses yeux : de combien de cm a-t-il sauté ?
+    const max = level===1 ? 10 : 20; const from = level===3 ? rnd(1,8) : 0; const d = rnd(2, Math.min(9, max-from)); const to = from+d;
+    return {prompt:`Regarde bien… Hugo a sauté de <b>combien de cm</b> ?`, sub:'Touche Hugo pour revoir le saut', kind:'num', answer:d, suffix:'cm', show:d+' cm', render(stage){ const cv = document.createElement('canvas'); cv.className='ruler'; stage.appendChild(cv); const play = () => hopAnim(cv, max, [], from, to, 1, null, () => drawRuler(cv, max, [], {pos:to, flag:from})); drawRuler(cv, max, [], {pos:from}); setTimeout(play, 600); cv.onclick = play; }};
+  }
+  // catch : attrape Hugo là où il va atterrir
+  const max = level===1 ? 10 : level===2 ? 20 : 30; const hops = level===1 ? 1 : rnd(2, level===2 ? 3 : 4); let d = rnd(2, level===1 ? 8 : 7); const from = level===3 ? rnd(0,6) : 0; while (from + hops*d > max) d--; const to = from + hops*d;
+  const txt = hops===1 ? `Hugo part de <b>${from}</b> et saute de <b>${d} cm</b>.` : `Hugo part de <b>${from}</b> et fait <b>${hops} sauts</b> de <b>${d} cm</b>.`;
+  return {prompt:`${txt} Touche la règle là où il va atterrir !`, kind:'custom', answer:to, show:to+' cm', timeMult:1.5, render(stage, api){
+    const cv = document.createElement('canvas'); cv.className='ruler'; stage.appendChild(cv); drawRuler(cv, max, [], {pos:from});
+    const hint = document.createElement('p'); hint.className='sub'; hint.style.marginTop='6px'; hint.textContent = 'Touche un nombre sur la règle'; stage.appendChild(hint);
+    cv.onclick = e => { if (api.done) return; api.done = true; const cm = clamp(cmFromClick(cv, max, e), 0, max); const ok = cm===to; hint.textContent = ok ? 'Hugo saute… et atterrit pile sur ton drapeau !' : `Tu as touché ${cm} cm, Hugo atterrit à ${to} cm`; hopAnim(cv, max, [], from, to, hops, cm, () => api.answer(ok, ok ? '' : `Hugo est arrivé à ${to} cm, pas à ${cm} cm`)); };
+  }};
 }};
 
 /* ---------- Doubles et moitiés (Pandou) ---------- */

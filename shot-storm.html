@@ -155,7 +155,7 @@ svg.shapes .sh:active{opacity:.8}
 .tub{width:min(100%,360px); height:150px; border:4px solid #e9dfc8; border-top:0; border-radius:0 0 40px 40px; background:rgba(255,255,255,.06); position:relative; overflow:hidden}
 .tub .water{position:absolute; left:0; right:0; bottom:0; height:0; background:linear-gradient(180deg,#8fd3ff,#3b8fd9); transition:height .5s ease}
 .tub .water::before{content:""; position:absolute; left:0; right:0; top:0; height:6px; background:rgba(255,255,255,.5)}
-.tub .mark{position:absolute; left:0; right:0; border-top:2px dashed rgba(255,255,255,.55); font-size:12px; color:#fff; padding-left:6px}
+.tub .mark{position:absolute; left:0; right:0; height:0; border-top:3px dashed #ffd166; font-size:13px; font-weight:800; color:#ffd166; padding-left:6px; line-height:18px; text-shadow:0 1px 0 rgba(0,0,0,.6); z-index:2}
 .gauge{font-family:var(--font-display); font-size:22px; color:#fff}
 canvas.ruler{width:100%; max-width:640px; height:auto; display:block; border-radius:10px}
 .sym{display:grid; gap:4px; touch-action:manipulation}
@@ -212,18 +212,45 @@ canvas.ruler{width:100%; max-width:640px; height:auto; display:block; border-rad
 .toast{position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); background:var(--panel2); border:1px solid var(--gold); color:#fff; padding:10px 18px; border-radius:999px; font-weight:800; z-index:30; box-shadow:var(--shadow); animation:enter .3s ease; max-width:92vw; text-align:center}
 </style>
 <style>
-/* ---------- Orage (événement surprise) ---------- */
-#storm{position:fixed; inset:0; z-index:15; background:#050309; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
-  padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px)); padding-block:max(12px, env(safe-area-inset-top,0px)) max(12px, env(safe-area-inset-bottom,0px))}
-#storm canvas{width:min(100%, 720px); aspect-ratio:16/10; height:auto; border-radius:14px; border:3px solid #2a1f3a; box-shadow:0 0 40px rgba(255,140,0,.15)}
-#storm .stitle{font-family:var(--font-display); font-size:clamp(24px,5vw,38px); color:#ffb347; text-shadow:0 0 18px rgba(255,140,0,.6); text-align:center; min-height:40px}
-#storm .sq{font-family:var(--font-display); font-size:clamp(28px,6vw,44px); color:#fff; text-align:center; min-height:50px}
-#storm .opts{width:min(100%,720px); grid-template-columns:repeat(3,minmax(0,1fr))}
-#storm .opt{background:rgba(255,140,0,.12); border-color:rgba(255,160,60,.45)}
-#storm .sinfo{display:flex; gap:14px; color:#d9c7ff; font-weight:800; font-size:15px; flex-wrap:wrap; justify-content:center}
-#storm .flash{position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none}
+/* ---------- Orage (événement surprise, plein écran) ---------- */
+#storm{position:fixed; inset:0; z-index:15; background:#050309; overflow:hidden}
+#storm canvas{position:absolute; inset:0; width:100%; height:100%; display:block}
+#storm .flash{position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:2}
+#storm .ui{position:absolute; inset:0; z-index:3; display:flex; flex-direction:column; justify-content:space-between; align-items:center; pointer-events:none;
+  padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px)); padding-block:max(14px, env(safe-area-inset-top,0px)) max(14px, env(safe-area-inset-bottom,0px))}
+#storm .stitle{font-family:var(--font-display); font-size:clamp(24px,5vw,44px); color:#ffb347; text-shadow:0 0 24px rgba(255,140,0,.8), 0 3px 0 #3a1a00; text-align:center; min-height:44px}
+#storm .bottom{display:flex; flex-direction:column; align-items:center; gap:10px; width:min(100%,760px); pointer-events:auto}
+#storm .sq{font-family:var(--font-display); font-size:clamp(34px,8vw,64px); color:#fff; text-align:center; min-height:50px; text-shadow:0 0 20px rgba(255,140,0,.7), 0 4px 0 rgba(0,0,0,.6)}
+#storm .opts{width:100%; grid-template-columns:repeat(3,minmax(0,1fr))}
+#storm .opt{background:rgba(40,20,60,.75); border-color:rgba(255,160,60,.6); font-size:clamp(28px,6vw,40px); padding:14px 8px; backdrop-filter:blur(3px)}
+#storm .sinfo{display:flex; gap:16px; color:#ffd9a8; font-weight:900; font-size:17px; flex-wrap:wrap; justify-content:center; text-shadow:0 2px 0 rgba(0,0,0,.6)}
+.shake{animation:shake .35s}
 .dim{animation:dimout 2.2s ease forwards}
 @keyframes dimout{to{filter:brightness(.05)}}
+
+/* ---------- Intro (livre de contes) ---------- */
+.intro{display:flex; flex-direction:column; align-items:center; gap:14px; text-align:center}
+.intro .scene{position:relative; width:min(100%,620px); aspect-ratio:3/2; border-radius:20px; overflow:hidden; border:4px solid #4a3f8a; box-shadow:var(--shadow); background:#0e0c22}
+.intro .scene img.bg{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
+.intro .scene .night{position:absolute; inset:0; background:radial-gradient(400px 260px at 50% 60%, rgba(255,200,120,.18), transparent 70%)}
+.intro .scene .flash{position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none}
+.intro .scene .row{position:absolute; left:0; right:0; bottom:10px; display:flex; justify-content:center; gap:4px; flex-wrap:wrap; padding:0 10px}
+.intro .scene .row img{width:44px; height:44px; object-fit:contain; animation:bob 1.4s ease-in-out infinite}
+.intro .scene .row img:nth-child(2n){animation-delay:.2s} .intro .scene .row img:nth-child(3n){animation-delay:.5s}
+.intro .scene .row.flee img{animation:flee 1.6s ease-in forwards}
+@keyframes flee{0%{transform:translateY(0)} 30%{transform:translateY(-12px)} 100%{transform:translateY(-220px) scale(.4); opacity:0}}
+.intro .scene .hero{position:absolute; left:50%; bottom:14px; width:96px; height:96px; margin-left:-48px; object-fit:contain; filter:drop-shadow(0 0 18px rgba(255,200,120,.7)); animation:bob 1.6s ease-in-out infinite}
+.intro .scene .cageimg{position:absolute; left:50%; top:16px; width:84px; height:84px; margin-left:-42px; object-fit:contain; filter:saturate(.4) brightness(.8)}
+.intro .scene .bars{position:absolute; left:50%; top:16px; width:84px; height:84px; margin-left:-42px; background:repeating-linear-gradient(90deg, rgba(255,255,255,.55) 0 4px, transparent 4px 14px); border-radius:10px}
+.intro .scene .pumpk{position:absolute; width:70px; height:70px; object-fit:contain; animation:bob 1.1s ease-in-out infinite; filter:drop-shadow(0 0 10px rgba(255,140,0,.8))}
+.intro .scene .big{position:absolute; left:50%; top:50%; width:120px; height:120px; margin:-60px 0 0 -60px; object-fit:contain; animation:bob 1.6s ease-in-out infinite}
+.intro .scene .side{position:absolute; bottom:18px; width:64px; height:64px; object-fit:contain; animation:bob 1.6s ease-in-out infinite}
+.intro .scene .rules{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; font-family:var(--font-display); font-size:clamp(18px,3.6vw,24px); color:#fff; padding:16px}
+.intro .scene .rules span{background:rgba(0,0,0,.45); border-radius:12px; padding:6px 14px}
+.intro .text{font-family:var(--font-display); font-size:clamp(20px,4.2vw,28px); color:#fff; max-width:620px; min-height:72px; text-wrap:balance; text-shadow:0 2px 0 rgba(0,0,0,.4)}
+.intro .dots{display:flex; gap:8px}
+.intro .dots i{width:12px; height:12px; border-radius:50%; background:rgba(255,255,255,.2)}
+.intro .dots i.on{background:var(--gold); box-shadow:0 0 8px var(--gold)}
 </style>
 <canvas id="stars" aria-hidden="true"></canvas>
 <div id="app">
@@ -251,6 +278,7 @@ canvas.ruler{width:100%; max-width:640px; height:auto; display:block; border-rad
     <div class="actions">
       <button class="btn big" id="btn-enter">🏰 Entrer dans le château</button>
       <button class="btn rose" id="btn-album">🧸 Album des doudous</button>
+      <button class="btn ghost" id="btn-intro">📖 Revoir l'histoire</button>
     </div>
   </div>
   <div class="grid2">
@@ -270,6 +298,19 @@ canvas.ruler{width:100%; max-width:640px; height:auto; display:block; border-rad
         </div>
         <p id="lasterr" class="sync"></p>
       </details>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Intro ===== -->
+<section id="intro" class="screen" hidden>
+  <div class="intro">
+    <div class="scene" id="intro-scene"></div>
+    <p class="text" id="intro-text"></p>
+    <div class="dots" id="intro-dots"></div>
+    <div class="actions">
+      <button class="btn big" id="btn-intro-next">Suivant ▶</button>
+      <button class="btn ghost" id="btn-intro-skip">Passer</button>
     </div>
   </div>
 </section>
@@ -326,12 +367,16 @@ canvas.ruler{width:100%; max-width:640px; height:auto; display:block; border-rad
 
 <!-- ===== Orage ===== -->
 <div id="storm" hidden>
-  <div class="flash" id="storm-flash"></div>
-  <div class="stitle" id="storm-title">⛈️ L'orage approche…</div>
   <canvas id="storm-cv"></canvas>
-  <div class="sq" id="storm-q"></div>
-  <div class="opts" id="storm-opts"></div>
-  <div class="sinfo"><span id="storm-score">🎃 0 / 6</span><span id="storm-hearts"></span></div>
+  <div class="flash" id="storm-flash"></div>
+  <div class="ui">
+    <div class="stitle" id="storm-title">⛈️ L'orage approche…</div>
+    <div class="bottom">
+      <div class="sq" id="storm-q"></div>
+      <div class="opts" id="storm-opts"></div>
+      <div class="sinfo"><span id="storm-score">🎃 0 / 6</span><span id="storm-hearts"></span></div>
+    </div>
+  </div>
 </div>
 
 <!-- ===== Modale prénom ===== -->
@@ -356,6 +401,7 @@ const rnd = (a,b) => a + Math.floor(Math.random()*(b-a+1));
 const pick = arr => arr[Math.floor(Math.random()*arr.length)];
 const shuffle = arr => { const a = arr.slice(); for (let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; } return a; };
 const clamp = (x,a,b) => Math.max(a, Math.min(b, x));
+const fr = s => String(s).replace(/ ([!?:;])/g, '\u00a0$1'); // typo FR : espace insécable avant ! ? : ;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 /* ---------- Doudous, du plus précieux au moins précieux ---------- */
@@ -535,9 +581,9 @@ const MUSIC = {
 
 /* ---------- UI utilitaires ---------- */
 let screen = 'home';
-function show(id){ ['home','album','mapscreen','room','result'].forEach(s => { $('#'+s).hidden = (s!==id); }); screen = id; window.scrollTo(0,0); }
+function show(id){ ['home','intro','album','mapscreen','room','result'].forEach(s => { $('#'+s).hidden = (s!==id); }); screen = id; window.scrollTo(0,0); }
 let toastT = null;
-function toast(msg, ms=2600){ let t = $('.toast'); if (!t){ t = document.createElement('div'); t.className='toast'; document.body.appendChild(t); } t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms); }
+function toast(msg, ms=2600){ let t = $('.toast'); if (!t){ t = document.createElement('div'); t.className='toast'; document.body.appendChild(t); } t.textContent = fr(msg); t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms); }
 function sparkle(el, txt='✨'){ try{ const r = el.getBoundingClientRect(); for (let i=0;i<5;i++){ const s = document.createElement('span'); s.className='sparkle'; s.textContent = txt; s.style.left = (r.left + Math.random()*r.width) + 'px'; s.style.top = (r.top + r.height/2) + 'px'; s.style.position='fixed'; s.style.zIndex = 40; document.body.appendChild(s); setTimeout(()=>s.remove(), 900); } }catch(e){} }
 function confetti(){
   const c = $('#confetti'); c.hidden = false; c.innerHTML = '';
@@ -570,36 +616,55 @@ const SHAPES = {
   triangle:{name:'le triangle', sides:3, pts:(r)=>[[0,-r*1.1],[r*1.1,r*.8],[-r*1.1,r*.8]]},
   rond:{name:'le rond', sides:0, circle:true},
   losange:{name:'le losange', sides:4, pts:(r)=>[[0,-r*1.25],[r*.8,0],[0,r*1.25],[-r*.8,0]]},
+  trapeze:{name:'le trapèze', sides:4, pts:(r)=>[[-r*.7,-r*.75],[r*.7,-r*.75],[r*1.3,r*.75],[-r*1.3,r*.75]]},
+  parallelogramme:{name:'le parallélogramme', sides:4, pts:(r)=>[[-r*.7,-r*.7],[r*1.3,-r*.7],[r*.7,r*.7],[-r*1.3,r*.7]]},
   ovale:{name:"l'ovale", sides:0, ellipse:true},
   hexagone:{name:"l'hexagone", sides:6, pts:(r)=>Array.from({length:6},(_,i)=>[r*1.05*Math.cos(i*Math.PI/3), r*1.05*Math.sin(i*Math.PI/3)])},
-  pentagone:{name:'le pentagone', sides:5, pts:(r)=>Array.from({length:5},(_,i)=>[r*1.1*Math.cos(-Math.PI/2+i*2*Math.PI/5), r*1.1*Math.sin(-Math.PI/2+i*2*Math.PI/5)])}
+  pentagone:{name:'le pentagone', sides:5, pts:(r)=>Array.from({length:5},(_,i)=>[r*1.1*Math.cos(-Math.PI/2+i*2*Math.PI/5), r*1.1*Math.sin(-Math.PI/2+i*2*Math.PI/5)])},
+  octogone:{name:"l'octogone", sides:8, pts:(r)=>Array.from({length:8},(_,i)=>[r*1.05*Math.cos(Math.PI/8+i*Math.PI/4), r*1.05*Math.sin(Math.PI/8+i*Math.PI/4)])}
+};
+// Solides (niveau 3) : dessinés en volume, faces / sommets pour les questions
+const SOLIDS = {
+  cube:{name:'le cube', faces:6}, pave:{name:'le pavé droit', faces:6}, boule:{name:'la boule', faces:0}, cylindre:{name:'le cylindre', faces:0},
+  cone:{name:'le cône', faces:0}, pyramide:{name:'la pyramide', faces:5}
 };
 const SHAPE_COLORS = ['#ff8fb1','#ffd166','#8de3c0','#7cc4ff','#c9b6ff','#ffb347','#ff7a5c','#9ef0ff'];
+function shade(hex, k){ const n = parseInt(hex.slice(1),16); const f = c => clamp(Math.round(c*k),0,255); return '#'+[(n>>16)&255,(n>>8)&255,n&255].map(f).map(x=>x.toString(16).padStart(2,'0')).join(''); }
 function shapeSvg(id, cx, cy, r, color, rot, cls, data){
-  const s = SHAPES[id]; const st = `fill="${color}" fill-opacity=".85" stroke="#fff" stroke-width="3" stroke-linejoin="round"`;
   const g = `<g class="${cls}" data-id="${data}" transform="translate(${cx} ${cy}) rotate(${rot})">`;
+  if (SOLIDS[id]){
+    const st = (c) => `fill="${c}" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"`; const d = shade(color,.7), l = shade(color,1.25); const o = r*.5;
+    if (id==='cube') return g + `<polygon points="${-r},${-r*.4} ${o-r},${-r} ${o+r},${-r} ${r},${-r*.4}" ${st(l)}/><polygon points="${r},${-r*.4} ${r+o},${-r} ${r+o},${r*.6} ${r},${r*1.2}" ${st(d)}/><rect x="${-r}" y="${-r*.4}" width="${2*r}" height="${1.6*r}" ${st(color)}/></g>`;
+    if (id==='pave') return g + `<polygon points="${-r*1.5},${-r*.2} ${o-r*1.5},${-r*.8} ${o+r*1.5},${-r*.8} ${r*1.5},${-r*.2}" ${st(l)}/><polygon points="${r*1.5},${-r*.2} ${r*1.5+o},${-r*.8} ${r*1.5+o},${r*.4} ${r*1.5},${r}" ${st(d)}/><rect x="${-r*1.5}" y="${-r*.2}" width="${3*r}" height="${1.2*r}" ${st(color)}/></g>`;
+    if (id==='boule') return g + `<circle r="${r*1.1}" ${st(color)}/><ellipse cx="${-r*.35}" cy="${-r*.4}" rx="${r*.35}" ry="${r*.22}" fill="rgba(255,255,255,.55)"/></g>`;
+    if (id==='cylindre') return g + `<path d="M${-r*.8},${-r*.9} v${1.8*r} a${r*.8},${r*.3} 0 0 0 ${1.6*r},0 v${-1.8*r}" ${st(color)}/><ellipse cx="0" cy="${-r*.9}" rx="${r*.8}" ry="${r*.3}" ${st(l)}/></g>`;
+    if (id==='cone') return g + `<path d="M${-r},${r*.7} L0,${-r*1.2} L${r},${r*.7} a${r},${r*.35} 0 0 1 ${-2*r},0 z" ${st(color)}/><path d="M${-r},${r*.7} a${r},${r*.35} 0 0 0 ${2*r},0" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="4 4"/></g>`;
+    if (id==='pyramide') return g + `<polygon points="0,${-r*1.2} ${-r*1.1},${r*.8} ${r*.3},${r*1.05}" ${st(color)}/><polygon points="0,${-r*1.2} ${r*.3},${r*1.05} ${r*1.1},${r*.5}" ${st(d)}/></g>`;
+  }
+  const s = SHAPES[id]; const st = `fill="${color}" fill-opacity=".85" stroke="#fff" stroke-width="3" stroke-linejoin="round"`;
   if (s.circle) return g + `<circle r="${r}" ${st}/></g>`;
   if (s.ellipse) return g + `<ellipse rx="${r*1.3}" ry="${r*.8}" ${st}/></g>`;
   return g + `<polygon points="${s.pts(r).map(p=>p.join(',')).join(' ')}" ${st}/></g>`;
 }
 const GAMES = {};
 GAMES.formes = { intro:'Les vitraux du hall brillent. Touche la bonne forme !', gen(level){
-  const pool = level===1 ? ['carre','rectangle','triangle','rond'] : level===2 ? ['carre','rectangle','triangle','rond','losange','ovale','hexagone'] : Object.keys(SHAPES);
-  if (level===3 && Math.random()<.4){
-    const id = pick(pool.filter(k => SHAPES[k].sides>0)); const s = SHAPES[id];
-    return {prompt:`Combien de côtés a ${s.name} ?`, kind:'custom', answer:s.sides, show:String(s.sides), render(stage, api){
+  const flat = level===1 ? ['carre','rectangle','triangle','rond','losange'] : ['carre','rectangle','triangle','rond','losange','trapeze','parallelogramme','ovale','hexagone','pentagone','octogone'];
+  const solids = Object.keys(SOLIDS);
+  const sidesQ = (id) => { const s = SHAPES[id]; return {prompt:`Combien de côtés a ${s.name} ?`, kind:'custom', answer:s.sides, show:String(s.sides), render(stage, api){
       stage.innerHTML = `<div class="custom"><svg class="shapes" viewBox="0 0 300 150">${shapeSvg(id,150,75,55,pick(SHAPE_COLORS),rnd(0,359),'',id)}</svg><div class="opts three" id="side-opts"></div></div>`;
       const opts = mkOptions(s.sides, [3,4,5,6,8], 3); const box = stage.querySelector('#side-opts');
       opts.forEach(o => { const b = document.createElement('button'); b.className='opt'; b.textContent = o; b.onclick = () => { b.classList.add(o===s.sides?'ok':'ko'); api.answer(o===s.sides); }; box.appendChild(b); });
-    }};
-  }
+    }}; };
+  if (level===2 && Math.random()<.3) return sidesQ(pick(flat.filter(k => SHAPES[k].sides>0)));
+  if (level===3 && Math.random()<.25) return sidesQ(pick(flat.filter(k => SHAPES[k].sides>0)));
+  const useSolids = level===3 && Math.random()<.75; const pool = useSolids ? solids : flat; const NAMES = useSolids ? SOLIDS : SHAPES;
   const target = pick(pool); const others = shuffle(pool.filter(k=>k!==target)).slice(0, 5);
   const items = shuffle([target, ...others]);
-  return {prompt:`Touche <b>${SHAPES[target].name}</b>`, kind:'custom', answer:target, show:SHAPES[target].name, render(stage, api){
+  return {prompt:`Touche <b>${NAMES[target].name}</b>`, sub: useSolids ? 'un solide, pas une forme plate' : '', kind:'custom', answer:target, show:NAMES[target].name, render(stage, api){
     const W = 600, H = 300; let svg = `<svg class="shapes" viewBox="0 0 ${W} ${H}">`;
     svg += `<rect width="${W}" height="${H}" rx="16" fill="rgba(0,0,0,.25)"/>`;
-    items.forEach((id, i) => { const cx = 100 + (i%3)*200 + rnd(-20,20), cy = 80 + Math.floor(i/3)*140 + rnd(-10,10); const rot = level===1 ? 0 : rnd(-40,40);
-      svg += shapeSvg(id, cx, cy, 42, SHAPE_COLORS[i%SHAPE_COLORS.length], rot, 'sh', id); });
+    items.forEach((id, i) => { const cx = 100 + (i%3)*200 + rnd(-20,20), cy = 80 + Math.floor(i/3)*140 + rnd(-10,10); const rot = (level===1 || useSolids) ? 0 : rnd(-40,40);
+      svg += shapeSvg(id, cx, cy, 40, SHAPE_COLORS[i%SHAPE_COLORS.length], rot, 'sh', id); });
     stage.innerHTML = `<div class="custom">${svg}</svg></div>`;
     stage.querySelectorAll('.sh').forEach(g => g.addEventListener('click', () => { const ok = g.dataset.id===target; g.style.filter = ok ? 'drop-shadow(0 0 12px #fff)' : 'brightness(.5)'; api.answer(ok); }));
   }};
@@ -617,7 +682,7 @@ GAMES.bains = { intro:'Poulpou veut un bain à la bonne hauteur. Verse les bons 
   return {prompt:`Remplis la baignoire jusqu'à <b>${label}</b>`, sub, kind:'custom', answer:target, show:label, timeMult:2.5, render(stage, api){
     let cur = 0; const max = Math.max(target*1.25, jugs[jugs.length-1]*1.2);
     stage.innerHTML = `<div class="custom">
-      <div class="tub"><div class="mark" style="bottom:${target/max*100}%">${label}</div><div class="water" id="water"></div></div>
+      <div class="tub"><div class="mark" style="top:${100-target/max*100}%">${label}</div><div class="water" id="water"></div></div>
       <div class="gauge" id="gauge">0 cL</div>
       <div class="toolrow" id="jugs"></div>
       <div class="toolrow"><button class="tool" id="empty">🚿 Vider</button></div></div>`;
@@ -891,8 +956,8 @@ function nextQuestion(){
 }
 function renderQuestion(q){
   const stage = $('#stage'); stage.innerHTML = ''; const fb = $('#stage .feedback'); if (fb) fb.remove();
-  const p = document.createElement('p'); p.className='prompt'; p.innerHTML = q.prompt; stage.appendChild(p);
-  if (q.sub){ const s = document.createElement('p'); s.className='sub'; s.textContent = q.sub; stage.appendChild(s); }
+  const p = document.createElement('p'); p.className='prompt'; p.innerHTML = fr(q.prompt); stage.appendChild(p);
+  if (q.sub){ const s = document.createElement('p'); s.className='sub'; s.textContent = fr(q.sub); stage.appendChild(s); }
   const api = { done:false, answer:(ok, shown) => submit(ok, shown) };
   if (q.kind==='custom'){ const box = document.createElement('div'); stage.appendChild(box); q.render(box, api); return; }
   if (q.render){ const box = document.createElement('div'); box.className='custom'; stage.appendChild(box); q.render(box, api); }
@@ -929,7 +994,7 @@ function submit(ok, shown){
     fb.innerHTML = pick(['Bravo !','Super !','Oui !','Génial !','Exact !','Trop fort !']) + ` <small>+${gain} billes</small>`; SFX.ok(); setTimeout(SFX.bille, 150); sparkle($('#room-billes'), '✨');
   } else {
     S.tot.w++; run.errors++; run.hearts--; renderHearts(); SFX.ko(); setTimeout(SFX.lose, 250);
-    fb.innerHTML = (shown || ('La réponse était ' + q.show)) + ' <small>On la reverra tout à l\'heure</small>';
+    fb.innerHTML = fr(shown || ('La réponse était ' + q.show)) + ' <small>On la reverra tout à l\'heure</small>';
     if (run.retry.length<3) run.retry.push({q, at:run.i});
   }
   stage.appendChild(fb); renderProgress(); save();
@@ -956,7 +1021,7 @@ function endRoom(won){
     $('#res-img').src = IMG[d.id]; $('#res-title').textContent = 'Plus de cœurs…'; $('#res-text').textContent = `${d.name} t'attend encore dans ${room.name}. Repose-toi et réessaie, tu vas y arriver !`;
     SFX.fail(); save();
   }
-  $('#res-rewards').innerHTML = rewards.join(''); show('result'); run = null;
+  $('#res-rewards').innerHTML = rewards.join(''); $('#res-title').textContent = fr($('#res-title').textContent); $('#res-text').textContent = fr($('#res-text').textContent); show('result'); run = null;
 }
 
 /* =========================================================
@@ -970,7 +1035,7 @@ function floorLayout(f){
   const rooms = ROOMS.filter(r => r.floor===f);
   // couloir : barre horizontale rangées 5-6 (ou autour du donjon), escalier à droite, entrée en bas au centre
   const corr = f===3 ? [[9,9,2,3]] : [[1,5,18,2],[9,7,2,4]];
-  const stairs = f===3 ? null : [18,2,1,1];
+  const stairs = f===3 ? null : [19,5,1,1];
   return {rooms, corr, stairs};
 }
 function revealed(f){
@@ -1008,12 +1073,12 @@ function drawMap(){
     if (open && !done){ const t = (Date.now()/400)%2; g.strokeStyle = `rgba(255,209,102,${.5+.4*Math.sin(t*Math.PI)})`; g.lineWidth = 4; g.strokeRect(x*TILE+1, y*TILE+1, w*TILE-2, h*TILE-2); g.font='22px sans-serif'; g.fillText('✨', (x+w/2)*TILE+40, y*TILE+26); }
   });
   // escalier
-  if (L.stairs){ const [sx,sy] = L.stairs; const up = floorUnlocked(f+1); g.fillStyle = up ? '#ffd166' : '#3a3250'; for (let i=0;i<4;i++) g.fillRect(sx*TILE+4, sy*TILE+4+i*7, TILE-8-i*5, 5); if (up){ g.font='bold 12px Nunito,sans-serif'; g.fillStyle='#ffd166'; g.textAlign='center'; g.fillText('↑ étage', sx*TILE+16, sy*TILE+48); } }
+  if (L.stairs){ const [sx,sy] = L.stairs; const up = floorUnlocked(f+1); g.fillStyle = up ? '#ffd166' : '#3a3250'; for (let i=0;i<4;i++) g.fillRect(sx*TILE+4, sy*TILE+4+i*7, TILE-8-i*5, 5); if (up){ g.font='bold 12px Nunito,sans-serif'; g.fillStyle='#ffd166'; g.textAlign='center'; g.fillText('↑', sx*TILE+16, sy*TILE+54); } }
   // entrée
   if (f<3){ g.fillStyle='#7a4a1a'; g.fillRect(9*TILE+4, 11*TILE+10, 2*TILE-8, 18); g.font='bold 12px Nunito,sans-serif'; g.fillStyle='#fff'; g.textAlign='center'; g.fillText(f===0?'Entrée':'Escalier', 10*TILE, 11*TILE+4); }
   // héroïne : devant la porte de la salle à explorer (ou à l'entrée)
   const cur = L.rooms.find(r => !isDone(r.id) && roomUnlocked(r)); const hero = SPR.hero;
-  let hx = 10*TILE, hy = 10*TILE; if (cur){ hx = cur.door[0]*TILE+16; hy = (cur.door[1])*TILE+16; } else if (L.rooms.every(r => isDone(r.id)) && L.stairs){ hx = L.stairs[0]*TILE+16; hy = L.stairs[1]*TILE+40; }
+  let hx = 10*TILE, hy = 10*TILE; if (cur){ hx = cur.door[0]*TILE+16; hy = (cur.door[1])*TILE+16; } else if (L.rooms.every(r => isDone(r.id)) && L.stairs){ hx = L.stairs[0]*TILE-20; hy = L.stairs[1]*TILE+36; }
   if (hero && hero.complete){ const bob = Math.sin(Date.now()/300)*2; g.drawImage(hero, hx-24, hy-30+bob, 48, 48); }
   // doudous libérés suivent l'héroïne (petite file)
   const freed = ROOMS.filter(r => isDone(r.id)).slice(-4);
@@ -1031,14 +1096,14 @@ function openMap(f){
   mapFloor = f; $('#map-title').textContent = FLOORS[f].name;
   const fl = $('#floors'); fl.innerHTML = ''; FLOORS.forEach((F, i) => { const b = document.createElement('button'); b.textContent = F.short; b.disabled = !floorUnlocked(i); b.setAttribute('aria-current', i===f); b.onclick = () => { SFX.click(); openMap(i); }; fl.appendChild(b); });
   const cur = ROOMS.find(r => r.floor===f && !isDone(r.id) && roomUnlocked(r));
-  $('#maphint').textContent = cur ? `✨ ${cur.name} : ${DD[cur.dd].name} t'attend. ${FLOORS[f].intro}` : (floorUnlocked(f+1) ? 'Étage terminé ! Prends l\'escalier en haut à droite.' : 'Touche une salle pour la rejouer.');
+  $('#maphint').textContent = fr(cur ? `✨ ${cur.name} : ${DD[cur.dd].name} t'attend. ${FLOORS[f].intro}` : (floorUnlocked(f+1) ? 'Étage terminé ! Prends l\'escalier en haut à droite.' : 'Touche une salle pour la rejouer.'));
   MUSIC.play(f===3 ? 'tower' : 'floor'+f);
   show('mapscreen'); if (!mapAnim) mapLoop();
 }
 mapCv.addEventListener('click', e => {
   const r = mapCv.getBoundingClientRect(); const x = (e.clientX-r.left)/r.width*MW, y = (e.clientY-r.top)/r.height*MH;
   const L = floorLayout(mapFloor);
-  if (L.stairs && x>=L.stairs[0] && x<L.stairs[0]+1 && y>=L.stairs[1] && y<L.stairs[1]+1.6){ if (floorUnlocked(mapFloor+1)){ SFX.stairs(); openMap(mapFloor+1); } else toast('L\'escalier est fermé. Délivre tous les doudous de cet étage !'); return; }
+  if (L.stairs && x>=L.stairs[0] && x<L.stairs[0]+1 && y>=L.stairs[1] && y<L.stairs[1]+2){ if (floorUnlocked(mapFloor+1)){ SFX.stairs(); openMap(mapFloor+1); } else toast('L\'escalier est fermé. Délivre tous les doudous de cet étage !'); return; }
   const room = L.rooms.find(rm => x>=rm.rect[0] && x<rm.rect[0]+rm.rect[2] && y>=rm.rect[1] && y<rm.rect[1]+rm.rect[3]);
   if (!room) return;
   if (!roomUnlocked(room)){ SFX.ko(); const i = ROOMS.indexOf(room); const prev = ROOMS[i-1]; toast(room.boss ? 'Délivre tous les autres doudous avant de monter voir Vachou !' : `Cette porte est fermée. Délivre d'abord ${DD[prev.dd].name} !`); return; }
@@ -1058,24 +1123,37 @@ function enterRoom(room){
 let storm = null;
 function stormTables(){ const n = freedCount(); return n<5 ? [2,3,10] : n<10 ? [2,3,4,5,10] : [2,3,4,5,6,7,8,9,10]; }
 function startStorm(after, test){
-  storm = { after, test, n:6, i:0, hits:0, misses:0, hearts:3, pumpkins:[], phase:'intro', t:0, q:null, done:false, flashes:0 };
+  storm = { after, test, n:6, i:0, hits:0, misses:0, hearts:3, phase:'intro', q:null, done:false, bolts:[], parts:[], drops:[], shake:0, lurk:[], nextBolt:0 };
   const el = $('#storm'); el.hidden = false; $('#storm-opts').innerHTML = ''; $('#storm-q').textContent = ''; $('#storm-title').textContent = '⛈️ Un orage approche…';
   $('#storm-score').textContent = '🎃 0 / 6'; $('#storm-hearts').textContent = '❤️❤️❤️';
   $('#app').classList.add('dim'); MUSIC.stop();
-  const cv = $('#storm-cv'); cv.width = 640; cv.height = 400;
+  const cv = $('#storm-cv'); stormResize();
+  for (let i=0;i<220;i++) storm.drops.push({x:Math.random(), y:Math.random(), v:.6+Math.random()*.9, l:8+Math.random()*14});
+  for (let i=0;i<5;i++) storm.lurk.push({x:.08+Math.random()*.84, y:.55+Math.random()*.3, s:18+Math.random()*22, ph:Math.random()*6});
   storm.t0 = Date.now(); storm.loop = requestAnimationFrame(stormFrame);
-  // éclairs qui se rapprochent : 4 coups, de plus en plus forts, puis extinction
-  [[600,.15,.2],[1700,.3,.4],[2900,.55,.7],[4100,1,1]].forEach(([t,vol,op], i) => setTimeout(() => { if (!storm) return; flash(op); setTimeout(() => { if (S.sound){ noise(1+i*.3, .25+vol*.4, 250+i*100); tone(40+i*8,0,1,'sawtooth',.08+vol*.15); } }, 120+ (3-i)*180); }, t));
-  setTimeout(() => { if (!storm) return; $('#storm-title').textContent = '💡 La lumière s\'est éteinte !'; }, 4600);
-  setTimeout(() => { if (!storm) return; $('#storm-title').textContent = '🎃 Les citrouilles attaquent ! Multiplie vite !'; storm.phase = 'play'; MUSIC.play('storm'); launchPumpkin(); }, 6200);
+  // quatre éclairs de plus en plus proches et forts, puis la lumière s'éteint
+  [[500,.35],[1600,.55],[2800,.8],[4000,1]].forEach(([t,k], i) => setTimeout(() => { if (!storm) return; bolt(k); setTimeout(() => { if (!storm) return; thunder(k); }, 120 + (3-i)*220); }, t));
+  setTimeout(() => { if (!storm) return; $('#storm-title').textContent = '💡 La lumière s’est éteinte !'; }, 4700);
+  setTimeout(() => { if (!storm) return; $('#storm-title').textContent = '🎃 Les citrouilles attaquent ! Multiplie vite !'; storm.phase = 'play'; storm.nextBolt = Date.now()+3000; MUSIC.play('storm'); launchPumpkin(); }, 6400);
 }
-function flash(op){ const f = $('#storm-flash'); f.style.transition='none'; f.style.opacity = op; setTimeout(() => { f.style.transition='opacity .5s'; f.style.opacity = 0; }, 80); setTimeout(() => { f.style.transition='none'; f.style.opacity = op*.6; setTimeout(()=>{ f.style.transition='opacity .6s'; f.style.opacity=0; }, 60); }, 220); }
+function stormResize(){ const cv = $('#storm-cv'); cv.width = Math.min(innerWidth, 1400); cv.height = Math.round(cv.width * innerHeight / innerWidth); }
+addEventListener('resize', () => { if (storm) stormResize(); });
+function thunder(k){ if (!S.sound) return; noise(1.2+k*.8, .3+k*.5, 220+k*160); tone(38+k*10,0,1.4,'sawtooth',.1+k*.2); tone(55,.25,1,'sawtooth',.08+k*.1); }
+function bolt(k){
+  // éclair : ligne brisée du haut vers un point, avec des branches ; flash blanc et secousse proportionnels
+  const cv = $('#storm-cv'); const W = cv.width, H = cv.height; const x0 = W*(.15+Math.random()*.7); const segs = [];
+  let x = x0, y = 0; const yEnd = H*(.35+k*.45);
+  while (y < yEnd){ const nx = x + (Math.random()-.5)*W*.08, ny = y + H*.04 + Math.random()*H*.05; segs.push([x,y,nx,ny]); if (Math.random()<.35){ let bx = nx, by = ny; for (let j=0;j<4;j++){ const ex = bx + (Math.random()-.5)*W*.1, ey = by + H*.04; segs.push([bx,by,ex,ey]); bx = ex; by = ey; } } x = nx; y = ny; }
+  storm.bolts.push({segs, t:Date.now(), k});
+  flash(.25+k*.7); storm.shake = Math.max(storm.shake, 6+k*16);
+}
+function flash(op){ const f = $('#storm-flash'); f.style.transition='none'; f.style.opacity = op; setTimeout(() => { f.style.transition='opacity .45s'; f.style.opacity = 0; }, 70); setTimeout(() => { f.style.transition='none'; f.style.opacity = op*.5; setTimeout(()=>{ f.style.transition='opacity .6s'; f.style.opacity=0; }, 50); }, 240); }
 function launchPumpkin(){
   if (!storm || storm.done) return;
   if (storm.i >= storm.n) return endStorm();
   const tables = stormTables(); const a = pick(tables), b = rnd(2,9); const ans = a*b;
-  const dur = clamp(7000 - freedCount()*150, 4200, 7000);
-  storm.q = {a,b,ans, born:Date.now(), dur, x:.2+Math.random()*.6, hit:false};
+  const dur = clamp(7500 - freedCount()*160, 4500, 7500);
+  storm.q = {a,b,ans, born:Date.now(), dur, x:.15+Math.random()*.7, hit:false};
   $('#storm-q').innerHTML = `${a} × ${b} = ?`;
   const box = $('#storm-opts'); box.innerHTML = '';
   mkOptions(ans, [a*(b+1),a*(b-1),(a+1)*b,ans+2,ans-2,a+b], 3).forEach(o => { const bt = document.createElement('button'); bt.className='opt'; bt.textContent = o; bt.onclick = () => { if (!storm || storm.q.hit || storm.phase!=='play') return; if (o===ans){ stormHit(true); bt.classList.add('ok'); } else { bt.classList.add('ko'); stormHit(false); } }; box.appendChild(bt); });
@@ -1083,45 +1161,70 @@ function launchPumpkin(){
 }
 function stormHit(ok){
   const q = storm.q; q.hit = true; q.hitAt = Date.now(); q.ok = ok; storm.i++;
-  if (ok){ storm.hits++; SFX.squash(); const gain = 20; S.billes += gain; $('#storm-score').textContent = `🎃 ${storm.hits} / ${storm.n}`; }
-  else { storm.misses++; storm.hearts--; SFX.boom(); flash(.5); $('#storm-hearts').textContent = '❤️'.repeat(storm.hearts) + '🖤'.repeat(3-storm.hearts); $('#storm-q').innerHTML = `${q.a} × ${q.b} = <span style="color:#8de3c0">${q.ans}</span>`; }
-  setTimeout(() => { if (!storm) return; if (storm.hearts<=0) endStorm(); else launchPumpkin(); }, ok ? 600 : 1300);
+  const cv = $('#storm-cv'); const W = cv.width, H = cv.height; const p = clamp((q.hitAt-q.born)/q.dur,0,1); const sz = 40 + p*p*H*.6; const x = W*q.x + (W/2-W*q.x)*p, y = H*.3 + p*p*H*.45;
+  if (ok){
+    storm.hits++; SFX.squash(); setTimeout(SFX.bille, 120); const gain = 20; S.billes += gain; $('#storm-score').textContent = `🎃 ${storm.hits} / ${storm.n}`;
+    for (let i=0;i<60;i++){ const a = Math.random()*Math.PI*2, v = 2+Math.random()*9; storm.parts.push({x, y, vx:Math.cos(a)*v, vy:Math.sin(a)*v-3, s:4+Math.random()*sz*.12, c:pick(['#ff8c00','#ffb347','#ffe066','#c45500','#5a8f29']), t:Date.now(), life:700+Math.random()*600}); }
+    storm.shake = Math.max(storm.shake, 10);
+  } else {
+    storm.misses++; storm.hearts--; SFX.boom(); flash(.6); storm.shake = 26; storm.redAt = Date.now();
+    $('#storm-hearts').textContent = '❤️'.repeat(storm.hearts) + '🖤'.repeat(3-storm.hearts); $('#storm-q').innerHTML = `${q.a} × ${q.b} = <span style="color:#8de3c0">${q.ans}</span>`;
+  }
+  setTimeout(() => { if (!storm) return; if (storm.hearts<=0) endStorm(); else launchPumpkin(); }, ok ? 650 : 1400);
 }
 function stormFrame(){
   if (!storm) return; const cv = $('#storm-cv'), g = cv.getContext('2d'); g.imageSmoothingEnabled = false; const W = cv.width, H = cv.height; const now = Date.now();
-  // salle sombre : sol, murs, fenêtre avec pluie
-  g.fillStyle = '#07050d'; g.fillRect(0,0,W,H);
-  const lit = storm.phase==='intro' ? clamp(1-(now-storm.t0)/5200, 0, 1) : 0.08;
-  g.fillStyle = `rgba(80,60,120,${.25*lit+.03})`; g.fillRect(0,0,W,H*.62); g.fillStyle = `rgba(60,45,90,${.35*lit+.05})`; g.fillRect(0,H*.62,W,H*.38);
-  // fenêtre
-  g.fillStyle = `rgba(30,25,60,.9)`; g.fillRect(W*.4, 30, W*.2, 120); g.strokeStyle = '#2a2340'; g.lineWidth = 6; g.strokeRect(W*.4, 30, W*.2, 120);
-  for (let i=0;i<40;i++){ const rx = W*.4 + ((i*53 + now/6)%(W*.2)), ry = 30 + ((i*37 + now/3)%120); g.fillStyle='rgba(160,180,255,.35)'; g.fillRect(rx, ry, 2, 8); }
-  // lanterne de l'héroïne (petit halo au premier plan)
-  const halo = g.createRadialGradient(W/2, H-10, 10, W/2, H-10, 140); halo.addColorStop(0, 'rgba(255,200,120,.35)'); halo.addColorStop(1, 'rgba(255,200,120,0)'); g.fillStyle = halo; g.fillRect(0,0,W,H);
-  const hero = SPR.hero; if (hero && hero.complete) g.drawImage(hero, W/2-30, H-78, 60, 60);
-  // citrouille qui fonce
+  g.setTransform(1,0,0,1,0,0); g.clearRect(0,0,W,H);
+  if (storm.shake>0){ g.translate((Math.random()-.5)*storm.shake, (Math.random()-.5)*storm.shake); storm.shake *= .86; if (storm.shake<.5) storm.shake = 0; }
+  // ciel et château au loin, qui s'assombrissent pendant l'intro
+  const lit = storm.phase==='intro' ? clamp(1-(now-storm.t0)/5200, 0, 1) : 0.06;
+  const sky = g.createLinearGradient(0,0,0,H); sky.addColorStop(0, `rgb(${8+lit*30},${6+lit*20},${20+lit*60})`); sky.addColorStop(1, `rgb(${4+lit*20},${3+lit*12},${10+lit*30})`); g.fillStyle = sky; g.fillRect(0,0,W,H);
+  const castle = SPR.castle; if (castle && castle.complete){ g.globalAlpha = .25 + lit*.6; const cw = W, ch = cw*2/3; g.drawImage(castle, 0, H*.62-ch*.78, cw, ch); g.globalAlpha = 1; }
+  // sol de la salle (premier plan) et halo de la lanterne
+  g.fillStyle = `rgba(30,22,50,${.6+lit*.3})`; g.fillRect(0,H*.72,W,H*.28);
+  const halo = g.createRadialGradient(W/2, H*.9, 10, W/2, H*.9, W*.3); halo.addColorStop(0, 'rgba(255,200,120,.35)'); halo.addColorStop(1, 'rgba(255,200,120,0)'); g.fillStyle = halo; g.fillRect(0,0,W,H);
+  // citrouilles qui rôdent dans le noir (yeux qui clignotent)
+  storm.lurk.forEach(L => { const ex = W*L.x, ey = H*L.y + Math.sin(now/600+L.ph)*6; const blink = (Math.sin(now/900+L.ph)>-.7) ? 1 : .1; g.fillStyle = `rgba(255,190,40,${.7*blink})`; g.beginPath(); g.moveTo(ex-L.s*.5, ey); g.lineTo(ex-L.s*.15, ey-L.s*.35); g.lineTo(ex-L.s*.15, ey+L.s*.1); g.closePath(); g.fill(); g.beginPath(); g.moveTo(ex+L.s*.5, ey); g.lineTo(ex+L.s*.15, ey-L.s*.35); g.lineTo(ex+L.s*.15, ey+L.s*.1); g.closePath(); g.fill(); });
+  // pluie sur tout l'écran
+  g.strokeStyle = 'rgba(170,190,255,.35)'; g.lineWidth = Math.max(1, W/700);
+  storm.drops.forEach(d => { d.y += d.v*.02; d.x -= .003; if (d.y>1){ d.y = -.05; d.x = Math.random()*1.1; } if (d.x<-.05) d.x = 1.05; g.beginPath(); g.moveTo(d.x*W, d.y*H); g.lineTo(d.x*W - d.l*.35, d.y*H + d.l); g.stroke(); });
+  // éclairs
+  storm.bolts = storm.bolts.filter(b => now-b.t < 420);
+  storm.bolts.forEach(b => { const a = 1-(now-b.t)/420; g.lineCap='round'; g.strokeStyle = `rgba(200,220,255,${a*.5})`; g.lineWidth = 14*b.k+4; g.beginPath(); b.segs.forEach(([x1,y1,x2,y2]) => { g.moveTo(x1,y1); g.lineTo(x2,y2); }); g.stroke(); g.strokeStyle = `rgba(255,255,255,${a})`; g.lineWidth = 4*b.k+2; g.stroke(); });
+  if (storm.phase==='play' && now>storm.nextBolt){ bolt(.3+Math.random()*.5); thunder(.4); storm.nextBolt = now + 3500 + Math.random()*4000; }
+  // héroïne et sa lanterne
+  const hero = SPR.hero; const hs = Math.max(64, H*.16); if (hero && hero.complete) g.drawImage(hero, W/2-hs/2, H*.97-hs, hs, hs);
+  // la citrouille qui fonce
   const q = storm.q;
   if (q && storm.phase==='play'){
     const p = q.hit ? clamp((q.hitAt-q.born)/q.dur,0,1) : clamp((now-q.born)/q.dur, 0, 1);
     if (!q.hit && p>=1){ stormHit(false); }
-    const sz = 30 + p*p*230; const x = W*q.x + (W/2-W*q.x)*p, y = H*.35 + p*p*H*.45; const sp = SPR.pumpkin;
-    const glow = g.createRadialGradient(x, y, sz*.1, x, y, sz*.9); glow.addColorStop(0, `rgba(255,140,0,${.35+.25*Math.sin(now/90)})`); glow.addColorStop(1, 'rgba(255,140,0,0)'); g.fillStyle = glow; g.fillRect(x-sz, y-sz, sz*2, sz*2);
-    if (q.hit){ const k = clamp((now-q.hitAt)/500, 0, 1); if (q.ok){ for (let i=0;i<10;i++){ const a = i*Math.PI/5; g.fillStyle = `rgba(255,${120+i*10},40,${1-k})`; g.fillRect(x+Math.cos(a)*k*sz, y+Math.sin(a)*k*sz, 10, 10); } } else { g.globalAlpha = 1-k; if (sp && sp.complete) g.drawImage(sp, x-sz/2, y-sz/2, sz, sz); g.globalAlpha = 1; } }
-    else { const wob = Math.sin(now/80)*p*6; if (sp && sp.complete) g.drawImage(sp, x-sz/2+wob, y-sz/2, sz, sz); else { g.fillStyle='#ff8c00'; g.beginPath(); g.arc(x,y,sz/2,0,Math.PI*2); g.fill(); } }
+    const sz = 40 + p*p*H*.6; const x = W*q.x + (W/2-W*q.x)*p, y = H*.3 + p*p*H*.45; const sp = SPR.pumpkin;
+    const glow = g.createRadialGradient(x, y, sz*.1, x, y, sz); glow.addColorStop(0, `rgba(255,140,0,${.45+.3*Math.sin(now/70)})`); glow.addColorStop(1, 'rgba(255,140,0,0)'); g.fillStyle = glow; g.fillRect(x-sz, y-sz, sz*2, sz*2);
+    if (q.hit){ if (!q.ok){ const k = clamp((now-q.hitAt)/600, 0, 1); g.globalAlpha = 1-k; if (sp && sp.complete) g.drawImage(sp, x-sz/2, y-sz/2, sz*(1+k*.4), sz*(1+k*.4)); g.globalAlpha = 1; } }
+    else { const wob = Math.sin(now/70)*p*10, tilt = Math.sin(now/110)*p*.25; g.save(); g.translate(x+wob, y); g.rotate(tilt); if (sp && sp.complete) g.drawImage(sp, -sz/2, -sz/2, sz, sz); else { g.fillStyle='#ff8c00'; g.beginPath(); g.arc(0,0,sz/2,0,Math.PI*2); g.fill(); } g.restore();
+      // traînée de braises
+      if (Math.random()<.6) storm.parts.push({x:x+(Math.random()-.5)*sz*.5, y:y+(Math.random()-.5)*sz*.5, vx:(Math.random()-.5)*2, vy:-1-Math.random()*2, s:3+Math.random()*5, c:'#ffb347', t:now, life:500}); }
   }
+  // particules (braises, morceaux de citrouille)
+  storm.parts = storm.parts.filter(pt => now-pt.t < pt.life);
+  storm.parts.forEach(pt => { pt.x += pt.vx; pt.y += pt.vy; pt.vy += .25; const a = 1-(now-pt.t)/pt.life; g.fillStyle = pt.c; g.globalAlpha = a; g.fillRect(pt.x-pt.s/2, pt.y-pt.s/2, pt.s, pt.s); }); g.globalAlpha = 1;
+  // coup reçu : voile rouge
+  if (storm.redAt && now-storm.redAt<500){ g.fillStyle = `rgba(255,30,30,${.45*(1-(now-storm.redAt)/500)})`; g.fillRect(-50,-50,W+100,H+100); }
+  // vignette
+  const vg = g.createRadialGradient(W/2,H/2,H*.3,W/2,H/2,H*.9); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.75)'); g.fillStyle = vg; g.fillRect(-50,-50,W+100,H+100);
   storm.loop = requestAnimationFrame(stormFrame);
 }
 function endStorm(){
-  if (!storm || storm.done) return; storm.done = true; cancelAnimationFrame(storm.loop); const won = storm.hearts>0;
+  if (!storm || storm.done) return; storm.done = true; const won = storm.hearts>0;
   S.storms = (S.storms||0)+1; if (won) S.stormWins = (S.stormWins||0)+1;
-  let bonus = storm.hits*20; if (won && storm.misses===0){ bonus += 60; }
+  let bonus = storm.hits*20; if (won && storm.misses===0){ bonus += 60; S.billes += 60; }
   $('#storm-q').innerHTML = won ? (storm.misses===0 ? `☀️ Orage repoussé sans faute ! +${bonus} billes` : `☀️ Orage repoussé ! +${bonus} billes`) : `🎃 Les citrouilles ont gagné cette fois… +${bonus} billes`;
-  $('#storm-opts').innerHTML = ''; $('#storm-title').textContent = won ? 'La lumière revient' : 'Le calme revient';
-  if (won){ SFX.freed(); } else SFX.fail();
-  if (!storm.test) S.billes += (won && storm.misses===0 ? 60 : 0); // les 20 par citrouille sont déjà comptés
+  $('#storm-opts').innerHTML = ''; $('#storm-title').textContent = won ? '🌙 La lumière revient' : '🌙 Le calme revient';
+  storm.q = null; storm.phase = 'end'; if (won){ SFX.freed(); for (let i=0;i<120;i++){ const cv = $('#storm-cv'); storm.parts.push({x:Math.random()*cv.width, y:cv.height*.5, vx:(Math.random()-.5)*8, vy:-4-Math.random()*8, s:4+Math.random()*8, c:pick(['#ffd166','#ff8fb1','#8de3c0','#7cc4ff','#fff']), t:Date.now(), life:2000}); } } else SFX.fail();
   save();
   const after = storm.after;
-  setTimeout(() => { $('#storm').hidden = true; $('#app').classList.remove('dim'); storm = null; MUSIC.stop(); if (after) after(); else renderHome(); }, 2600);
+  setTimeout(() => { cancelAnimationFrame(storm && storm.loop); $('#storm').hidden = true; $('#app').classList.remove('dim'); storm = null; MUSIC.stop(); if (after) after(); else renderHome(); }, 2800);
 }
 
 /* =========================================================
@@ -1133,7 +1236,7 @@ function renderHome(){
   const {cur,next} = rank(S.billes); $('#h-rank').textContent = cur[1]; $('#h-next').textContent = next ? `${S.billes} / ${next[0]} billes` : 'Rang maximum !';
   $('#h-rankbar').style.width = next ? clamp((S.billes-cur[0])/(next[0]-cur[0])*100, 2, 100)+'%' : '100%';
   const sm = S.stars%4; $('#h-starnext').textContent = maxHearts()>=MAX_HEARTS ? 'Cœurs au maximum !' : `${sm} / 4 étoiles`; $('#h-starbar').style.width = (maxHearts()>=MAX_HEARTS ? 100 : sm/4*100)+'%';
-  $('#home-tag').textContent = S.name ? (freedCount()===ROOMS.length ? `${S.name} a sauvé tous les doudous !` : freedCount() ? `${S.name}, ${ROOMS.length-freedCount()} doudous attendent encore` : `${S.name}, les doudous se sont perdus dans le château`) : 'Les doudous se sont perdus dans le château';
+  $('#home-tag').textContent = fr(S.name ? (freedCount()===ROOMS.length ? `${S.name} a sauvé tous les doudous !` : freedCount() ? `${S.name}, ${ROOMS.length-freedCount()} doudous attendent encore` : `${S.name}, les doudous se sont perdus dans le château`) : 'Les doudous se sont perdus dans le château');
   $('#btn-enter').textContent = freedCount() ? '🏰 Continuer l\'exploration' : '🏰 Entrer dans le château';
   const par = $('#parade'); par.innerHTML = ROOMS.filter(r => isDone(r.id)).map(r => `<img src="${IMG[r.dd]}" alt="${DD[r.dd].name}" class="px">`).join('');
   $('#tg-sound').setAttribute('aria-pressed', !!S.sound); $('#tg-music').setAttribute('aria-pressed', !!S.music);
@@ -1146,7 +1249,37 @@ function renderAlbum(){
     el.innerHTML = `<img src="${IMG[d.id]}" alt="" class="px"><b>${done ? d.name : '?'}</b><small>${done ? d.desc + ' · ' + room.name : 'perdu dans ' + room.name}</small><span class="stars">${done ? ('⭐'.repeat(Math.min(3,rs.perfect)) || ('niveau '+Math.min(3,rs.done))) : ''}</span>`;
     g.appendChild(el); });
 }
-$('#btn-enter').onclick = () => { SFX.click(); openMap(); };
+$('#btn-enter').onclick = () => { SFX.click(); if (!S.introSeen) startIntro(() => openMap()); else openMap(); };
+$('#btn-intro').onclick = () => { SFX.click(); startIntro(() => { renderHome(); show('home'); }); };
+$('#btn-intro-next').onclick = () => { SFX.click(); introStep(1); };
+$('#btn-intro-skip').onclick = () => { SFX.click(); endIntro(); };
+
+/* =========================================================
+   INTRO : l'histoire en six tableaux, façon livre de contes
+   ========================================================= */
+let intro = null;
+function introPanels(){
+  const n = S.name || 'Notre héroïne'; const all = DOUDOUS.map(d => `<img src="${IMG[d.id]}" alt="${d.name}" class="px">`).join('');
+  return [
+    {scene:`<img class="bg px" src="${IMG.castle}" alt=""><div class="night"></div>`, text:`Il était une fois un grand château, tout en haut d'une colline. ${n} y vivait avec ses 16 doudous.`},
+    {scene:`<div class="row" id="intro-row">${all}</div><div class="flash" id="intro-flash"></div>`, text:`Une nuit, un orage terrible a éclaté. BOUM ! Les doudous ont eu très peur et se sont enfuis.`, fx:'storm'},
+    {scene:`<img class="bg px" src="${IMG.castle}" alt="" style="filter:brightness(.5)"><div class="night"></div>`, text:`Ils se sont cachés dans toutes les pièces du château. Chaque porte est fermée par une énigme.`},
+    {scene:`<img class="bg px" src="${IMG.castle}" alt="" style="filter:brightness(.35) blur(1px)"><img class="hero px" src="${IMG.hero}" alt=""><img class="side px" style="left:18%" src="${IMG.crabou}" alt=""><img class="side px" style="right:18%" src="${IMG.poulpou}" alt="">`, text:`${n} prend sa lanterne. Résous l'énigme d'une salle et le doudou est délivré ! Crabou est tout près de l'entrée.`, fx:'door'},
+    {scene:`<img class="bg px" src="${IMG.castle}" alt="" style="filter:brightness(.3)"><img class="cageimg px" src="${IMG.vachou}" alt=""><div class="bars"></div><img class="pumpk px" style="left:8%; bottom:12%" src="${IMG.pumpkin}" alt=""><img class="pumpk px" style="right:8%; bottom:18%; animation-delay:.4s" src="${IMG.pumpkin}" alt="">`, text:`Vachou, la plus précieuse, est enfermée tout en haut de la tour. Et gare aux orages : des citrouilles rôdent dans le château !`, fx:'pumpkin'},
+    {scene:`<div class="rules"><span>✔ Bonne réponse = des <b style="color:var(--bille)">billes</b></span><span>⭐ Salle sans faute = une <b style="color:var(--star)">étoile</b></span><span>❤️ 4 étoiles = un <b style="color:var(--heart)">cœur</b> en plus</span><span>❌ Une erreur = un cœur perdu, mais on réessaie !</span></div>`, text:`Prête ? Les doudous comptent sur toi. Entre dans le château !`, last:true}
+  ];
+}
+function startIntro(after){ intro = {i:0, after, panels:introPanels()}; show('intro'); MUSIC.play('home'); renderIntro(); }
+function renderIntro(){
+  const P = intro.panels[intro.i]; $('#intro-scene').innerHTML = P.scene; $('#intro-text').textContent = fr(P.text);
+  $('#intro-dots').innerHTML = intro.panels.map((_, k) => `<i class="${k===intro.i?'on':''}"></i>`).join('');
+  $('#btn-intro-next').textContent = P.last ? '🏰 Entrer dans le château' : 'Suivant ▶'; $('#btn-intro-skip').hidden = !!P.last;
+  if (P.fx==='storm'){ setTimeout(() => { const f = $('#intro-flash'); if (!f) return; f.style.transition='none'; f.style.opacity = .9; setTimeout(() => { f.style.transition='opacity .6s'; f.style.opacity = 0; }, 90); SFX.thunder(); const row = $('#intro-row'); if (row) setTimeout(() => row.classList.add('flee'), 500); }, 900); }
+  if (P.fx==='door') SFX.door();
+  if (P.fx==='pumpkin') setTimeout(SFX.pumpkin, 300);
+}
+function introStep(d){ if (!intro) return; if (intro.panels[intro.i].last) return endIntro(); intro.i = clamp(intro.i+d, 0, intro.panels.length-1); renderIntro(); }
+function endIntro(){ if (!intro) return; S.introSeen = true; save(); const after = intro.after; intro = null; SFX.stairs(); after(); }
 $('#btn-album').onclick = () => { SFX.click(); renderAlbum(); show('album'); };
 $('#btn-album-back').onclick = () => { SFX.click(); renderHome(); show('home'); };
 $('#btn-map-back').onclick = () => { SFX.click(); renderHome(); show('home'); MUSIC.play('home'); };
@@ -1212,4 +1345,4 @@ initCloud();
 document.addEventListener('pointerdown', function first(){ if (S.music && screen==='home') MUSIC.play('home'); document.removeEventListener('pointerdown', first); }, {once:true});
 </script>
 
-<script>try{ S.name='Léa'; $('#modal-name').hidden=true; renderHome(); startStorm(null,true); storm.phase='play'; launchPumpkin(); storm.q.born = Date.now()-3000; stormFrame(); }catch(e){ document.title="ERR "+e.message }</script></body></html>
+<script>try{ S.name='Léa'; $('#modal-name').hidden=true; renderHome(); startStorm(null,true); storm.phase='play'; launchPumpkin(); storm.q.born = Date.now()-3200; bolt(.9); storm.shake=0; stormFrame(); cancelAnimationFrame(storm.loop); }catch(e){ document.title="ERR "+e.message }</script></body></html>

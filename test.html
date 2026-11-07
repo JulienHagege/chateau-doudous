@@ -29,6 +29,11 @@
     for (let f=0; f<4; f++){ openMap(f); drawMap(); } log('carte OK');
     startStorm(null, true); log('orage phase', storm && storm.phase); if (storm){ if (storm.phase!=='play'){ storm.phase='play'; launchPumpkin(); } stormHit(true); if (storm) { launchPumpkin(); stormHit(false); } } log('orage OK, storm =', storm ? 'actif' : 'fermé', 'billes', S.billes);
     renderAlbum(); renderHome(); log('home/album OK');
+    S.unlockAll = false; S.rooms = {}; hero.floor = -1; openMap(0); log('hero', JSON.stringify(hero));
+    log('porte', String(walkable(0,3,4)&&walkable(0,3,4).id), 'corridor', walkable(0,3,5), 'locked', walkable(0,10,4));
+    heroMove(0,-1); log('vers la porte : hero', JSON.stringify(hero), 'busy', heroBusy);
+    if (run){ clearInterval(timerIv); run=null; } hero.floor=-1; openMap(0); heroMove(1,0); heroMove(1,0); heroMove(0,1); log('couloir', JSON.stringify(hero));
+    for (const k in MUSIC_TRACKS){ const E = MUSIC.events(MUSIC_TRACKS[k]); if (!E.ev.length) log('MUSIQUE vide', k); } log('musiques', Object.keys(MUSIC_TRACKS).length);
     // 3. écran salle réel : une question de chaque type rendue dans #stage
     window.setTimeout = _st;
     enterRoom(ROOM.formes); log('enterRoom OK, run =', !!run, 'stage html', $('#stage').innerHTML.length);

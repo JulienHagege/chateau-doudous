@@ -11,6 +11,7 @@ const rnd = (a,b) => a + Math.floor(Math.random()*(b-a+1));
 const pick = arr => arr[Math.floor(Math.random()*arr.length)];
 const shuffle = arr => { const a = arr.slice(); for (let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; } return a; };
 const clamp = (x,a,b) => Math.max(a, Math.min(b, x));
+const fr = s => String(s).replace(/ ([!?:;])/g, '\u00a0$1'); // typo FR : espace insécable avant ! ? : ;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 /* ---------- Doudous, du plus précieux au moins précieux ---------- */
@@ -45,25 +46,25 @@ const FLOORS = [
 /* ---------- Salles, dans l'ordre d'exploration (Crabou près de l'entrée, Vachou au sommet) ----------
    rect = [x, y, largeur, hauteur] en tuiles sur la carte 20 x 12 ; door = [x, y] la case de porte (sur le couloir). */
 const ROOMS = [
-  {id:'formes',   floor:0, dd:'crabou',   name:'Le Hall aux vitraux',     skill:'Les formes',               acc:'#ff8fb1', bg:'#2a1f4a', rect:[1,1,5,4],   door:[3,5],  n:8},
-  {id:'bains',    floor:0, dd:'poulpou',  name:'Les Bains',               skill:'Les contenances',          acc:'#7cc4ff', bg:'#0f3550', rect:[7,1,6,4],   door:[10,5], n:8},
-  {id:'longueurs',floor:0, dd:'hugo',     name:'La Galerie des sauts',    skill:'Les longueurs',            acc:'#8de3c0', bg:'#1d3a2e', rect:[14,1,5,4],  door:[16,5], n:8},
+  {id:'formes',   floor:0, dd:'crabou',   name:'Le Hall aux vitraux',     skill:'Les formes',               acc:'#ff8fb1', bg:'#2a1f4a', rect:[1,1,5,4],   door:[3,4],  n:8},
+  {id:'bains',    floor:0, dd:'poulpou',  name:'Les Bains',               skill:'Les contenances',          acc:'#7cc4ff', bg:'#0f3550', rect:[7,1,6,4],   door:[10,4], n:8},
+  {id:'longueurs',floor:0, dd:'hugo',     name:'La Galerie des sauts',    skill:'Les longueurs',            acc:'#8de3c0', bg:'#1d3a2e', rect:[14,1,5,4],  door:[16,4], n:8},
   {id:'doubles',  floor:0, dd:'pandou',   name:'La Bibliothèque',         skill:'Doubles et moitiés',       acc:'#ffd166', bg:'#3a2a1a', rect:[2,8,7,3],   door:[5,7],  n:8},
   {id:'symetrie', floor:0, dd:'manchou',  name:'La Salle des miroirs',    skill:'La symétrie',              acc:'#c9b6ff', bg:'#2a2250', rect:[11,8,7,3],  door:[14,7], n:7},
 
-  {id:'complements',floor:1, dd:'rose',   name:'La Chambre rose',         skill:'Compléments à 10, 20, 30', acc:'#ff8fb1', bg:'#4a1f3a', rect:[1,1,5,4],   door:[3,5],  n:8},
-  {id:'monnaie',  floor:1, dd:'orange',   name:'La Boutique',             skill:'Rendre la monnaie',        acc:'#ffb347', bg:'#3a2a10', rect:[7,1,6,4],   door:[10,5], n:7},
-  {id:'horloge',  floor:1, dd:'peso',     name:"La Tour de l'horloge",    skill:'Heures, jours et durées',  acc:'#7cc4ff', bg:'#1a2a4a', rect:[14,1,5,4],  door:[16,5], n:8},
+  {id:'complements',floor:1, dd:'rose',   name:'La Chambre rose',         skill:'Compléments à 10, 20, 30', acc:'#ff8fb1', bg:'#4a1f3a', rect:[1,1,5,4],   door:[3,4],  n:8},
+  {id:'monnaie',  floor:1, dd:'orange',   name:'La Boutique',             skill:'Rendre la monnaie',        acc:'#ffb347', bg:'#3a2a10', rect:[7,1,6,4],   door:[10,4], n:7},
+  {id:'horloge',  floor:1, dd:'peso',     name:"La Tour de l'horloge",    skill:'Heures, jours et durées',  acc:'#7cc4ff', bg:'#1a2a4a', rect:[14,1,5,4],  door:[16,4], n:8},
   {id:'tables1',  floor:1, dd:'sose',     name:'La Salle des bannières',  skill:'Tables de 2, 3, 5 et 10',  acc:'#ffd166', bg:'#3a1a1a', rect:[2,8,7,3],   door:[5,7],  n:10},
   {id:'soustraction',floor:1, dd:'lamantou', name:"L'Aquarium",           skill:'Soustractions',            acc:'#8de3c0', bg:'#0b3350', rect:[11,8,7,3],  door:[14,7], n:8},
 
-  {id:'addition', floor:2, dd:'chioune',  name:'La Cour des os',          skill:'Additions jusquà 100',  acc:'#ffb347', bg:'#2a2a1a', rect:[1,1,5,4],   door:[3,5],  n:8},
-  {id:'arrondi',  floor:2, dd:'pegs',     name:"L'Observatoire",          skill:'Arrondir à la dizaine',    acc:'#c9b6ff', bg:'#141a3a', rect:[7,1,6,4],   door:[10,5], n:8},
-  {id:'complements100',floor:2, dd:'fanfan', name:'La Salle du trésor',   skill:'Compléments à 50 et 100',  acc:'#ffd166', bg:'#3a2a0a', rect:[14,1,5,4],  door:[16,5], n:8},
+  {id:'addition', floor:2, dd:'chioune',  name:'La Cour des os',          skill:'Additions jusquà 100',  acc:'#ffb347', bg:'#2a2a1a', rect:[1,1,5,4],   door:[3,4],  n:8},
+  {id:'arrondi',  floor:2, dd:'pegs',     name:"L'Observatoire",          skill:'Arrondir à la dizaine',    acc:'#c9b6ff', bg:'#141a3a', rect:[7,1,6,4],   door:[10,4], n:8},
+  {id:'complements100',floor:2, dd:'fanfan', name:'La Salle du trésor',   skill:'Compléments à 50 et 100',  acc:'#ffd166', bg:'#3a2a0a', rect:[14,1,5,4],  door:[16,4], n:8},
   {id:'rapides',  floor:2, dd:'minion',   name:'La Forge',                skill:'Additions éclair',         acc:'#ff7a5c', bg:'#3a1510', rect:[2,8,7,3],   door:[5,7],  n:12},
   {id:'tables2',  floor:2, dd:'pengouins',name:'La Salle du trône',       skill:'Toutes les tables',        acc:'#ffd166', bg:'#2a1a3a', rect:[11,8,7,3],  door:[14,7], n:10},
 
-  {id:'boss',     floor:3, dd:'vachou',   name:'Le Donjon de la Tour',    skill:'Toutes les énigmes',       acc:'#ff8fb1', bg:'#1a1030', rect:[6,2,8,6],   door:[9,9],  n:15, boss:true}
+  {id:'boss',     floor:3, dd:'vachou',   name:'Le Donjon de la Tour',    skill:'Toutes les énigmes',       acc:'#ff8fb1', bg:'#1a1030', rect:[6,2,8,6],   door:[9,8],  n:15, boss:true}
 ];
 const ROOM = Object.fromEntries(ROOMS.map(r => [r.id, r]));
 const RANKS = [[0,'Apprentie exploratrice'],[250,'Chercheuse de doudous'],[700,'Gardienne du château'],[1400,'Princesse des doudous'],[2600,'Reine du château'],[4500,'Légende des doudous']];
@@ -140,59 +141,109 @@ const SFX = {
 // Notes en demi-tons depuis le la 440 (0 = la4). Chaque piste : {bpm, lead:[[note|null, durée en croches]...], bass:[...], type}
 const NOTE = n => 440 * Math.pow(2, n/12);
 const MUSIC_TRACKS = {
-  home:  {bpm:92,  lead:'triangle', bass:'sine', vol:.07,
+  home:  {bpm:92,  lead:'triangle', bass:'sine', vol:.07, perc:'x...h...x...h.h.',
           melody:[[3,2],[7,2],[10,2],[7,2],[5,2],[3,2],[-2,4], [3,2],[7,2],[10,2],[12,2],[10,2],[7,2],[5,4]],
           bassl:[[-21,4],[-14,4],[-17,4],[-12,4],[-21,4],[-14,4],[-19,4],[-12,4]]},
-  floor0:{bpm:104, lead:'square', bass:'triangle', vol:.05,
+  floor0:{bpm:104, lead:'square', bass:'triangle', vol:.05, perc:'x.h.x.h.',
           melody:[[0,1],[4,1],[7,2],[4,1],[7,1],[12,2],[9,1],[7,1],[4,2],[5,1],[4,1],[2,2], [0,1],[4,1],[7,2],[12,2],[11,1],[9,1],[7,2],[5,2],[2,2],[0,4]],
           bassl:[[-24,4],[-17,4],[-19,4],[-12,4],[-24,4],[-17,4],[-19,4],[-24,4]]},
-  floor1:{bpm:112, lead:'triangle', bass:'triangle', vol:.06,
+  floor1:{bpm:112, lead:'triangle', bass:'triangle', vol:.06, perc:'x..hx.h.',
           melody:[[2,1],[5,1],[9,1],[12,1],[9,2],[7,2],[5,1],[7,1],[9,1],[5,1],[2,4], [0,1],[2,1],[5,1],[9,1],[7,2],[5,2],[2,1],[0,1],[-3,1],[0,1],[2,4]],
           bassl:[[-22,4],[-15,4],[-17,4],[-10,4],[-22,4],[-15,4],[-19,4],[-22,4]]},
-  floor2:{bpm:126, lead:'square', bass:'sawtooth', vol:.045,
+  floor2:{bpm:126, lead:'square', bass:'sawtooth', vol:.045, perc:'x.hhx.h.',
           melody:[[-3,1],[0,1],[4,1],[7,1],[9,1],[7,1],[4,1],[0,1],[-1,1],[2,1],[5,1],[9,1],[11,1],[9,1],[5,1],[2,1], [-3,1],[0,1],[4,1],[7,1],[12,2],[11,1],[9,1],[7,2],[4,2],[0,4]],
           bassl:[[-27,2],[-27,2],[-20,2],[-20,2],[-25,2],[-25,2],[-18,2],[-18,2],[-27,2],[-27,2],[-20,2],[-20,2],[-22,2],[-22,2],[-27,4]]},
-  tower: {bpm:96,  lead:'triangle', bass:'sawtooth', vol:.06,
+  tower: {bpm:96,  lead:'triangle', bass:'sawtooth', vol:.06, perc:'x...x..hx...x.hh',
           melody:[[0,3],[3,1],[7,2],[3,2],[2,3],[5,1],[8,2],[5,2],[0,3],[3,1],[7,2],[10,2],[12,4],[10,2],[7,2]],
           bassl:[[-24,4],[-21,4],[-22,4],[-19,4],[-24,4],[-21,4],[-17,4],[-12,4]]},
-  storm: {bpm:140, lead:'sawtooth', bass:'sawtooth', vol:.045,
+  storm: {bpm:140, lead:'sawtooth', bass:'sawtooth', vol:.045, perc:'x.x.xhx.',
           melody:[[-3,1],[-3,1],[-2,1],[-3,1],[null,1],[-9,1],[-3,2],[-3,1],[-3,1],[-2,1],[-3,1],[null,1],[-5,1],[-7,2]],
-          bassl:[[-27,2],[-27,2],[-26,2],[-27,2],[-27,2],[-27,2],[-29,2],[-31,2]]}
+          bassl:[[-27,2],[-27,2],[-26,2],[-27,2],[-27,2],[-27,2],[-29,2],[-31,2]]},
+  /* Une boucle par salle, dans l'esprit de chaque pièce */
+  room_formes:{bpm:110, lead:'triangle', bass:'triangle', vol:.06, perc:'x.h.x.h.',           // vitraux : clair, majeur
+          melody:[[3,1],[7,1],[10,1],[15,1],[10,1],[7,1],[3,2],[5,1],[8,1],[12,1],[17,1],[12,1],[8,1],[5,2],[3,1],[7,1],[10,1],[15,2],[14,1],[12,1],[10,2],[8,2],[7,4]],
+          bassl:[[-21,4],[-16,4],[-19,4],[-14,4],[-21,4],[-16,4],[-17,4],[-21,4]]},
+  room_bains:{bpm:84, lead:'sine', bass:'sine', vol:.08, perc:'....h...',                     // bains : aquatique, arpèges lents
+          melody:[[0,1],[4,1],[7,1],[11,1],[12,2],[11,1],[7,1],[-2,1],[2,1],[5,1],[9,1],[10,2],[9,1],[5,1],[-3,1],[0,1],[4,1],[7,1],[9,4],[7,2],[4,2]],
+          bassl:[[-24,8],[-26,8],[-27,8],[-19,8]]},
+  room_longueurs:{bpm:128, lead:'square', bass:'triangle', vol:.05, perc:'x.x.h.x.',          // kangourou : bonds staccato
+          melody:[[0,1],[null,1],[7,1],[null,1],[12,1],[null,1],[7,1],[null,1],[2,1],[null,1],[9,1],[null,1],[14,1],[null,1],[9,1],[null,1],[4,1],[7,1],[11,1],[16,1],[14,1],[11,1],[7,1],[4,1],[0,2],[null,2],[12,2],[null,2]],
+          bassl:[[-24,2],[-12,2],[-24,2],[-12,2],[-22,2],[-10,2],[-22,2],[-10,2],[-20,2],[-8,2],[-19,2],[-7,2],[-24,2],[-12,2],[-24,4]]},
+  room_doubles:{bpm:96, lead:'triangle', bass:'sine', vol:.065, perc:'x..h..h..',             // bibliothèque : petite valse à 3 temps
+          melody:[[7,2],[12,2],[11,2],[12,2],[7,2],[4,2],[5,2],[9,2],[7,2],[9,2],[5,2],[2,2],[4,2],[7,2],[12,2],[16,2],[14,2],[12,2],[11,4],[null,2]],
+          bassl:[[-24,2],[-12,2],[-12,2],[-19,2],[-7,2],[-7,2],[-22,2],[-10,2],[-10,2],[-17,2],[-5,2],[-5,2],[-24,2],[-12,2],[-12,2],[-19,2],[-7,2],[-7,2],[-24,6]]},
+  room_symetrie:{bpm:100, lead:'triangle', bass:'triangle', vol:.06, perc:'x...h...',          // miroirs : mélodie palindrome
+          melody:[[0,1],[4,1],[7,1],[12,1],[16,2],[12,1],[7,1],[4,1],[0,2],[2,1],[5,1],[9,1],[14,1],[17,2],[14,1],[9,1],[5,1],[2,2]],
+          bassl:[[-24,4],[-17,4],[-22,4],[-15,4]]},
+  room_complements:{bpm:78, lead:'sine', bass:'sine', vol:.08, perc:'........',               // chambre rose : berceuse
+          melody:[[7,2],[4,2],[7,2],[4,2],[9,2],[7,2],[4,4],[5,2],[2,2],[5,2],[2,2],[7,2],[5,2],[0,4],[7,2],[4,2],[7,2],[12,2],[11,2],[9,2],[7,6],[null,2]],
+          bassl:[[-24,4],[-17,4],[-22,4],[-15,4],[-24,4],[-17,4],[-19,4],[-24,4]]},
+  room_monnaie:{bpm:120, lead:'square', bass:'triangle', vol:.045, perc:'x.h.xhh.',           // boutique : guilleret
+          melody:[[0,1],[0,1],[4,1],[7,1],[9,1],[7,1],[4,1],[0,1],[2,1],[2,1],[5,1],[9,1],[11,1],[9,1],[5,1],[2,1],[0,1],[4,1],[7,1],[12,1],[11,1],[9,1],[7,1],[4,1],[5,1],[4,1],[2,1],[-1,1],[0,4]],
+          bassl:[[-24,2],[-17,2],[-24,2],[-17,2],[-22,2],[-15,2],[-22,2],[-15,2],[-24,2],[-17,2],[-20,2],[-13,2],[-19,2],[-19,2],[-24,4]]},
+  room_horloge:{bpm:100, lead:'triangle', bass:'square', vol:.05, perc:'x.h.x.h.x.h.x.h.',   // horloge : tic-tac
+          melody:[[12,1],[null,1],[7,1],[null,1],[12,1],[null,1],[7,1],[null,1],[14,1],[null,1],[9,1],[null,1],[14,1],[null,1],[9,1],[null,1],[16,1],[14,1],[12,1],[9,1],[7,1],[4,1],[0,2],[null,8]],
+          bassl:[[-24,1],[-12,1],[-24,1],[-12,1],[-24,1],[-12,1],[-24,1],[-12,1],[-22,1],[-10,1],[-22,1],[-10,1],[-22,1],[-10,1],[-22,1],[-10,1],[-20,1],[-8,1],[-20,1],[-8,1],[-19,1],[-7,1],[-19,1],[-7,1],[-24,1],[-12,1],[-24,1],[-12,1],[-24,1],[-12,1],[-24,1],[-12,1]]},
+  room_tables1:{bpm:120, lead:'square', bass:'sawtooth', vol:.045, perc:'x.x.h.x.',           // bannières : fanfare
+          melody:[[0,1],[0,1],[0,2],[4,2],[7,2],[12,3],[7,1],[9,2],[7,2],[4,2],[0,2],[2,2],[4,2],[5,1],[5,1],[5,2],[9,2],[12,2],[16,4],[14,2],[12,2]],
+          bassl:[[-24,4],[-24,4],[-19,4],[-19,4],[-22,4],[-22,4],[-17,4],[-19,4]]},
+  room_soustraction:{bpm:90, lead:'sine', bass:'sine', vol:.08, perc:'....h.h.',              // aquarium : bulles
+          melody:[[12,1],[16,1],[19,1],[null,1],[14,1],[17,1],[21,1],[null,1],[11,1],[14,1],[19,1],[null,1],[9,1],[12,1],[16,1],[null,1],[7,2],[12,2],[16,2],[19,2],[17,4],[16,4]],
+          bassl:[[-24,8],[-22,8],[-27,8],[-20,8]]},
+  room_addition:{bpm:132, lead:'square', bass:'triangle', vol:.045, perc:'xhxhxhxh',          // cour des os : chien joueur
+          melody:[[0,1],[4,1],[7,1],[4,1],[0,1],[4,1],[7,1],[12,1],[2,1],[5,1],[9,1],[5,1],[2,1],[5,1],[9,1],[14,1],[4,1],[7,1],[11,1],[7,1],[12,1],[11,1],[9,1],[7,1],[5,1],[4,1],[2,1],[0,1],[7,4]],
+          bassl:[[-24,2],[-24,2],[-20,2],[-20,2],[-22,2],[-22,2],[-17,2],[-17,2],[-19,2],[-19,2],[-15,2],[-15,2],[-24,2],[-19,2],[-24,4]]},
+  room_arrondi:{bpm:72, lead:'sine', bass:'triangle', vol:.07, perc:'x.......',               // observatoire : spatial, notes longues
+          melody:[[0,4],[7,4],[11,4],[12,4],[9,4],[7,4],[4,4],[2,4],[0,4],[7,4],[14,4],[12,4],[11,8],[null,8]],
+          bassl:[[-24,8],[-17,8],[-20,8],[-22,8],[-24,8],[-17,8],[-19,8],[-24,8]]},
+  room_complements100:{bpm:104, lead:'triangle', bass:'sawtooth', vol:.05, perc:'x..hx.h.',   // trésor : mystérieux, mineur
+          melody:[[0,2],[3,2],[7,2],[8,2],[7,2],[3,2],[0,4],[-2,2],[2,2],[5,2],[7,2],[5,2],[2,2],[-2,4],[0,2],[3,2],[7,2],[10,2],[12,4],[10,2],[7,2]],
+          bassl:[[-24,4],[-21,4],[-19,4],[-26,4],[-24,4],[-21,4],[-17,4],[-24,4]]},
+  room_rapides:{bpm:150, lead:'sawtooth', bass:'square', vol:.04, perc:'x.x.x.x.xxx.x.x.',    // forge : marteaux
+          melody:[[0,1],[0,1],[3,1],[0,1],[5,1],[0,1],[3,1],[0,1],[2,1],[2,1],[5,1],[2,1],[7,1],[2,1],[5,1],[2,1],[0,1],[3,1],[7,1],[10,1],[12,2],[10,1],[7,1],[5,1],[3,1],[0,2]],
+          bassl:[[-24,1],[-24,1],[-24,1],[-24,1],[-24,1],[-24,1],[-21,1],[-22,1],[-22,1],[-22,1],[-22,1],[-22,1],[-22,1],[-22,1],[-19,1],[-20,1],[-24,2],[-24,2],[-19,2],[-17,2]]},
+  room_tables2:{bpm:108, lead:'triangle', bass:'sawtooth', vol:.055, perc:'x...h.h.x...hh..', // trône : royal
+          melody:[[0,2],[4,2],[7,4],[9,1],[7,1],[4,1],[2,1],[0,4],[5,2],[9,2],[12,4],[14,1],[12,1],[9,1],[7,1],[5,4],[0,2],[7,2],[12,2],[16,2],[14,2],[12,2],[11,4],[12,4]],
+          bassl:[[-24,4],[-24,4],[-19,4],[-17,4],[-22,4],[-22,4],[-17,4],[-15,4],[-24,4],[-20,4],[-19,4],[-12,4]]},
+  room_boss:{bpm:100, lead:'sawtooth', bass:'sawtooth', vol:.045, perc:'x.x.h.x.x.x.hhx.',     // donjon : dramatique
+          melody:[[0,2],[0,1],[3,1],[5,2],[3,2],[0,2],[-2,1],[0,1],[-4,4],[0,2],[0,1],[3,1],[7,2],[5,2],[3,2],[2,1],[0,1],[-2,4],[3,2],[5,2],[7,2],[10,2],[8,2],[7,2],[5,2],[3,2],[0,8]],
+          bassl:[[-24,2],[-24,2],[-21,2],[-21,2],[-22,2],[-22,2],[-26,2],[-26,2],[-24,2],[-24,2],[-21,2],[-21,2],[-19,2],[-19,2],[-17,2],[-17,2]]}
 };
 const MUSIC = {
-  cur:null, timer:null, nextT:0, mi:0, bi:0, mbeat:0, bbeat:0, gain:null,
+  cur:null, timer:null, gain:null, t0:0, cyc:0, E:null,
+  events(T){
+    const M = T.melody.reduce((s,x)=>s+x[1],0); const ev = []; let b = 0;
+    for (const [n,d] of T.melody){ if (n!==null) ev.push({b, d:d*.9, f:NOTE(n), type:T.lead, vol:T.vol}); b += d; }
+    b = 0; let i = 0; while (b < M){ const [n,d] = T.bassl[i%T.bassl.length]; const dd = Math.min(d, M-b); if (n!==null) ev.push({b, d:dd*.95, f:NOTE(n), type:T.bass, vol:T.vol*.9}); b += dd; i++; }
+    if (T.perc) for (let k=0;k<M;k++){ const ch = T.perc[k%T.perc.length]; if (ch==='x') ev.push({b:k, d:.09, f:55, type:'sine', vol:T.vol*1.6}); else if (ch==='h') ev.push({b:k, d:.03, f:3600+Math.random()*600, type:'square', vol:T.vol*.3}); }
+    return {ev, M, eighth:30/T.bpm};
+  },
   play(name){
     if (this.cur===name && this.timer) return;
-    this.stop(); if (!S.music) { this.cur = name; return; }
-    const c = ac(); if (!c) { this.cur = name; return; }
-    this.cur = name; this.gain = c.createGain(); this.gain.gain.value = 1; this.gain.connect(c.destination);
-    this.mi = 0; this.bi = 0; this.mbeat = 0; this.bbeat = 0; this.nextT = c.currentTime + .05; this.t0 = this.nextT;
-    this.timer = setInterval(() => this.tick(), 120);
-    this.tick();
+    this.stop(); this.cur = name; if (!S.music) return;
+    const c = ac(); const T = MUSIC_TRACKS[name]; if (!c || !T) return;
+    this.gain = c.createGain(); this.gain.gain.value = 1; this.gain.connect(c.destination);
+    this.E = this.events(T); this.t0 = c.currentTime + .05; this.cyc = 0;
+    this.timer = setInterval(() => this.tick(), 150); this.tick();
   },
   tick(){
-    const c = ac(); const T = MUSIC_TRACKS[this.cur]; if (!c || !T || !this.gain) return;
-    const eighth = 30 / T.bpm; // durée d'une croche
-    while (this.t0 + this.mbeat*eighth < c.currentTime + .4){
-      const [n, d] = T.melody[this.mi % T.melody.length];
-      if (n!==null) tone(NOTE(n), Math.max(0, this.t0 + this.mbeat*eighth - c.currentTime), d*eighth*.9, T.lead, T.vol, this.gain);
-      this.mbeat += d; this.mi++;
-    }
-    while (this.t0 + this.bbeat*eighth < c.currentTime + .4){
-      const [n, d] = T.bassl[this.bi % T.bassl.length];
-      if (n!==null) tone(NOTE(n), Math.max(0, this.t0 + this.bbeat*eighth - c.currentTime), d*eighth*.95, T.bass, T.vol*.9, this.gain);
-      this.bbeat += d; this.bi++;
+    const c = ac(); if (!c || !this.gain || !this.E) return; const {ev, M, eighth} = this.E;
+    // on programme un cycle entier dès que son début approche (0,5 s d'avance)
+    while (this.t0 + this.cyc*M*eighth < c.currentTime + .5){
+      const base = this.t0 + this.cyc*M*eighth;
+      for (const e of ev){ const at = base + e.b*eighth; if (at < c.currentTime - .02) continue; tone(e.f, at - c.currentTime, e.d*eighth, e.type, e.vol, this.gain); }
+      this.cyc++;
     }
   },
-  stop(){ clearInterval(this.timer); this.timer = null; if (this.gain){ try{ const g = this.gain; g.gain.setTargetAtTime(0, ac().currentTime, .08); setTimeout(()=>{ try{ g.disconnect(); }catch(e){} }, 600); }catch(e){} this.gain = null; } },
-  refresh(){ const n = this.cur; this.stop(); if (n && S.music) { this.cur = null; this.play(n); } else this.cur = n; }
+  stop(){ clearInterval(this.timer); this.timer = null; if (this.gain){ try{ const g = this.gain; g.gain.setTargetAtTime(0, ac().currentTime, .06); setTimeout(()=>{ try{ g.disconnect(); }catch(e){} }, 500); }catch(e){} this.gain = null; } },
+  refresh(){ const n = this.cur; this.stop(); this.cur = null; if (n && S.music) this.play(n); else this.cur = n; }
 };
 
 /* ---------- UI utilitaires ---------- */
 let screen = 'home';
-function show(id){ ['home','album','mapscreen','room','result'].forEach(s => { $('#'+s).hidden = (s!==id); }); screen = id; window.scrollTo(0,0); }
+function show(id){ ['home','intro','album','mapscreen','room','result'].forEach(s => { $('#'+s).hidden = (s!==id); }); screen = id; window.scrollTo(0,0); }
 let toastT = null;
-function toast(msg, ms=2600){ let t = $('.toast'); if (!t){ t = document.createElement('div'); t.className='toast'; document.body.appendChild(t); } t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms); }
+function toast(msg, ms=2600){ let t = $('.toast'); if (!t){ t = document.createElement('div'); t.className='toast'; document.body.appendChild(t); } t.textContent = fr(msg); t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms); }
 function sparkle(el, txt='✨'){ try{ const r = el.getBoundingClientRect(); for (let i=0;i<5;i++){ const s = document.createElement('span'); s.className='sparkle'; s.textContent = txt; s.style.left = (r.left + Math.random()*r.width) + 'px'; s.style.top = (r.top + r.height/2) + 'px'; s.style.position='fixed'; s.style.zIndex = 40; document.body.appendChild(s); setTimeout(()=>s.remove(), 900); } }catch(e){} }
 function confetti(){
   const c = $('#confetti'); c.hidden = false; c.innerHTML = '';

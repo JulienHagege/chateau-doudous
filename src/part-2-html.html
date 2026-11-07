@@ -11,7 +11,7 @@
       <span class="chip bille"><i class="bille-ico"></i><span id="h-billes" class="tabular">0</span><span class="lab">billes</span></span>
       <span class="chip star">⭐ <span id="h-stars" class="tabular">0</span><span class="lab">étoiles</span></span>
       <span class="chip heart">❤️ <span id="h-hearts" class="tabular">5</span><span class="lab">cœurs</span></span>
-      <span class="chip">🧸 <span id="h-freed" class="tabular">0</span><span class="lab">/ 16 délivrés</span></span>
+      <span class="chip">🧸 <span id="h-freed" class="tabular">0</span><span class="lab">/ 16 retrouvés</span></span>
     </div>
     <div class="level">
       <div class="row"><span>Rang : <b id="h-rank">Apprentie exploratrice</b></span><span id="h-next"></span></div>
@@ -24,10 +24,11 @@
     <div class="actions">
       <button class="btn big" id="btn-enter">🏰 Entrer dans le château</button>
       <button class="btn rose" id="btn-album">🧸 Album des doudous</button>
+      <button class="btn ghost" id="btn-intro">📖 Revoir l'histoire</button>
     </div>
   </div>
   <div class="grid2">
-    <div class="card"><h2 id="story-title">L'histoire</h2><p class="story" id="story">Pendant la nuit, tous tes doudous se sont perdus dans le grand château. Explore les pièces, résous les énigmes et délivre-les un par un. Vachou t'attend tout en haut de la tour !</p></div>
+    <div class="card"><h2 id="story-title">L'histoire</h2><p class="story" id="story">Pendant la nuit, tous tes doudous se sont perdus dans le grand château. Explore les pièces, résous les énigmes et retrouve-les un par un. Vachou se cache tout en haut de la tour !</p></div>
     <div class="card"><h2>Réglages</h2>
       <div class="toggles">
         <button class="toggle" id="tg-sound" aria-pressed="true">🔔 Bruitages</button>
@@ -47,6 +48,19 @@
   </div>
 </section>
 
+<!-- ===== Intro ===== -->
+<section id="intro" class="screen" hidden>
+  <div class="intro">
+    <div class="scene" id="intro-scene"></div>
+    <p class="text" id="intro-text"></p>
+    <div class="dots" id="intro-dots"></div>
+    <div class="actions">
+      <button class="btn big" id="btn-intro-next">Suivant ▶</button>
+      <button class="btn ghost" id="btn-intro-skip">Passer</button>
+    </div>
+  </div>
+</section>
+
 <!-- ===== Album ===== -->
 <section id="album" class="screen" hidden>
   <div class="topbar"><h2>🧸 Album des doudous</h2><button class="btn ghost" id="btn-album-back">← Retour</button></div>
@@ -62,13 +76,14 @@
   </div>
   <div class="mapwrap"><canvas id="map"></canvas></div>
   <div class="maphint" id="maphint">Touche une porte pour entrer.</div>
-  <div class="legend"><span>✨ salle à explorer</span><span>🧸 doudou délivré</span><span>🌫️ brouillard</span></div>
+  <div class="dpad" id="dpad"><button data-d="0,-1" aria-label="Haut">▲</button><div class="mid"><button data-d="-1,0" aria-label="Gauche">◀</button><button data-d="1,0" aria-label="Droite">▶</button></div><button data-d="0,1" aria-label="Bas">▼</button></div>
+  <div class="legend"><span>✨ salle à explorer</span><span>🧸 doudou retrouvé</span><span>🌫️ brouillard</span><span>⌨️ flèches du clavier pour marcher</span></div>
 </section>
 
 <!-- ===== Salle ===== -->
 <section id="room" class="screen room" hidden>
   <div class="roomhead">
-    <div class="cage" id="cage"><img id="cage-img" class="px" alt=""></div>
+    <div class="hide" id="cage"><img id="cage-img" class="px" alt=""></div>
     <div class="meta"><h2 id="room-name"></h2><p id="room-skill"></p></div>
     <div class="hearts" id="hearts"></div>
   </div>
@@ -99,12 +114,16 @@
 
 <!-- ===== Orage ===== -->
 <div id="storm" hidden>
-  <div class="flash" id="storm-flash"></div>
-  <div class="stitle" id="storm-title">⛈️ L'orage approche…</div>
   <canvas id="storm-cv"></canvas>
-  <div class="sq" id="storm-q"></div>
-  <div class="opts" id="storm-opts"></div>
-  <div class="sinfo"><span id="storm-score">🎃 0 / 6</span><span id="storm-hearts"></span></div>
+  <div class="flash" id="storm-flash"></div>
+  <div class="ui">
+    <div class="stitle" id="storm-title">⛈️ L'orage approche…</div>
+    <div class="bottom">
+      <div class="sq" id="storm-q"></div>
+      <div class="opts" id="storm-opts"></div>
+      <div class="sinfo"><span id="storm-score">🎃 0 / 6</span><span id="storm-hearts"></span></div>
+    </div>
+  </div>
 </div>
 
 <!-- ===== Modale prénom ===== -->
