@@ -125,13 +125,13 @@ details.parents summary{cursor:pointer; font-weight:800; color:var(--muted)}
 
 /* ---------- Salle (mini-jeu) ---------- */
 .room{--acc:var(--gold); --room-bg:#2a2560}
-.roomhead{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px}
+.roomhead{display:grid; grid-template-columns:64px minmax(0,1fr) auto auto; align-items:center; gap:10px; margin-bottom:8px}
+@media (max-width:640px){.roomhead{grid-template-columns:64px minmax(0,1fr) auto} .roomhead .hearts{grid-column:1 / -1; justify-content:center}}
 .roomhead .hide{position:relative; width:64px; height:64px; flex:none}
 .roomhead .hide img{width:64px; height:64px; object-fit:contain; filter:brightness(0) opacity(.5); transition:filter .8s}
 .roomhead .hide::after{content:"?"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-size:30px; color:var(--gold); pointer-events:none}
 .roomhead .hide.free img{filter:none} .roomhead .hide.free::after{display:none}
-.roomhead .meta{min-width:150px; flex:1 1 180px}
-@media (max-width:600px){.roomhead .hearts{order:3; width:100%} .roomhead .meta p{white-space:normal}}
+.roomhead .meta{min-width:0}
 .roomhead .meta h2{font-size:20px; color:var(--acc)}
 .roomhead .meta p{margin:0; color:var(--muted); font-size:14px}
 .lvlbadge{display:flex; flex-direction:column; align-items:center; gap:4px; background:linear-gradient(180deg,#ffe08a,var(--gold2)); color:#3a2a05; border-radius:14px; padding:7px 14px; box-shadow:0 3px 0 #8a6a1c; flex:none}
