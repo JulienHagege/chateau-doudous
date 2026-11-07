@@ -606,33 +606,53 @@ const MUSIC_TRACKS = {
           melody:[[0,2],[0,1],[3,1],[5,2],[3,2],[0,2],[-2,1],[0,1],[-4,4],[0,2],[0,1],[3,1],[7,2],[5,2],[3,2],[2,1],[0,1],[-2,4],[3,2],[5,2],[7,2],[10,2],[8,2],[7,2],[5,2],[3,2],[0,8]],
           bassl:[[-24,2],[-24,2],[-21,2],[-21,2],[-22,2],[-22,2],[-26,2],[-26,2],[-24,2],[-24,2],[-21,2],[-21,2],[-19,2],[-19,2],[-17,2],[-17,2]]}
 };
+// Chaque thème est un court motif ; le séquenceur en fait un vrai morceau : neuf sections (motif, aéré, octave, transposé,
+// ralenti, respiration basse seule, à l'envers, à la quinte, reprise) dont l'ordre change à chaque passage. Une boucle dure
+// plus d'une minute et ne se répète jamais à l'identique (demande de Julien : les boucles courtes étaient énervantes).
+function seeded(n){ let x = (n*9301 + 49297) % 233280; return () => { x = (x*9301 + 49297) % 233280; return x/233280; }; }
 const MUSIC = {
-  cur:null, timer:null, gain:null, t0:0, cyc:0, E:null,
-  events(T){
-    const M = T.melody.reduce((s,x)=>s+x[1],0); const ev = []; let b = 0;
-    for (const [n,d] of T.melody){ if (n!==null) ev.push({b, d:d*.9, f:NOTE(n), type:T.lead, vol:T.vol}); b += d; }
-    b = 0; let i = 0; while (b < M){ const [n,d] = T.bassl[i%T.bassl.length]; const dd = Math.min(d, M-b); if (n!==null) ev.push({b, d:dd*.95, f:NOTE(n), type:T.bass, vol:T.vol*.9}); b += dd; i++; }
-    if (T.perc) for (let k=0;k<M;k++){ const ch = T.perc[k%T.perc.length]; if (ch==='x') ev.push({b:k, d:.09, f:55, type:'sine', vol:T.vol*1.6}); else if (ch==='h') ev.push({b:k, d:.03, f:3600+Math.random()*600, type:'square', vol:T.vol*.3}); }
-    return {ev, M, eighth:30/T.bpm};
+  cur:null, timer:null, gain:null, nextStart:0, cyc:0, T:null,
+  variants(T, cyc){
+    const m = T.melody, rnd = seeded(cyc*7+13);
+    const sparse = m.map((x,i) => (i%2===1 && x[1]<=1 && rnd()<.6) ? [null, x[1]] : x);
+    const retro = m.slice().reverse();
+    const calm = m.map(x => [x[0], x[1]*2]);
+    const A = {m, tr:0}, mid = [
+      {m:sparse, tr:0, vol:.9}, {m, tr:12, vol:.75, lead:'triangle'}, {m, tr:5}, {m:calm, tr:0, vol:.8, lead:'sine', calm:true},
+      {m:[], tr:0, breath:true}, {m:retro, tr:0}, {m, tr:7, vol:.9}
+    ];
+    for (let i=mid.length-1;i>0;i--){ const j = Math.floor(rnd()*(i+1)); [mid[i],mid[j]] = [mid[j],mid[i]]; }
+    return [A, ...mid, A];
+  },
+  events(T, cyc){
+    const eighth = 30/T.bpm; const ev = []; let pos = 0; const baseLen = T.melody.reduce((s,x)=>s+x[1],0);
+    for (const sec of this.variants(T, cyc||0)){
+      const len = sec.breath ? baseLen : sec.m.reduce((s,x)=>s+x[1],0); const vol = T.vol*(sec.vol||1);
+      let b = 0; for (const [n,d] of sec.m){ if (n!==null) ev.push({b:pos+b, d:d*.9, f:NOTE(n+sec.tr), type:sec.lead||T.lead, vol}); b += d; }
+      b = 0; let i = 0; const bmul = sec.calm ? 2 : 1;
+      while (b < len){ const [n,d] = T.bassl[i%T.bassl.length]; const dd = Math.min(d*bmul, len-b); if (n!==null) ev.push({b:pos+b, d:dd*.95, f:NOTE(n+sec.tr), type:T.bass, vol:T.vol*(sec.breath?1.1:.9)}); b += dd; i++; }
+      if (T.perc && !sec.calm) for (let k=0;k<len;k++){ const ch = T.perc[k%T.perc.length]; if (ch==='x') ev.push({b:pos+k, d:.09, f:55, type:'sine', vol:T.vol*1.6}); else if (ch==='h') ev.push({b:pos+k, d:.03, f:3600+Math.random()*600, type:'square', vol:T.vol*.3}); }
+      pos += len;
+    }
+    return {ev, M:pos, eighth};
   },
   play(name){
     if (this.cur===name && this.timer) return;
     this.stop(); this.cur = name; if (!S.music) return;
     const c = ac(); const T = MUSIC_TRACKS[name]; if (!c || !T) return;
     this.gain = c.createGain(); this.gain.gain.value = 1; this.gain.connect(c.destination);
-    this.E = this.events(T); this.t0 = c.currentTime + .05; this.cyc = 0;
+    this.T = T; this.nextStart = c.currentTime + .05; this.cyc = Math.floor(Math.random()*1000); this.pending = null;
     this.timer = setInterval(() => this.tick(), 150); this.tick();
   },
   tick(){
-    const c = ac(); if (!c || !this.gain || !this.E) return; const {ev, M, eighth} = this.E;
-    // on programme un cycle entier dès que son début approche (0,5 s d'avance)
-    while (this.t0 + this.cyc*M*eighth < c.currentTime + .5){
-      const base = this.t0 + this.cyc*M*eighth;
-      for (const e of ev){ const at = base + e.b*eighth; if (at < c.currentTime - .02) continue; tone(e.f, at - c.currentTime, e.d*eighth, e.type, e.vol, this.gain); }
-      this.cyc++;
-    }
+    const c = ac(); if (!c || !this.gain || !this.T) return;
+    // on programme les notes par tranches de 2 s d'avance (un cycle complet dure plus d'une minute)
+    if (!this.pending){ this.pending = this.events(this.T, this.cyc); this.pending.start = this.nextStart; this.pending.i = 0; this.pending.ev.sort((x,y)=>x.b-y.b); }
+    const P = this.pending; const horizon = c.currentTime + 2;
+    while (P.i < P.ev.length && P.start + P.ev[P.i].b*P.eighth < horizon){ const e = P.ev[P.i++]; const at = P.start + e.b*P.eighth; if (at >= c.currentTime - .02) tone(e.f, at - c.currentTime, e.d*P.eighth, e.type, e.vol, this.gain); }
+    if (P.i >= P.ev.length){ this.nextStart = P.start + P.M*P.eighth; this.cyc++; this.pending = null; }
   },
-  stop(){ clearInterval(this.timer); this.timer = null; if (this.gain){ try{ const g = this.gain; g.gain.setTargetAtTime(0, ac().currentTime, .06); setTimeout(()=>{ try{ g.disconnect(); }catch(e){} }, 500); }catch(e){} this.gain = null; } },
+  stop(){ clearInterval(this.timer); this.timer = null; this.pending = null; if (this.gain){ try{ const g = this.gain; g.gain.setTargetAtTime(0, ac().currentTime, .06); setTimeout(()=>{ try{ g.disconnect(); }catch(e){} }, 500); }catch(e){} this.gain = null; } },
   refresh(){ const n = this.cur; this.stop(); this.cur = null; if (n && S.music) this.play(n); else this.cur = n; }
 };
 
@@ -974,7 +994,7 @@ GAMES.arrondi = { intro:"À l'observatoire, Pegs range les nombres près de la d
   const base = level===3 ? pick([0,100]) : 0; let n = base + rnd(1,99); if (level===1) while (n%10===5 || n%10===0) n = base + rnd(1,99); if (level>=2) while (n%10===0) n = base + rnd(1,99);
   const ans = Math.round(n/10)*10;
   return {prompt:`Arrondis <b>${n}</b> à la dizaine la plus proche`, sub: level>=2 ? 'à 5, on arrondit au-dessus' : '', kind:'custom', answer:ans, show:String(ans), render(stage, api){
-    const lo = base, hi = base+100; const nl = document.createElement('div'); nl.className='numline'; nl.innerHTML = `<div class="ln"></div><div class="cursor" style="left:${4 + (n-lo)/(hi-lo)*92}%">${n}</div>`;
+    const lo = base, hi = base+100; const nl = document.createElement('div'); nl.className='numline'; nl.innerHTML = `<div class="ln"></div>`; // pas de repère : elle doit situer le nombre elle-même
     for (let v=lo; v<=hi; v+=10){ const tk = document.createElement('div'); tk.className='tk'; tk.style.left = (4 + (v-lo)/(hi-lo)*92)+'%'; const b = document.createElement('button'); b.textContent = v; b.onclick = () => { if (api.done) return; const ok = v===ans; b.style.background = ok ? '#8de3c0' : '#c9452c'; api.answer(ok); }; tk.appendChild(b); nl.appendChild(tk); }
     const wrap = document.createElement('div'); wrap.className='custom'; wrap.appendChild(nl); stage.appendChild(wrap);
   }};

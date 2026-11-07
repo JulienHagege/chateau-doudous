@@ -322,7 +322,7 @@ GAMES.arrondi = { intro:"À l'observatoire, Pegs range les nombres près de la d
   const base = level===3 ? pick([0,100]) : 0; let n = base + rnd(1,99); if (level===1) while (n%10===5 || n%10===0) n = base + rnd(1,99); if (level>=2) while (n%10===0) n = base + rnd(1,99);
   const ans = Math.round(n/10)*10;
   return {prompt:`Arrondis <b>${n}</b> à la dizaine la plus proche`, sub: level>=2 ? 'à 5, on arrondit au-dessus' : '', kind:'custom', answer:ans, show:String(ans), render(stage, api){
-    const lo = base, hi = base+100; const nl = document.createElement('div'); nl.className='numline'; nl.innerHTML = `<div class="ln"></div><div class="cursor" style="left:${4 + (n-lo)/(hi-lo)*92}%">${n}</div>`;
+    const lo = base, hi = base+100; const nl = document.createElement('div'); nl.className='numline'; nl.innerHTML = `<div class="ln"></div>`; // pas de repère : elle doit situer le nombre elle-même
     for (let v=lo; v<=hi; v+=10){ const tk = document.createElement('div'); tk.className='tk'; tk.style.left = (4 + (v-lo)/(hi-lo)*92)+'%'; const b = document.createElement('button'); b.textContent = v; b.onclick = () => { if (api.done) return; const ok = v===ans; b.style.background = ok ? '#8de3c0' : '#c9452c'; api.answer(ok); }; tk.appendChild(b); nl.appendChild(tk); }
     const wrap = document.createElement('div'); wrap.className='custom'; wrap.appendChild(nl); stage.appendChild(wrap);
   }};
