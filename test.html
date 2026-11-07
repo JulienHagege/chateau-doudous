@@ -38,6 +38,7 @@
     startStorm(null, true); log('orage phase', storm && storm.phase); if (storm){ if (storm.phase!=='play'){ storm.phase='play'; launchPumpkin(); } stormHit(true); if (storm) { launchPumpkin(); stormHit(false); } } log('orage OK, storm =', storm ? 'actif' : 'fermé', 'billes', S.billes);
     renderAlbum(); renderHome(); log('home/album OK');
     S.unlockAll = false; S.rooms = {}; hero.floor = -1; openMap(0); log('hero', JSON.stringify(hero));
+    log('accès RDC', ROOMS.filter(r=>r.floor===0).map(r=>roomUnlocked(r)).join(','), '1er fermé', !roomUnlocked(ROOM.complements), 'boss fermé', !roomUnlocked(ROOM.boss)); ROOMS.filter(r=>r.floor===0).forEach(r=>{roomState(r.id).found=true;}); log('après RDC : 1er ouvert', roomUnlocked(ROOM.complements), '2e fermé', !roomUnlocked(ROOM.addition), 'hint', $('#maphint').textContent.slice(0,40));
     log('porte', String(walkable(0,3,4)&&walkable(0,3,4).id), 'corridor', walkable(0,3,5), 'locked', walkable(0,10,4));
     heroMove(0,-1); log('vers la porte : hero', JSON.stringify(hero), 'busy', heroBusy);
     if (run){ clearInterval(timerIv); run=null; } hero.floor=-1; openMap(0); heroMove(1,0); heroMove(1,0); heroMove(0,1); log('couloir', JSON.stringify(hero));

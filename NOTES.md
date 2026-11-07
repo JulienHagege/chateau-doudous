@@ -22,7 +22,7 @@ Jeu de maths pour la fille de Julien (6 ans, CP, forte en maths), créé le 2026
 
 ## Règles de jeu (validées par Julien le 2026-11-07)
 
-- Ordre : Crabou près de l'entrée… Vachou (la plus précieuse) au sommet de la Tour, accessible quand les 15 autres sont délivrés. Une salle débloque la suivante ; l'étage suivant s'ouvre quand l'étage est fini.
+- Ordre : Crabou près de l'entrée… Vachou (la plus précieuse) au sommet de la Tour, accessible quand les 15 autres sont délivrés. Toutes les salles d'un étage sont ouvertes dès l'arrivée à l'étage, dans l'ordre qu'elle veut (demande de Julien) ; l'étage suivant s'ouvre quand tous les doudous de l'étage sont retrouvés ; le donjon quand les 15 autres le sont.
 - Étages : RDC sans chrono (formes, contenances, longueurs, doubles/moitiés, symétrie) ; 1er chrono 25 s (compléments 10/20/30, monnaie, heures/jours/durées, tables 2-3-5-10, soustractions) ; 2e chrono 12 s (additions jusqu'à 100, arrondi, compléments 50/100, additions éclair, toutes les tables) ; Tour : boss 15 épreuves en 3 vagues.
 - Fonds de salle : 16 images PixelLab 192x128 (`img/bg_<salle>.png`, style ancré sur le château) affichées derrière chaque mini-jeu (`.stage::before`, voile `.stage::after`) et derrière le doudou sur l'écran de résultat. Les énoncés citent le doudou et la salle (Chioune et ses os, Rose et ses coussins, le coffre de Fanfan, les bulles de Lamantou…).
 - Niveaux 1 à 5 par salle, contenu différent à chaque niveau (voir `GAMES`, helper `L(level, [...])`) ; au-delà, on reste à 5. Chrono ×0,92 par niveau, billes +3 par niveau.

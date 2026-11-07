@@ -113,11 +113,11 @@ const roomLevel = id => (S.rooms[id]||{}).level || 1;      // prochain niveau à
 const playedLevel = id => Math.max(1, roomLevel(id) - 1);  // dernier niveau réussi (1 si jamais joué)
 const maxHearts = () => clamp(BASE_HEARTS + Math.floor((S.stars||0)/4), BASE_HEARTS, MAX_HEARTS);
 const freedCount = () => ROOMS.filter(r => isDone(r.id)).length;
+// Toutes les salles d'un étage sont ouvertes ; l'étage suivant s'ouvre quand tous ses doudous sont retrouvés (demande de Julien)
 function roomUnlocked(r){
   if (S.unlockAll) return true;
-  const i = ROOMS.indexOf(r);
   if (r.boss) return ROOMS.filter(x => !x.boss).every(x => isDone(x.id));
-  return i===0 || isDone(ROOMS[i-1].id);
+  return floorUnlocked(r.floor);
 }
 function floorUnlocked(f){ return S.unlockAll || f===0 || ROOMS.filter(r => r.floor===f-1).every(r => isDone(r.id)); }
 function currentRoom(){ return ROOMS.find(r => !isDone(r.id) && roomUnlocked(r)) || null; }

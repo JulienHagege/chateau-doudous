@@ -118,7 +118,7 @@ function floorLayout(f){
 function revealed(f){
   // Salles visibles : terminées + la prochaine accessible (brouillard sur le reste)
   const L = floorLayout(f); const set = new Set();
-  L.rooms.forEach(r => { if (isDone(r.id) || roomUnlocked(r)) set.add(r.id); });
+  L.rooms.forEach(r => { if (isDone(r.id) || roomUnlocked(r)) set.add(r.id); }); // un étage ouvert est entièrement dévoilé
   return set;
 }
 function drawMap(){
@@ -184,7 +184,7 @@ function walkable(f, x, y){
 function heroMove(dx, dy){
   if (screen!=='mapscreen' || heroBusy) return; const nx = hero.x+dx, ny = hero.y+dy; hero.dir = dx>0?'e':dx<0?'w':dy<0?'n':'s';
   const w = walkable(mapFloor, nx, ny);
-  if (w==='locked'){ const room = floorLayout(mapFloor).rooms.find(r => r.door[0]===nx && r.door[1]===ny); const i = ROOMS.indexOf(room); SFX.ko(); toast(room.boss ? 'Retrouve tous les autres doudous avant de monter voir Vachou !' : `Cette porte est fermée. Retrouve d'abord ${DD[ROOMS[i-1].dd].name} !`); return; }
+  if (w==='locked'){ SFX.ko(); toast('Retrouve tous les autres doudous avant de monter voir Vachou !'); return; }
   if (!w){ SFX.click(); return; }
   hero.x = nx; hero.y = ny; SFX.tick();
   const L = floorLayout(mapFloor);
@@ -206,7 +206,8 @@ function openMap(f){
   mapFloor = f; $('#map-title').textContent = FLOORS[f].name;
   const fl = $('#floors'); fl.innerHTML = ''; FLOORS.forEach((F, i) => { const b = document.createElement('button'); b.textContent = F.short; b.disabled = !floorUnlocked(i); b.setAttribute('aria-current', i===f); b.onclick = () => { SFX.click(); openMap(i); }; fl.appendChild(b); });
   const cur = ROOMS.find(r => r.floor===f && !isDone(r.id) && roomUnlocked(r));
-  $('#maphint').textContent = fr(cur ? `✨ ${cur.name} : ${DD[cur.dd].name} se cache ici. ${FLOORS[f].intro}` : (floorUnlocked(f+1) ? 'Étage terminé ! Prends l\'escalier en haut à droite.' : 'Touche une salle pour la rejouer.'));
+  const left = ROOMS.filter(r => r.floor===f && !isDone(r.id)).length;
+  $('#maphint').textContent = fr(left ? (f===3 ? `✨ Vachou se cache au sommet. ${FLOORS[f].intro}` : `✨ ${left} doudou${left>1?'s':''} à retrouver à cet étage, dans l'ordre que tu veux. ${FLOORS[f].intro}`) : (floorUnlocked(f+1) ? 'Étage terminé ! Prends l\'escalier en haut à droite.' : 'Touche une salle pour la rejouer.'));
   MUSIC.play(f===3 ? 'tower' : 'floor'+f);
   show('mapscreen'); if (!mapAnim) mapLoop();
 }
@@ -216,7 +217,7 @@ mapCv.addEventListener('click', e => {
   if (L.stairs && x>=L.stairs[0] && x<L.stairs[0]+1 && y>=L.stairs[1] && y<L.stairs[1]+2){ if (floorUnlocked(mapFloor+1)){ SFX.stairs(); openMap(mapFloor+1); } else toast('L\'escalier est fermé. Retrouve tous les doudous de cet étage !'); return; }
   const room = L.rooms.find(rm => x>=rm.rect[0] && x<rm.rect[0]+rm.rect[2] && y>=rm.rect[1] && y<rm.rect[1]+rm.rect[3]);
   if (!room) return;
-  if (!roomUnlocked(room)){ SFX.ko(); const i = ROOMS.indexOf(room); const prev = ROOMS[i-1]; toast(room.boss ? 'Retrouve tous les autres doudous avant de monter voir Vachou !' : `Cette porte est fermée. Retrouve d'abord ${DD[prev.dd].name} !`); return; }
+  if (!roomUnlocked(room)){ SFX.ko(); toast(room.boss ? 'Retrouve tous les autres doudous avant de monter voir Vachou !' : 'Cet étage n\'est pas encore ouvert.'); return; }
   enterRoom(room);
 });
 function enterRoom(room){
