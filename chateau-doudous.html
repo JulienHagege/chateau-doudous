@@ -162,6 +162,8 @@ details.parents summary{cursor:pointer; font-weight:800; color:var(--muted)}
 .prompt{background:rgba(10,8,25,.45); border-radius:14px; padding:8px 14px; backdrop-filter:blur(2px)}
 .prompt{font-family:var(--font-display); font-size:clamp(22px, 4.5vw, 32px); text-align:center; color:#fff; text-shadow:0 2px 0 rgba(0,0,0,.4); margin:0 0 14px; text-wrap:balance}
 .prompt b{color:var(--acc)}
+.prompt.calc{font-size:clamp(36px, 8vw, 58px); padding:6px 14px; letter-spacing:.02em}
+.story-line{text-align:center; color:#fff; font-size:clamp(15px, 3vw, 19px); font-weight:700; background:rgba(10,8,25,.45); border-radius:12px; padding:6px 12px; margin:0 0 8px; text-wrap:balance}
 .sub{text-align:center; color:var(--muted); font-size:15px; margin:-8px 0 12px}
 .opts{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px}
 @media (min-width:640px){.opts{grid-template-columns:repeat(4,minmax(0,1fr))} .opts.three{grid-template-columns:repeat(3,minmax(0,1fr))}}
@@ -215,8 +217,10 @@ canvas.ruler{width:100%; max-width:640px; height:auto; display:block; border-rad
 .coin.c50{background:radial-gradient(circle at 35% 30%,#fff3b0,#e6c04a 60%,#a98a1f); width:52px; height:52px; font-size:14px}
 .coin.b5,.coin.b10,.coin.b20,.coin.b50{border-radius:8px; width:84px; height:48px; font-size:18px; color:#222}
 .coin.b5{background:#b7c9b5} .coin.b10{background:#e8a7a0} .coin.b20{background:#a9c6e8} .coin.b50{background:#e8c99a}
-.tray{min-height:60px; width:100%; max-width:520px; border:3px dashed rgba(255,255,255,.3); border-radius:14px; display:flex; gap:6px; flex-wrap:wrap; justify-content:center; align-items:center; padding:8px}
-.tray .coin{transform:scale(.8)}
+.tray{min-height:96px; width:100%; max-width:560px; border:3px dashed rgba(255,255,255,.3); border-radius:14px; display:flex; gap:6px; flex-wrap:wrap; justify-content:center; align-content:center; align-items:center; padding:8px}
+.tray .coin{width:44px; height:44px; font-size:12px; border-width:3px; box-shadow:0 2px 0 rgba(0,0,0,.35)}
+.tray .coin.c50{width:38px; height:38px; font-size:11px}
+.tray .coin.b5,.tray .coin.b10,.tray .coin.b20,.tray .coin.b50{width:60px; height:34px; font-size:13px}
 .clocks{display:flex; gap:14px; flex-wrap:wrap; justify-content:center}
 .clocks canvas{width:150px; height:150px; border-radius:50%; cursor:pointer}
 .clocks canvas.single{width:200px; height:200px; cursor:default}
@@ -263,7 +267,7 @@ canvas.ruler{width:100%; max-width:640px; height:auto; display:block; border-rad
   padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px)); padding-block:max(14px, env(safe-area-inset-top,0px)) max(14px, env(safe-area-inset-bottom,0px))}
 #storm .stitle{font-family:var(--font-display); font-size:clamp(24px,5vw,44px); color:#ffb347; text-shadow:0 0 24px rgba(255,140,0,.8), 0 3px 0 #3a1a00; text-align:center; min-height:44px}
 #storm .bottom{display:flex; flex-direction:column; align-items:center; gap:10px; width:min(100%,760px); pointer-events:auto}
-#storm .sq{font-family:var(--font-display); font-size:clamp(34px,8vw,64px); color:#fff; text-align:center; min-height:50px; text-shadow:0 0 20px rgba(255,140,0,.7), 0 4px 0 rgba(0,0,0,.6)}
+#storm .sq{font-family:var(--font-display); font-size:clamp(48px,11vw,96px); color:#fff; text-align:center; min-height:50px; text-shadow:0 0 20px rgba(255,140,0,.7), 0 4px 0 rgba(0,0,0,.6)}
 #storm .opts{width:100%; grid-template-columns:repeat(3,minmax(0,1fr))}
 #storm .opt{background:rgba(40,20,60,.75); border-color:rgba(255,160,60,.6); font-size:clamp(28px,6vw,40px); padding:14px 8px; backdrop-filter:blur(3px)}
 #storm .sinfo{display:flex; gap:16px; color:#ffd9a8; font-weight:900; font-size:17px; flex-wrap:wrap; justify-content:center; text-shadow:0 2px 0 rgba(0,0,0,.6)}
@@ -872,7 +876,7 @@ GAMES.bains = { intro:'Poulpou veut un bain à la bonne hauteur. Verse les bons 
   const label = (level===3 || level===5) ? target+' cL' : fmt(target);
   const sub = level===1 ? 'Poulpou aime les bains bien pleins' : '1 L = 100 cL';
   const plan = (() => { let rest = target; const parts = []; for (const j of jugs.slice().sort((a,b)=>b-a)){ while (rest>=j){ parts.push(fmt(j)); rest -= j; } } return parts.join(' + '); })();
-  return {prompt:`Remplis la baignoire de Poulpou jusqu'à <b>${label}</b>`, sub, kind:'custom', answer:target, show:label, explain:`${level===1 ? '' : '1 L = 100 cL. '}${label} = ${fmt(target)} : verse ${plan}.`, timeMult:2.5, render(stage, api){
+  return {story:`Remplis la baignoire de Poulpou jusqu'à…`, prompt:`<b>${label}</b>`, sub, kind:'custom', answer:target, show:label, explain:`${level===1 ? '' : '1 L = 100 cL. '}${label} = ${fmt(target)} : verse ${plan}.`, timeMult:2.5, render(stage, api){
     let cur = 0; const max = Math.max(target*1.25, jugs[jugs.length-1]*1.2);
     stage.innerHTML = `<div class="custom">
       <div class="tub"><div class="mark" style="top:${100-target/max*100}%">${label}</div><div class="water" id="water"></div></div>
@@ -948,7 +952,7 @@ GAMES.longueurs = { intro:'Hugo le kangourou saute sur la grande règle. Mesure 
   }
   const hops = L(level, [1, rnd(2,3), rnd(2,4), rnd(3,5), rnd(3,6)]); let d = rnd(2, L(level,[8,7,7,10,15])); const from = level>=3 ? rnd(0, Math.floor(max*.2)) : 0; while (from + hops*d > max) d--; const to = from + hops*d;
   const txt = hops===1 ? `Hugo part de <b>${from}</b> et saute de <b>${d} cm</b>.` : `Hugo part de <b>${from}</b> et fait <b>${hops} sauts</b> de <b>${d} cm</b>.`;
-  return {prompt:`${txt} Touche la règle là où il va atterrir !`, kind:'custom', answer:to, show:to+' cm', explain:`${hops} saut${hops>1?'s':''} de ${d} cm = ${Array(hops).fill(d).join(' + ')} = ${hops*d} cm${from ? `, et ${from} + ${hops*d} = ${to}` : ''}.`, timeMult:1.5, render(stage, api){
+  return {story:`${txt} Touche la règle là où il va atterrir !`, prompt: hops===1 ? `${from} + ${d} = <b>?</b>` : `${from} + ${hops} × ${d} = <b>?</b>`, kind:'custom', answer:to, show:to+' cm', explain:`${hops} saut${hops>1?'s':''} de ${d} cm = ${Array(hops).fill(d).join(' + ')} = ${hops*d} cm${from ? `, et ${from} + ${hops*d} = ${to}` : ''}.`, timeMult:1.5, render(stage, api){
     const cv = document.createElement('canvas'); cv.className='ruler'; stage.appendChild(cv); drawRuler(cv, max, [], {pos:from, start:from, labels:true});
     const hint = document.createElement('p'); hint.className='sub'; hint.style.marginTop='6px'; hint.textContent = 'Touche un nombre sur la règle'; stage.appendChild(hint);
     cv.onclick = e => { if (api.done) return; api.done = true; const cm = clamp(cmFromClick(cv, max, e), 0, max); const ok = cm===to; hint.textContent = ok ? 'Hugo saute… et atterrit pile sur ton drapeau !' : `Tu as touché ${cm} cm, Hugo atterrit à ${to} cm`; hopAnim(cv, max, [], from, to, hops, cm, () => api.answer(ok, ok ? '' : `Hugo est arrivé à ${to} cm, pas à ${cm} cm`), true); };
@@ -1037,7 +1041,7 @@ GAMES.monnaie = { intro:'Dans la boutique, Orange rend la monnaie. Donne les bon
   else { price = rnd(11,98)*100 + pick([5,10,20,25,50,75,90]); paid = 10000; coins = [5,10,20,50,100,200,500,1000,2000,5000]; }
   const change = paid - price; const item = pick(SHOP_ITEMS);
   const plan = (() => { let rest = change; const parts = []; for (const c of coins.slice().sort((x,y)=>y-x)){ while (rest>=c){ parts.push(c<100 ? c+' c' : (c/100)+' €'); rest -= c; } } return parts.join(' + '); })();
-  return {prompt:`Ça coûte <b>${fmtEuro(price)}</b>. On te donne <b>${fmtEuro(paid)}</b>. Rends la monnaie !`, kind:'custom', answer:change, show:fmtEuro(change), explain:`${fmtEuro(paid)} − ${fmtEuro(price)} = ${fmtEuro(change)} : rends ${plan}.`, timeMult:2.5, render(stage, api){
+  return {story:`Ça coûte ${fmtEuro(price)}, on te donne ${fmtEuro(paid)}. Rends la monnaie !`, prompt:`${fmtEuro(paid)} − ${fmtEuro(price)} = <b>?</b>`, kind:'custom', answer:change, show:fmtEuro(change), explain:`${fmtEuro(paid)} − ${fmtEuro(price)} = ${fmtEuro(change)} : rends ${plan}.`, timeMult:2.5, render(stage, api){
     let tray = []; stage.innerHTML = `<div class="shop"><div class="item">${item}</div><div class="price">${fmtEuro(price)}</div>
       <div class="coins" id="coins"></div><div class="tray" id="tray"></div><div class="gauge" id="sum">Rendu : 0 €</div>
       <div class="toolrow"><button class="tool" id="undo">↩︎ Reprendre</button><button class="tool go" id="give">🤝 Donner</button></div></div>`;
@@ -1083,12 +1087,12 @@ GAMES.horloge = { intro:"Peso règle l'horloge de la tour. Quelle heure est-il ?
   if (t==='days'){ const i = rnd(0,6); const after = Math.random()<.6; const ans = DAYS[(i + (after?1:6))%7]; return {prompt:`Quel jour vient <b>${after?'après':'avant'}</b> ${DAYS[i]} ?`, kind:'qcm', answer:ans, options:mkOptionsStr(ans, shuffle(DAYS.filter(d=>d!==ans))), show:ans, explain:'Les jours : ' + DAYS.join(', ') + ', et on recommence.'}; }
   if (t==='months'){ const i = rnd(0,11); const after = Math.random()<.6; const ans = MONTHS[(i + (after?1:11))%12]; return {prompt:`Quel mois vient <b>${after?'après':'avant'}</b> ${MONTHS[i]} ?`, kind:'qcm', answer:ans, options:mkOptionsStr(ans, shuffle(MONTHS.filter(d=>d!==ans))), show:ans, explain:'Les mois : ' + MONTHS.join(', ') + '.'}; }
   if (t==='units'){ const c = pick([['Combien de jours dans une semaine ?',7],['Combien de mois dans une année ?',12],['Combien de minutes dans une heure ?',60],["Combien d'heures dans une journée ?",24],['Combien de jours dans le mois de janvier ?',31],['Combien de secondes dans une minute ?',60],['Combien de minutes dans une demi-heure ?',30],["Combien de minutes dans un quart d'heure ?",15]]); return qcm(c[0], c[1], [7,12,24,30,31,60,10,15,100], {explain:'1 semaine = 7 jours · 1 année = 12 mois · 1 jour = 24 h · 1 h = 60 min · 1 min = 60 s · une demi-heure = 30 min · un quart d\'heure = 15 min'}); }
-  if (t==='pm'){ const h = rnd(13,23); const ans = h-12; return Math.random()<.5 ? qcm(`Il est ${h} h. Sur l'horloge de Peso, la petite aiguille montre le…`, ans, [ans+1,ans-1,h-10,ans+2], {explain:`L'après-midi, on enlève 12 : ${h} − 12 = ${ans}.`}) : qcm(`Il est ${ans} h de l'après-midi. Sur une montre à chiffres, on lit…`, h, [h+1,h-1,ans,h+2], {show:h+' h', explain:`L'après-midi, on ajoute 12 : ${ans} + 12 = ${h}.`}); }
-  if (t==='durmin'){ const h = rnd(1,11), m = pick([0,10,15,20,30,40,45]), d = pick([5,10,15,20,25,30,45]); let mm = m+d, hh = h; if (mm>=60){ mm -= 60; hh++; } const ans = fmtTime(hh,mm); return {prompt:`Il est ${fmtTime(h,m)}. Le goûter dure <b>${d} minutes</b>. Il finit à ?`, kind:'qcm', answer:ans, options:mkOptionsStr(ans, [fmtTime(hh,(mm+5)%60), fmtTime(h,(m+d+10)%60), fmtTime(hh+1,mm), fmtTime(h,m)]), show:ans, explain:`${m} min + ${d} min = ${m+d} min${m+d>=60 ? ' = 1 h ' + (m+d-60) + ' min' : ''}, donc ${ans}.`}; }
-  if (t==='between'){ const h = rnd(1,10), m1 = pick([0,15,30,45]); const d = pick([15,30,45,60,75,90]); let m2 = m1+d, h2 = h; while (m2>=60){ m2 -= 60; h2++; } const ans = d; return qcm(`De ${fmtTime(h,m1)} à ${fmtTime(h2,m2)}, combien de <b>minutes</b> passent ?`, ans, [d+15,d-15,d+30,60], {show:d+' min', explain:`De ${fmtTime(h,m1)} à ${fmtTime(h2,m2)} : ${d>=60 ? '1 h = 60 min, plus ' + (d-60) + ' min' : 'compte de 15 en 15'}, soit ${d} min.`}); }
+  if (t==='pm'){ const h = rnd(13,23); const ans = h-12; return Math.random()<.5 ? qcm(`${h} h = <b>?</b> h de l'après-midi`, ans, [ans+1,ans-1,h-10,ans+2], {story:`Il est ${h} h. Sur l'horloge de Peso, la petite aiguille montre le…`, explain:`L'après-midi, on enlève 12 : ${h} − 12 = ${ans}.`}) : qcm(`${ans} h de l'après-midi = <b>?</b> h`, h, [h+1,h-1,ans,h+2], {story:`Il est ${ans} h de l'après-midi. Sur une montre à chiffres, on lit…`, show:h+' h', explain:`L'après-midi, on ajoute 12 : ${ans} + 12 = ${h}.`}); }
+  if (t==='durmin'){ const h = rnd(1,11), m = pick([0,10,15,20,30,40,45]), d = pick([5,10,15,20,25,30,45]); let mm = m+d, hh = h; if (mm>=60){ mm -= 60; hh++; } const ans = fmtTime(hh,mm); return {story:`Il est ${fmtTime(h,m)}. Le goûter dure ${d} minutes. Il finit à ?`, prompt:`${fmtTime(h,m)} + ${d} min = <b>?</b>`, kind:'qcm', answer:ans, options:mkOptionsStr(ans, [fmtTime(hh,(mm+5)%60), fmtTime(h,(m+d+10)%60), fmtTime(hh+1,mm), fmtTime(h,m)]), show:ans, explain:`${m} min + ${d} min = ${m+d} min${m+d>=60 ? ' = 1 h ' + (m+d-60) + ' min' : ''}, donc ${ans}.`}; }
+  if (t==='between'){ const h = rnd(1,10), m1 = pick([0,15,30,45]); const d = pick([15,30,45,60,75,90]); let m2 = m1+d, h2 = h; while (m2>=60){ m2 -= 60; h2++; } const ans = d; return qcm(`${fmtTime(h,m1)} → ${fmtTime(h2,m2)} = <b>?</b> min`, ans, [d+15,d-15,d+30,60], {story:`De ${fmtTime(h,m1)} à ${fmtTime(h2,m2)}, combien de minutes passent ?`, show:d+' min', explain:`De ${fmtTime(h,m1)} à ${fmtTime(h2,m2)} : ${d>=60 ? '1 h = 60 min, plus ' + (d-60) + ' min' : 'compte de 15 en 15'}, soit ${d} min.`}); }
   const h = rnd(1,9), d = rnd(1, 12-h); const half = level===3 && Math.random()<.4;
-  if (half) return qcm(`Il est ${h} h. Le goûter dure <b>${d} h 30</b>. Il finit à ?`, fmtTime(h+d,30), [], {options:mkOptionsStr(fmtTime(h+d,30), [fmtTime(h+d,0),fmtTime(h+d+1,30),fmtTime(h+d+1,0)]), show:fmtTime(h+d,30), explain:`${h} h + ${d} h = ${h+d} h, et encore 30 min : ${fmtTime(h+d,30)}.`});
-  return qcm(`Il est ${h} h. Dans <b>${d} heure${d>1?'s':''}</b>, il sera ?`, fmtTime(h+d,0), [], {options:mkOptionsStr(fmtTime(h+d,0), [fmtTime(h+d+1,0),fmtTime(Math.max(1,h+d-1),0),fmtTime(h+d,30)]), show:fmtTime(h+d,0), explain:`${h} h + ${d} h = ${h+d} h.`});
+  if (half) return qcm(`${h} h + ${d} h 30 = <b>?</b>`, fmtTime(h+d,30), [], {story:`Il est ${h} h. Le goûter dure ${d} h 30. Il finit à ?`, options:mkOptionsStr(fmtTime(h+d,30), [fmtTime(h+d,0),fmtTime(h+d+1,30),fmtTime(h+d+1,0)]), show:fmtTime(h+d,30), explain:`${h} h + ${d} h = ${h+d} h, et encore 30 min : ${fmtTime(h+d,30)}.`});
+  return qcm(`${h} h + ${d} h = <b>?</b>`, fmtTime(h+d,0), [], {story:`Il est ${h} h. Dans ${d} heure${d>1?'s':''}, il sera ?`, options:mkOptionsStr(fmtTime(h+d,0), [fmtTime(h+d+1,0),fmtTime(Math.max(1,h+d-1),0),fmtTime(h+d,30)]), show:fmtTime(h+d,0), explain:`${h} h + ${d} h = ${h+d} h.`});
 }};
 
 /* ---------- Tables (Sose puis Pengouins), pilotées par les acquis ---------- */
@@ -1141,7 +1145,7 @@ GAMES.arrondi = { intro:"À l'observatoire, Pegs range les étoiles près de la 
   let n = base + rnd(1, span-1); const bad = x => (x%step===0) || (level===1 && x%10===5) || (hundreds && x%100===50 && level<5); while (bad(n)) n = base + rnd(1, span-1);
   const ans = Math.round(n/step)*step; const tie = n%step===step/2; // pile au milieu : les deux arrondis sont acceptés
   const lo2 = Math.floor(n/step)*step, hi2 = lo2+step;
-  return {prompt:`Pegs a compté <b>${n}</b> étoiles. Arrondis à la ${hundreds?'centaine':'dizaine'} la plus proche`, sub: level>=2 ? (hundreds ? 'pile à 50, les deux sont justes' : 'pile à 5, les deux sont justes') : '', kind:'custom', answer:ans, show: tie ? `${lo2} ou ${hi2}` : String(ans), explain: tie ? `${n} est juste au milieu entre ${lo2} et ${hi2} : les deux réponses sont justes.` : `${n} est entre ${lo2} et ${hi2}, plus près de ${ans}.`, render(stage, api){
+  return {story:`Pegs a compté ${n} étoiles. Arrondis à la ${hundreds?'centaine':'dizaine'} la plus proche.`, prompt:`<b>${n}</b> → ${hundreds?'centaine':'dizaine'} ?`, sub: level>=2 ? (hundreds ? 'pile à 50, les deux sont justes' : 'pile à 5, les deux sont justes') : '', kind:'custom', answer:ans, show: tie ? `${lo2} ou ${hi2}` : String(ans), explain: tie ? `${n} est juste au milieu entre ${lo2} et ${hi2} : les deux réponses sont justes.` : `${n} est entre ${lo2} et ${hi2}, plus près de ${ans}.`, render(stage, api){
     const lo = base, hi = base+span; const nl = document.createElement('div'); nl.className='numline'; nl.innerHTML = `<div class="ln"></div>`;
     for (let v=lo; v<=hi; v+=step){ const tk = document.createElement('div'); tk.className='tk'; tk.style.left = (4 + (v-lo)/(hi-lo)*92)+'%'; const b = document.createElement('button'); b.textContent = v; if (hundreds) b.style.fontSize='13px'; b.onclick = () => { if (api.done) return; const ok = v===ans || (tie && (v===lo2 || v===hi2)); b.style.background = ok ? '#8de3c0' : '#c9452c'; api.answer(ok); }; tk.appendChild(b); nl.appendChild(tk); }
     const wrap = document.createElement('div'); wrap.className='custom'; wrap.appendChild(nl); stage.appendChild(wrap);
@@ -1222,7 +1226,10 @@ function nextQuestion(){
 }
 function renderQuestion(q){
   const stage = $('#stage'); stage.innerHTML = ''; const fb = $('#stage .feedback'); if (fb) fb.remove();
-  const p = document.createElement('p'); p.className='prompt'; p.innerHTML = fr(q.prompt); stage.appendChild(p);
+  // Le calcul en très gros, l'histoire en petit au-dessus : elle n'a pas besoin de lire la phrase pour répondre
+  const sp = q.story ? {story:q.story, calc:q.prompt} : splitPrompt(q.prompt);
+  if (sp){ const st = document.createElement('p'); st.className='story-line'; st.innerHTML = fr(sp.story); stage.appendChild(st); }
+  const p = document.createElement('p'); p.className = 'prompt' + (sp ? ' calc' : ''); p.innerHTML = fr(sp ? sp.calc : q.prompt); stage.appendChild(p);
   if (q.sub){ const s = document.createElement('p'); s.className='sub'; s.textContent = fr(q.sub); stage.appendChild(s); }
   const api = { done:false, answer:(ok, shown) => submit(ok, shown) };
   if (q.kind==='custom'){ const box = document.createElement('div'); stage.appendChild(box); q.render(box, api); return; }
@@ -1247,6 +1254,7 @@ function redoQuestion(){
   b.innerHTML = `<div>🔁 Refais-la : la réponse est <b>${esc(q.show)}</b></div>` + (q.explain ? `<small>${fr(esc(q.explain))}</small>` : '') + (q.explainShape ? `<svg viewBox="0 0 120 120" class="exshape">${shapeSvg(q.explainShape, 60, 60, 36, '#ffd166', 0, '', q.explainShape)}</svg>` : '');
   $('#stage').prepend(b);
 }
+function splitPrompt(pr){ const m = pr.match(/^(.+?[.!]) (.+)$/); if (!m) return null; const calc = m[2]; const plain = calc.replace(/<[^>]+>/g,''); if (/^[\d\s+−×÷=?€,cLm]+$/.test(plain) || /^(Le|La) <b>(double|moitié|triple|quart|quadruple)<\/b> de \d+ \?$/.test(calc)) return {story:m[1], calc}; return null; }
 function startTimer(sec){
   clearInterval(timerIv); const t = $('#timer'), bar = $('#timer-bar');
   if (!sec){ t.hidden = true; return; }

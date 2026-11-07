@@ -162,6 +162,8 @@ details.parents summary{cursor:pointer; font-weight:800; color:var(--muted)}
 .prompt{background:rgba(10,8,25,.45); border-radius:14px; padding:8px 14px; backdrop-filter:blur(2px)}
 .prompt{font-family:var(--font-display); font-size:clamp(22px, 4.5vw, 32px); text-align:center; color:#fff; text-shadow:0 2px 0 rgba(0,0,0,.4); margin:0 0 14px; text-wrap:balance}
 .prompt b{color:var(--acc)}
+.prompt.calc{font-size:clamp(36px, 8vw, 58px); padding:6px 14px; letter-spacing:.02em}
+.story-line{text-align:center; color:#fff; font-size:clamp(15px, 3vw, 19px); font-weight:700; background:rgba(10,8,25,.45); border-radius:12px; padding:6px 12px; margin:0 0 8px; text-wrap:balance}
 .sub{text-align:center; color:var(--muted); font-size:15px; margin:-8px 0 12px}
 .opts{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px}
 @media (min-width:640px){.opts{grid-template-columns:repeat(4,minmax(0,1fr))} .opts.three{grid-template-columns:repeat(3,minmax(0,1fr))}}
@@ -215,8 +217,10 @@ canvas.ruler{width:100%; max-width:640px; height:auto; display:block; border-rad
 .coin.c50{background:radial-gradient(circle at 35% 30%,#fff3b0,#e6c04a 60%,#a98a1f); width:52px; height:52px; font-size:14px}
 .coin.b5,.coin.b10,.coin.b20,.coin.b50{border-radius:8px; width:84px; height:48px; font-size:18px; color:#222}
 .coin.b5{background:#b7c9b5} .coin.b10{background:#e8a7a0} .coin.b20{background:#a9c6e8} .coin.b50{background:#e8c99a}
-.tray{min-height:60px; width:100%; max-width:520px; border:3px dashed rgba(255,255,255,.3); border-radius:14px; display:flex; gap:6px; flex-wrap:wrap; justify-content:center; align-items:center; padding:8px}
-.tray .coin{transform:scale(.8)}
+.tray{min-height:96px; width:100%; max-width:560px; border:3px dashed rgba(255,255,255,.3); border-radius:14px; display:flex; gap:6px; flex-wrap:wrap; justify-content:center; align-content:center; align-items:center; padding:8px}
+.tray .coin{width:44px; height:44px; font-size:12px; border-width:3px; box-shadow:0 2px 0 rgba(0,0,0,.35)}
+.tray .coin.c50{width:38px; height:38px; font-size:11px}
+.tray .coin.b5,.tray .coin.b10,.tray .coin.b20,.tray .coin.b50{width:60px; height:34px; font-size:13px}
 .clocks{display:flex; gap:14px; flex-wrap:wrap; justify-content:center}
 .clocks canvas{width:150px; height:150px; border-radius:50%; cursor:pointer}
 .clocks canvas.single{width:200px; height:200px; cursor:default}

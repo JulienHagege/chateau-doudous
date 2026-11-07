@@ -36,7 +36,10 @@ function nextQuestion(){
 }
 function renderQuestion(q){
   const stage = $('#stage'); stage.innerHTML = ''; const fb = $('#stage .feedback'); if (fb) fb.remove();
-  const p = document.createElement('p'); p.className='prompt'; p.innerHTML = fr(q.prompt); stage.appendChild(p);
+  // Le calcul en très gros, l'histoire en petit au-dessus : elle n'a pas besoin de lire la phrase pour répondre
+  const sp = q.story ? {story:q.story, calc:q.prompt} : splitPrompt(q.prompt);
+  if (sp){ const st = document.createElement('p'); st.className='story-line'; st.innerHTML = fr(sp.story); stage.appendChild(st); }
+  const p = document.createElement('p'); p.className = 'prompt' + (sp ? ' calc' : ''); p.innerHTML = fr(sp ? sp.calc : q.prompt); stage.appendChild(p);
   if (q.sub){ const s = document.createElement('p'); s.className='sub'; s.textContent = fr(q.sub); stage.appendChild(s); }
   const api = { done:false, answer:(ok, shown) => submit(ok, shown) };
   if (q.kind==='custom'){ const box = document.createElement('div'); stage.appendChild(box); q.render(box, api); return; }
@@ -61,6 +64,7 @@ function redoQuestion(){
   b.innerHTML = `<div>🔁 Refais-la : la réponse est <b>${esc(q.show)}</b></div>` + (q.explain ? `<small>${fr(esc(q.explain))}</small>` : '') + (q.explainShape ? `<svg viewBox="0 0 120 120" class="exshape">${shapeSvg(q.explainShape, 60, 60, 36, '#ffd166', 0, '', q.explainShape)}</svg>` : '');
   $('#stage').prepend(b);
 }
+function splitPrompt(pr){ const m = pr.match(/^(.+?[.!]) (.+)$/); if (!m) return null; const calc = m[2]; const plain = calc.replace(/<[^>]+>/g,''); if (/^[\d\s+−×÷=?€,cLm]+$/.test(plain) || /^(Le|La) <b>(double|moitié|triple|quart|quadruple)<\/b> de \d+ \?$/.test(calc)) return {story:m[1], calc}; return null; }
 function startTimer(sec){
   clearInterval(timerIv); const t = $('#timer'), bar = $('#timer-bar');
   if (!sec){ t.hidden = true; return; }

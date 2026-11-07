@@ -21,7 +21,7 @@ body{margin:0; background:var(--bg); color:var(--fg); font-family:var(--font-bod
   background-image:radial-gradient(900px 500px at 50% -10%, #3a2f7a 0%, transparent 60%), radial-gradient(700px 400px at 100% 100%, #1f3a4a 0%, transparent 60%);}
 #stars{position:fixed; inset:0; width:100%; height:100%; z-index:0; pointer-events:none}
 #app{position:relative; z-index:1; min-height:100%; max-width:980px; margin:0 auto;
-  padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px)); padding-block:14px 40px}
+  padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px)); padding-block:14px 80px} /* bas : place pour le bouton musique flottant */
 .screen{animation:enter .4s ease both}
 @keyframes enter{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important; transition-duration:.01ms!important}}
@@ -163,6 +163,8 @@ details.parents summary{cursor:pointer; font-weight:800; color:var(--muted)}
 .prompt{background:rgba(10,8,25,.45); border-radius:14px; padding:8px 14px; backdrop-filter:blur(2px)}
 .prompt{font-family:var(--font-display); font-size:clamp(22px, 4.5vw, 32px); text-align:center; color:#fff; text-shadow:0 2px 0 rgba(0,0,0,.4); margin:0 0 14px; text-wrap:balance}
 .prompt b{color:var(--acc)}
+.prompt.calc{font-size:clamp(36px, 8vw, 58px); padding:6px 14px; letter-spacing:.02em}
+.story-line{text-align:center; color:#fff; font-size:clamp(15px, 3vw, 19px); font-weight:700; background:rgba(10,8,25,.45); border-radius:12px; padding:6px 12px; margin:0 0 8px; text-wrap:balance}
 .sub{text-align:center; color:var(--muted); font-size:15px; margin:-8px 0 12px}
 .opts{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px}
 @media (min-width:640px){.opts{grid-template-columns:repeat(4,minmax(0,1fr))} .opts.three{grid-template-columns:repeat(3,minmax(0,1fr))}}
@@ -873,7 +875,7 @@ GAMES.bains = { intro:'Poulpou veut un bain à la bonne hauteur. Verse les bons 
   const label = (level===3 || level===5) ? target+' cL' : fmt(target);
   const sub = level===1 ? 'Poulpou aime les bains bien pleins' : '1 L = 100 cL';
   const plan = (() => { let rest = target; const parts = []; for (const j of jugs.slice().sort((a,b)=>b-a)){ while (rest>=j){ parts.push(fmt(j)); rest -= j; } } return parts.join(' + '); })();
-  return {prompt:`Remplis la baignoire de Poulpou jusqu'à <b>${label}</b>`, sub, kind:'custom', answer:target, show:label, explain:`${level===1 ? '' : '1 L = 100 cL. '}${label} = ${fmt(target)} : verse ${plan}.`, timeMult:2.5, render(stage, api){
+  return {story:`Remplis la baignoire de Poulpou jusqu'à…`, prompt:`<b>${label}</b>`, sub, kind:'custom', answer:target, show:label, explain:`${level===1 ? '' : '1 L = 100 cL. '}${label} = ${fmt(target)} : verse ${plan}.`, timeMult:2.5, render(stage, api){
     let cur = 0; const max = Math.max(target*1.25, jugs[jugs.length-1]*1.2);
     stage.innerHTML = `<div class="custom">
       <div class="tub"><div class="mark" style="top:${100-target/max*100}%">${label}</div><div class="water" id="water"></div></div>
@@ -949,7 +951,7 @@ GAMES.longueurs = { intro:'Hugo le kangourou saute sur la grande règle. Mesure 
   }
   const hops = L(level, [1, rnd(2,3), rnd(2,4), rnd(3,5), rnd(3,6)]); let d = rnd(2, L(level,[8,7,7,10,15])); const from = level>=3 ? rnd(0, Math.floor(max*.2)) : 0; while (from + hops*d > max) d--; const to = from + hops*d;
   const txt = hops===1 ? `Hugo part de <b>${from}</b> et saute de <b>${d} cm</b>.` : `Hugo part de <b>${from}</b> et fait <b>${hops} sauts</b> de <b>${d} cm</b>.`;
-  return {prompt:`${txt} Touche la règle là où il va atterrir !`, kind:'custom', answer:to, show:to+' cm', explain:`${hops} saut${hops>1?'s':''} de ${d} cm = ${Array(hops).fill(d).join(' + ')} = ${hops*d} cm${from ? `, et ${from} + ${hops*d} = ${to}` : ''}.`, timeMult:1.5, render(stage, api){
+  return {story:`${txt} Touche la règle là où il va atterrir !`, prompt: hops===1 ? `${from} + ${d} = <b>?</b>` : `${from} + ${hops} × ${d} = <b>?</b>`, kind:'custom', answer:to, show:to+' cm', explain:`${hops} saut${hops>1?'s':''} de ${d} cm = ${Array(hops).fill(d).join(' + ')} = ${hops*d} cm${from ? `, et ${from} + ${hops*d} = ${to}` : ''}.`, timeMult:1.5, render(stage, api){
     const cv = document.createElement('canvas'); cv.className='ruler'; stage.appendChild(cv); drawRuler(cv, max, [], {pos:from, start:from, labels:true});
     const hint = document.createElement('p'); hint.className='sub'; hint.style.marginTop='6px'; hint.textContent = 'Touche un nombre sur la règle'; stage.appendChild(hint);
     cv.onclick = e => { if (api.done) return; api.done = true; const cm = clamp(cmFromClick(cv, max, e), 0, max); const ok = cm===to; hint.textContent = ok ? 'Hugo saute… et atterrit pile sur ton drapeau !' : `Tu as touché ${cm} cm, Hugo atterrit à ${to} cm`; hopAnim(cv, max, [], from, to, hops, cm, () => api.answer(ok, ok ? '' : `Hugo est arrivé à ${to} cm, pas à ${cm} cm`), true); };
@@ -1038,7 +1040,7 @@ GAMES.monnaie = { intro:'Dans la boutique, Orange rend la monnaie. Donne les bon
   else { price = rnd(11,98)*100 + pick([5,10,20,25,50,75,90]); paid = 10000; coins = [5,10,20,50,100,200,500,1000,2000,5000]; }
   const change = paid - price; const item = pick(SHOP_ITEMS);
   const plan = (() => { let rest = change; const parts = []; for (const c of coins.slice().sort((x,y)=>y-x)){ while (rest>=c){ parts.push(c<100 ? c+' c' : (c/100)+' €'); rest -= c; } } return parts.join(' + '); })();
-  return {prompt:`Ça coûte <b>${fmtEuro(price)}</b>. On te donne <b>${fmtEuro(paid)}</b>. Rends la monnaie !`, kind:'custom', answer:change, show:fmtEuro(change), explain:`${fmtEuro(paid)} − ${fmtEuro(price)} = ${fmtEuro(change)} : rends ${plan}.`, timeMult:2.5, render(stage, api){
+  return {story:`Ça coûte ${fmtEuro(price)}, on te donne ${fmtEuro(paid)}. Rends la monnaie !`, prompt:`${fmtEuro(paid)} − ${fmtEuro(price)} = <b>?</b>`, kind:'custom', answer:change, show:fmtEuro(change), explain:`${fmtEuro(paid)} − ${fmtEuro(price)} = ${fmtEuro(change)} : rends ${plan}.`, timeMult:2.5, render(stage, api){
     let tray = []; stage.innerHTML = `<div class="shop"><div class="item">${item}</div><div class="price">${fmtEuro(price)}</div>
       <div class="coins" id="coins"></div><div class="tray" id="tray"></div><div class="gauge" id="sum">Rendu : 0 €</div>
       <div class="toolrow"><button class="tool" id="undo">↩︎ Reprendre</button><button class="tool go" id="give">🤝 Donner</button></div></div>`;
@@ -1084,12 +1086,12 @@ GAMES.horloge = { intro:"Peso règle l'horloge de la tour. Quelle heure est-il ?
   if (t==='days'){ const i = rnd(0,6); const after = Math.random()<.6; const ans = DAYS[(i + (after?1:6))%7]; return {prompt:`Quel jour vient <b>${after?'après':'avant'}</b> ${DAYS[i]} ?`, kind:'qcm', answer:ans, options:mkOptionsStr(ans, shuffle(DAYS.filter(d=>d!==ans))), show:ans, explain:'Les jours : ' + DAYS.join(', ') + ', et on recommence.'}; }
   if (t==='months'){ const i = rnd(0,11); const after = Math.random()<.6; const ans = MONTHS[(i + (after?1:11))%12]; return {prompt:`Quel mois vient <b>${after?'après':'avant'}</b> ${MONTHS[i]} ?`, kind:'qcm', answer:ans, options:mkOptionsStr(ans, shuffle(MONTHS.filter(d=>d!==ans))), show:ans, explain:'Les mois : ' + MONTHS.join(', ') + '.'}; }
   if (t==='units'){ const c = pick([['Combien de jours dans une semaine ?',7],['Combien de mois dans une année ?',12],['Combien de minutes dans une heure ?',60],["Combien d'heures dans une journée ?",24],['Combien de jours dans le mois de janvier ?',31],['Combien de secondes dans une minute ?',60],['Combien de minutes dans une demi-heure ?',30],["Combien de minutes dans un quart d'heure ?",15]]); return qcm(c[0], c[1], [7,12,24,30,31,60,10,15,100], {explain:'1 semaine = 7 jours · 1 année = 12 mois · 1 jour = 24 h · 1 h = 60 min · 1 min = 60 s · une demi-heure = 30 min · un quart d\'heure = 15 min'}); }
-  if (t==='pm'){ const h = rnd(13,23); const ans = h-12; return Math.random()<.5 ? qcm(`Il est ${h} h. Sur l'horloge de Peso, la petite aiguille montre le…`, ans, [ans+1,ans-1,h-10,ans+2], {explain:`L'après-midi, on enlève 12 : ${h} − 12 = ${ans}.`}) : qcm(`Il est ${ans} h de l'après-midi. Sur une montre à chiffres, on lit…`, h, [h+1,h-1,ans,h+2], {show:h+' h', explain:`L'après-midi, on ajoute 12 : ${ans} + 12 = ${h}.`}); }
-  if (t==='durmin'){ const h = rnd(1,11), m = pick([0,10,15,20,30,40,45]), d = pick([5,10,15,20,25,30,45]); let mm = m+d, hh = h; if (mm>=60){ mm -= 60; hh++; } const ans = fmtTime(hh,mm); return {prompt:`Il est ${fmtTime(h,m)}. Le goûter dure <b>${d} minutes</b>. Il finit à ?`, kind:'qcm', answer:ans, options:mkOptionsStr(ans, [fmtTime(hh,(mm+5)%60), fmtTime(h,(m+d+10)%60), fmtTime(hh+1,mm), fmtTime(h,m)]), show:ans, explain:`${m} min + ${d} min = ${m+d} min${m+d>=60 ? ' = 1 h ' + (m+d-60) + ' min' : ''}, donc ${ans}.`}; }
-  if (t==='between'){ const h = rnd(1,10), m1 = pick([0,15,30,45]); const d = pick([15,30,45,60,75,90]); let m2 = m1+d, h2 = h; while (m2>=60){ m2 -= 60; h2++; } const ans = d; return qcm(`De ${fmtTime(h,m1)} à ${fmtTime(h2,m2)}, combien de <b>minutes</b> passent ?`, ans, [d+15,d-15,d+30,60], {show:d+' min', explain:`De ${fmtTime(h,m1)} à ${fmtTime(h2,m2)} : ${d>=60 ? '1 h = 60 min, plus ' + (d-60) + ' min' : 'compte de 15 en 15'}, soit ${d} min.`}); }
+  if (t==='pm'){ const h = rnd(13,23); const ans = h-12; return Math.random()<.5 ? qcm(`${h} h = <b>?</b> h de l'après-midi`, ans, [ans+1,ans-1,h-10,ans+2], {story:`Il est ${h} h. Sur l'horloge de Peso, la petite aiguille montre le…`, explain:`L'après-midi, on enlève 12 : ${h} − 12 = ${ans}.`}) : qcm(`${ans} h de l'après-midi = <b>?</b> h`, h, [h+1,h-1,ans,h+2], {story:`Il est ${ans} h de l'après-midi. Sur une montre à chiffres, on lit…`, show:h+' h', explain:`L'après-midi, on ajoute 12 : ${ans} + 12 = ${h}.`}); }
+  if (t==='durmin'){ const h = rnd(1,11), m = pick([0,10,15,20,30,40,45]), d = pick([5,10,15,20,25,30,45]); let mm = m+d, hh = h; if (mm>=60){ mm -= 60; hh++; } const ans = fmtTime(hh,mm); return {story:`Il est ${fmtTime(h,m)}. Le goûter dure ${d} minutes. Il finit à ?`, prompt:`${fmtTime(h,m)} + ${d} min = <b>?</b>`, kind:'qcm', answer:ans, options:mkOptionsStr(ans, [fmtTime(hh,(mm+5)%60), fmtTime(h,(m+d+10)%60), fmtTime(hh+1,mm), fmtTime(h,m)]), show:ans, explain:`${m} min + ${d} min = ${m+d} min${m+d>=60 ? ' = 1 h ' + (m+d-60) + ' min' : ''}, donc ${ans}.`}; }
+  if (t==='between'){ const h = rnd(1,10), m1 = pick([0,15,30,45]); const d = pick([15,30,45,60,75,90]); let m2 = m1+d, h2 = h; while (m2>=60){ m2 -= 60; h2++; } const ans = d; return qcm(`${fmtTime(h,m1)} → ${fmtTime(h2,m2)} = <b>?</b> min`, ans, [d+15,d-15,d+30,60], {story:`De ${fmtTime(h,m1)} à ${fmtTime(h2,m2)}, combien de minutes passent ?`, show:d+' min', explain:`De ${fmtTime(h,m1)} à ${fmtTime(h2,m2)} : ${d>=60 ? '1 h = 60 min, plus ' + (d-60) + ' min' : 'compte de 15 en 15'}, soit ${d} min.`}); }
   const h = rnd(1,9), d = rnd(1, 12-h); const half = level===3 && Math.random()<.4;
-  if (half) return qcm(`Il est ${h} h. Le goûter dure <b>${d} h 30</b>. Il finit à ?`, fmtTime(h+d,30), [], {options:mkOptionsStr(fmtTime(h+d,30), [fmtTime(h+d,0),fmtTime(h+d+1,30),fmtTime(h+d+1,0)]), show:fmtTime(h+d,30), explain:`${h} h + ${d} h = ${h+d} h, et encore 30 min : ${fmtTime(h+d,30)}.`});
-  return qcm(`Il est ${h} h. Dans <b>${d} heure${d>1?'s':''}</b>, il sera ?`, fmtTime(h+d,0), [], {options:mkOptionsStr(fmtTime(h+d,0), [fmtTime(h+d+1,0),fmtTime(Math.max(1,h+d-1),0),fmtTime(h+d,30)]), show:fmtTime(h+d,0), explain:`${h} h + ${d} h = ${h+d} h.`});
+  if (half) return qcm(`${h} h + ${d} h 30 = <b>?</b>`, fmtTime(h+d,30), [], {story:`Il est ${h} h. Le goûter dure ${d} h 30. Il finit à ?`, options:mkOptionsStr(fmtTime(h+d,30), [fmtTime(h+d,0),fmtTime(h+d+1,30),fmtTime(h+d+1,0)]), show:fmtTime(h+d,30), explain:`${h} h + ${d} h = ${h+d} h, et encore 30 min : ${fmtTime(h+d,30)}.`});
+  return qcm(`${h} h + ${d} h = <b>?</b>`, fmtTime(h+d,0), [], {story:`Il est ${h} h. Dans ${d} heure${d>1?'s':''}, il sera ?`, options:mkOptionsStr(fmtTime(h+d,0), [fmtTime(h+d+1,0),fmtTime(Math.max(1,h+d-1),0),fmtTime(h+d,30)]), show:fmtTime(h+d,0), explain:`${h} h + ${d} h = ${h+d} h.`});
 }};
 
 /* ---------- Tables (Sose puis Pengouins), pilotées par les acquis ---------- */
@@ -1142,7 +1144,7 @@ GAMES.arrondi = { intro:"À l'observatoire, Pegs range les étoiles près de la 
   let n = base + rnd(1, span-1); const bad = x => (x%step===0) || (level===1 && x%10===5) || (hundreds && x%100===50 && level<5); while (bad(n)) n = base + rnd(1, span-1);
   const ans = Math.round(n/step)*step; const tie = n%step===step/2; // pile au milieu : les deux arrondis sont acceptés
   const lo2 = Math.floor(n/step)*step, hi2 = lo2+step;
-  return {prompt:`Pegs a compté <b>${n}</b> étoiles. Arrondis à la ${hundreds?'centaine':'dizaine'} la plus proche`, sub: level>=2 ? (hundreds ? 'pile à 50, les deux sont justes' : 'pile à 5, les deux sont justes') : '', kind:'custom', answer:ans, show: tie ? `${lo2} ou ${hi2}` : String(ans), explain: tie ? `${n} est juste au milieu entre ${lo2} et ${hi2} : les deux réponses sont justes.` : `${n} est entre ${lo2} et ${hi2}, plus près de ${ans}.`, render(stage, api){
+  return {story:`Pegs a compté ${n} étoiles. Arrondis à la ${hundreds?'centaine':'dizaine'} la plus proche.`, prompt:`<b>${n}</b> → ${hundreds?'centaine':'dizaine'} ?`, sub: level>=2 ? (hundreds ? 'pile à 50, les deux sont justes' : 'pile à 5, les deux sont justes') : '', kind:'custom', answer:ans, show: tie ? `${lo2} ou ${hi2}` : String(ans), explain: tie ? `${n} est juste au milieu entre ${lo2} et ${hi2} : les deux réponses sont justes.` : `${n} est entre ${lo2} et ${hi2}, plus près de ${ans}.`, render(stage, api){
     const lo = base, hi = base+span; const nl = document.createElement('div'); nl.className='numline'; nl.innerHTML = `<div class="ln"></div>`;
     for (let v=lo; v<=hi; v+=step){ const tk = document.createElement('div'); tk.className='tk'; tk.style.left = (4 + (v-lo)/(hi-lo)*92)+'%'; const b = document.createElement('button'); b.textContent = v; if (hundreds) b.style.fontSize='13px'; b.onclick = () => { if (api.done) return; const ok = v===ans || (tie && (v===lo2 || v===hi2)); b.style.background = ok ? '#8de3c0' : '#c9452c'; api.answer(ok); }; tk.appendChild(b); nl.appendChild(tk); }
     const wrap = document.createElement('div'); wrap.className='custom'; wrap.appendChild(nl); stage.appendChild(wrap);
@@ -1223,7 +1225,10 @@ function nextQuestion(){
 }
 function renderQuestion(q){
   const stage = $('#stage'); stage.innerHTML = ''; const fb = $('#stage .feedback'); if (fb) fb.remove();
-  const p = document.createElement('p'); p.className='prompt'; p.innerHTML = fr(q.prompt); stage.appendChild(p);
+  // Le calcul en très gros, l'histoire en petit au-dessus : elle n'a pas besoin de lire la phrase pour répondre
+  const sp = q.story ? {story:q.story, calc:q.prompt} : splitPrompt(q.prompt);
+  if (sp){ const st = document.createElement('p'); st.className='story-line'; st.innerHTML = fr(sp.story); stage.appendChild(st); }
+  const p = document.createElement('p'); p.className = 'prompt' + (sp ? ' calc' : ''); p.innerHTML = fr(sp ? sp.calc : q.prompt); stage.appendChild(p);
   if (q.sub){ const s = document.createElement('p'); s.className='sub'; s.textContent = fr(q.sub); stage.appendChild(s); }
   const api = { done:false, answer:(ok, shown) => submit(ok, shown) };
   if (q.kind==='custom'){ const box = document.createElement('div'); stage.appendChild(box); q.render(box, api); return; }
@@ -1248,6 +1253,7 @@ function redoQuestion(){
   b.innerHTML = `<div>🔁 Refais-la : la réponse est <b>${esc(q.show)}</b></div>` + (q.explain ? `<small>${fr(esc(q.explain))}</small>` : '') + (q.explainShape ? `<svg viewBox="0 0 120 120" class="exshape">${shapeSvg(q.explainShape, 60, 60, 36, '#ffd166', 0, '', q.explainShape)}</svg>` : '');
   $('#stage').prepend(b);
 }
+function splitPrompt(pr){ const m = pr.match(/^(.+?[.!]) (.+)$/); if (!m) return null; const calc = m[2]; const plain = calc.replace(/<[^>]+>/g,''); if (/^[\d\s+−×÷=?€,cLm]+$/.test(plain) || /^(Le|La) <b>(double|moitié|triple|quart|quadruple)<\/b> de \d+ \?$/.test(calc)) return {story:m[1], calc}; return null; }
 function startTimer(sec){
   clearInterval(timerIv); const t = $('#timer'), bar = $('#timer-bar');
   if (!sec){ t.hidden = true; return; }
@@ -1824,6 +1830,7 @@ document.addEventListener('pointerdown', function first(){ if (S.music && screen
     startRoom(ROOM.doubles); const q0 = run.q; submit(false); redoQuestion(); log('après erreur : redo', run.redo, 'bandeau', !!$('#stage .redo'), 'cœurs', run.hearts); submit(true); log('bonne réponse au refaire : redo', run.redo, 'i', run.i, 'billes', run.billes); run = null; 
     // symétrie : les figures annoncées « non » ne doivent jamais être symétriques
     let badSym = 0, nonCount = 0; for (let lv=2; lv<=5; lv++) for (let i=0;i<400;i++){ const q = GAMES.symetrie.gen(lv); if (q.answer===false){ nonCount++; const st = document.createElement('div'); q.render(st, {done:false, answer(){}}); const on = [...st.querySelectorAll('.c[data-k]')].filter(e => e.classList.contains('on')||e.classList.contains('on2')).map(e => e.dataset.k+':'+(e.classList.contains('on2')?2:1)); const cols = Math.max(...on.map(k=>+k.split(',')[1].split(':')[0]))+1; const horiz = !!st.querySelector('.ax-h'); const ks = [...st.querySelectorAll('.c[data-k]')].map(e=>e.dataset.k.split(',').map(Number)); const C = Math.max(...ks.map(k=>k[1]))+1, R = Math.max(...ks.map(k=>k[0]))+1; const set = new Set(on); let sym = true; for (const k of on){ const [r,c] = k.split(':')[0].split(',').map(Number); const v = k.split(':')[1]; const m = horiz ? (R-1-r)+','+c : r+','+(C-1-c); if (!set.has(m+':'+v)) sym = false; } if (sym) badSym++; } } log('symétrie non', nonCount, 'dont symétriques (bug)', badSym);
+    let split = 0, tot = 0; for (const r of ROOMS){ if (r.boss) continue; for (let lv=1; lv<=5; lv++) for (let i=0;i<10;i++){ const q = GAMES[r.id].gen(lv); tot++; if (q.story || splitPrompt(q.prompt)) split++; } } log('découpe histoire/calcul', split, 'sur', tot);
     const picks = {}; for (let i=0;i<300;i++){ const [a,b] = pickFact(activeTables()); picks[a] = (picks[a]||0)+1; } log('tirages par table', JSON.stringify(picks));
     for (let f=0; f<4; f++){ openMap(f); drawMap(); } log('carte OK');
     startStorm(null, true); log('orage phase', storm && storm.phase); if (storm){ if (storm.phase!=='play'){ storm.phase='play'; launchPumpkin(); } stormHit(true); if (storm) { launchPumpkin(); stormHit(false); } } log('orage OK, storm =', storm ? 'actif' : 'fermé', 'billes', S.billes);
