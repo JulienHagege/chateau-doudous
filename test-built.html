@@ -215,6 +215,8 @@ canvas.ruler{width:100%; max-width:640px; height:auto; display:block; border-rad
 .modal h2{color:var(--gold); font-size:26px; margin-bottom:8px}
 .modal p{color:var(--muted); margin:0 0 12px}
 .modal input{width:100%; font:inherit; font-size:22px; padding:12px 14px; border-radius:12px; border:2px solid var(--line); background:rgba(0,0,0,.3); color:#fff; text-align:center; margin-bottom:12px}
+.fab{position:fixed; top:calc(10px + env(safe-area-inset-top,0px)); right:calc(10px + env(safe-area-inset-right,0px)); z-index:25; width:46px; height:46px; border-radius:50%; background:var(--panel2); border:2px solid var(--line); font-size:20px; box-shadow:var(--shadow); display:flex; align-items:center; justify-content:center}
+.fab[aria-pressed="false"]{opacity:.6; filter:grayscale(1)}
 .toast{position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); background:var(--panel2); border:1px solid var(--gold); color:#fff; padding:10px 18px; border-radius:999px; font-weight:800; z-index:30; box-shadow:var(--shadow); animation:enter .3s ease; max-width:92vw; text-align:center}
 </style>
 <style>
@@ -260,6 +262,7 @@ canvas.ruler{width:100%; max-width:640px; height:auto; display:block; border-rad
 .intro .dots i.on{background:var(--gold); box-shadow:0 0 8px var(--gold)}
 </style>
 <canvas id="stars" aria-hidden="true"></canvas>
+<button id="fab-music" class="fab" aria-pressed="true" title="Couper ou remettre la musique">🎵</button>
 <div id="app">
 
 <!-- ===== Accueil ===== -->
@@ -1386,7 +1389,7 @@ function renderHome(){
   $('#home-tag').textContent = fr(S.name ? (freedCount()===ROOMS.length ? `${S.name} a sauvé tous les doudous !` : freedCount() ? `${S.name}, ${ROOMS.length-freedCount()} doudous attendent encore` : `${S.name}, les doudous se sont perdus dans le château`) : 'Les doudous se sont perdus dans le château');
   $('#btn-enter').textContent = freedCount() ? '🏰 Continuer l\'exploration' : '🏰 Entrer dans le château';
   const par = $('#parade'); par.innerHTML = ROOMS.filter(r => isDone(r.id)).map(r => `<img src="${IMG[r.dd]}" alt="${DD[r.dd].name}" class="px">`).join('');
-  $('#tg-sound').setAttribute('aria-pressed', !!S.sound); $('#tg-music').setAttribute('aria-pressed', !!S.music);
+  $('#tg-sound').setAttribute('aria-pressed', !!S.sound); $('#tg-music').setAttribute('aria-pressed', !!S.music); $('#fab-music').setAttribute('aria-pressed', !!S.music); $('#fab-music').textContent = S.music ? '🎵' : '🔇';
   $('#lasterr').textContent = S.lastErr ? 'Dernière erreur : ' + S.lastErr.msg : '';
 }
 function renderAlbum(){
@@ -1434,7 +1437,9 @@ $('#btn-quit').onclick = () => { if (!run) return; clearInterval(timerIv); windo
 $('#btn-res-map').onclick = () => { SFX.click(); hero.floor = -1; openMap(); };
 $('#btn-res-again').onclick = () => { SFX.click(); const last = $('#res-img').alt || null; const room = ROOMS.find(r => IMG[r.dd]===$('#res-img').getAttribute('src')); if (room) enterRoom(room); else openMap(); };
 $('#tg-sound').onclick = () => { S.sound = !S.sound; save(); renderHome(); if (S.sound) SFX.ok(); };
-$('#tg-music').onclick = () => { S.music = !S.music; save(); renderHome(); MUSIC.refresh(); if (S.music) MUSIC.play('home'); };
+function toggleMusic(){ S.music = !S.music; save(); const cur = MUSIC.cur; if (!S.music) MUSIC.stop(); else { MUSIC.cur = null; MUSIC.play(cur || 'home'); } $('#fab-music').setAttribute('aria-pressed', !!S.music); $('#fab-music').textContent = S.music ? '🎵' : '🔇'; $('#tg-music').setAttribute('aria-pressed', !!S.music); SFX.click(); }
+$('#tg-music').onclick = toggleMusic;
+$('#fab-music').onclick = toggleMusic;
 $('#btn-rename').onclick = () => { $('#modal-name').hidden = false; $('#modal-msg').textContent = 'Comment t\'appelles-tu ?'; $('#modal-form').hidden = false; $('#inp-name').value = S.name; $('#inp-name').focus(); };
 $('#btn-storm-test').onclick = () => { startStorm(null, true); };
 $('#btn-unlock').onclick = () => { S.unlockAll = !S.unlockAll; save(); toast(S.unlockAll ? 'Toutes les salles sont ouvertes (mode test)' : 'Retour au parcours normal'); };
@@ -1525,7 +1530,7 @@ document.addEventListener('pointerdown', function first(){ if (S.music && screen
     log('porte', String(walkable(0,3,4)&&walkable(0,3,4).id), 'corridor', walkable(0,3,5), 'locked', walkable(0,10,4));
     heroMove(0,-1); log('vers la porte : hero', JSON.stringify(hero), 'busy', heroBusy);
     if (run){ clearInterval(timerIv); run=null; } hero.floor=-1; openMap(0); heroMove(1,0); heroMove(1,0); heroMove(0,1); log('couloir', JSON.stringify(hero));
-    for (const k in MUSIC_TRACKS){ const E = MUSIC.events(MUSIC_TRACKS[k]); if (!E.ev.length) log('MUSIQUE vide', k); } log('musiques', Object.keys(MUSIC_TRACKS).length);
+    for (const k in MUSIC_TRACKS){ const E = MUSIC.events(MUSIC_TRACKS[k]); if (!E.ev.length) log('MUSIQUE vide', k); } log('musiques', Object.keys(MUSIC_TRACKS).length); toggleMusic(); log('musique coupée', S.music, $('#fab-music').textContent, MUSIC.timer); toggleMusic(); log('musique remise', S.music, $('#fab-music').textContent);
     // 3. écran salle réel : une question de chaque type rendue dans #stage
     window.setTimeout = _st;
     enterRoom(ROOM.formes); log('enterRoom OK, run =', !!run, 'stage html', $('#stage').innerHTML.length);

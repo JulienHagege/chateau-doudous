@@ -360,7 +360,7 @@ function renderHome(){
   $('#home-tag').textContent = fr(S.name ? (freedCount()===ROOMS.length ? `${S.name} a sauvé tous les doudous !` : freedCount() ? `${S.name}, ${ROOMS.length-freedCount()} doudous attendent encore` : `${S.name}, les doudous se sont perdus dans le château`) : 'Les doudous se sont perdus dans le château');
   $('#btn-enter').textContent = freedCount() ? '🏰 Continuer l\'exploration' : '🏰 Entrer dans le château';
   const par = $('#parade'); par.innerHTML = ROOMS.filter(r => isDone(r.id)).map(r => `<img src="${IMG[r.dd]}" alt="${DD[r.dd].name}" class="px">`).join('');
-  $('#tg-sound').setAttribute('aria-pressed', !!S.sound); $('#tg-music').setAttribute('aria-pressed', !!S.music);
+  $('#tg-sound').setAttribute('aria-pressed', !!S.sound); $('#tg-music').setAttribute('aria-pressed', !!S.music); $('#fab-music').setAttribute('aria-pressed', !!S.music); $('#fab-music').textContent = S.music ? '🎵' : '🔇';
   $('#lasterr').textContent = S.lastErr ? 'Dernière erreur : ' + S.lastErr.msg : '';
 }
 function renderAlbum(){
@@ -408,7 +408,9 @@ $('#btn-quit').onclick = () => { if (!run) return; clearInterval(timerIv); windo
 $('#btn-res-map').onclick = () => { SFX.click(); hero.floor = -1; openMap(); };
 $('#btn-res-again').onclick = () => { SFX.click(); const last = $('#res-img').alt || null; const room = ROOMS.find(r => IMG[r.dd]===$('#res-img').getAttribute('src')); if (room) enterRoom(room); else openMap(); };
 $('#tg-sound').onclick = () => { S.sound = !S.sound; save(); renderHome(); if (S.sound) SFX.ok(); };
-$('#tg-music').onclick = () => { S.music = !S.music; save(); renderHome(); MUSIC.refresh(); if (S.music) MUSIC.play('home'); };
+function toggleMusic(){ S.music = !S.music; save(); const cur = MUSIC.cur; if (!S.music) MUSIC.stop(); else { MUSIC.cur = null; MUSIC.play(cur || 'home'); } $('#fab-music').setAttribute('aria-pressed', !!S.music); $('#fab-music').textContent = S.music ? '🎵' : '🔇'; $('#tg-music').setAttribute('aria-pressed', !!S.music); SFX.click(); }
+$('#tg-music').onclick = toggleMusic;
+$('#fab-music').onclick = toggleMusic;
 $('#btn-rename').onclick = () => { $('#modal-name').hidden = false; $('#modal-msg').textContent = 'Comment t\'appelles-tu ?'; $('#modal-form').hidden = false; $('#inp-name').value = S.name; $('#inp-name').focus(); };
 $('#btn-storm-test').onclick = () => { startStorm(null, true); };
 $('#btn-unlock').onclick = () => { S.unlockAll = !S.unlockAll; save(); toast(S.unlockAll ? 'Toutes les salles sont ouvertes (mode test)' : 'Retour au parcours normal'); };

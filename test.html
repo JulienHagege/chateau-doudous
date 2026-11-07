@@ -33,7 +33,7 @@
     log('porte', String(walkable(0,3,4)&&walkable(0,3,4).id), 'corridor', walkable(0,3,5), 'locked', walkable(0,10,4));
     heroMove(0,-1); log('vers la porte : hero', JSON.stringify(hero), 'busy', heroBusy);
     if (run){ clearInterval(timerIv); run=null; } hero.floor=-1; openMap(0); heroMove(1,0); heroMove(1,0); heroMove(0,1); log('couloir', JSON.stringify(hero));
-    for (const k in MUSIC_TRACKS){ const E = MUSIC.events(MUSIC_TRACKS[k]); if (!E.ev.length) log('MUSIQUE vide', k); } log('musiques', Object.keys(MUSIC_TRACKS).length);
+    for (const k in MUSIC_TRACKS){ const E = MUSIC.events(MUSIC_TRACKS[k]); if (!E.ev.length) log('MUSIQUE vide', k); } log('musiques', Object.keys(MUSIC_TRACKS).length); toggleMusic(); log('musique coupée', S.music, $('#fab-music').textContent, MUSIC.timer); toggleMusic(); log('musique remise', S.music, $('#fab-music').textContent);
     // 3. écran salle réel : une question de chaque type rendue dans #stage
     window.setTimeout = _st;
     enterRoom(ROOM.formes); log('enterRoom OK, run =', !!run, 'stage html', $('#stage').innerHTML.length);
