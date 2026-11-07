@@ -4,17 +4,19 @@
    ========================================================= */
 let run = null, timerIv = null;
 function startRoom(room){
-  const rs = roomState(room.id); const level = clamp(rs.done + 1, 1, 3);
-  run = { room:room.id, level, i:0, n:room.n, errors:0, hearts:maxHearts(), billes:0, results:[], asked:0, retry:[], q:null, answered:false, t0:0 };
+  const rs = roomState(room.id); const level = room.rev ? 1 : Math.min(MAX_LEVEL, rs.level || 1);
+  // 5 niveaux de contenu par salle ; le chrono se resserre un peu à chaque niveau
+  run = { room:room.id, level, gen:level, tfactor:Math.pow(.92, level-1), i:0, n:room.n, errors:0, hearts:maxHearts(), billes:0, results:[], asked:0, retry:[], q:null, answered:false, t0:0 };
   MUSIC.play(MUSIC_TRACKS['room_'+room.id] ? 'room_'+room.id : (room.floor===3 ? 'tower' : 'floor'+room.floor));
   SFX.door();
   show('room'); renderRoomHead(); nextQuestion();
 }
 function renderRoomHead(){
   const room = ROOM[run.room], d = DD[room.dd]; const el = $('#room');
-  el.style.setProperty('--acc', room.acc); el.style.setProperty('--room-bg', room.bg);
-  $('#cage').classList.remove('free'); $('#cage-img').src = IMG[d.id]; $('#cage-img').alt = d.name;
-  $('#room-name').textContent = room.name; $('#room-skill').textContent = `${room.skill} · niveau ${run.level} · ${d.name} se cache ici`;
+  el.style.setProperty('--acc', room.acc); el.style.setProperty('--room-bg', room.bg); el.style.setProperty('--room-img', `url(${IMG['bg_'+(room.rev ? 'boss' : room.id)] || IMG.castle})`);
+  $('#result').style.setProperty('--room-img', `url(${IMG['bg_'+(room.rev ? 'boss' : room.id)] || IMG.castle})`); $('#result').style.setProperty('--acc', room.acc);
+  $('#cage').classList.toggle('free', !!room.rev); $('#cage-img').src = room.rev ? IMG.hero : IMG[d.id]; $('#cage-img').alt = room.rev ? 'Révision' : d.name;
+  $('#room-name').textContent = room.name; $('#room-skill').textContent = room.rev ? room.skill : `${room.skill} · niveau ${run.level} · ${d.name} se cache ici`;
   renderHearts(); renderProgress(); $('#room-billes').textContent = run.billes;
 }
 function renderHearts(){ const h = $('#hearts'); h.innerHTML = ''; for (let i=0;i<maxHearts();i++){ const s = document.createElement('span'); if (i>=run.hearts) s.className='off'; h.appendChild(s); } }
@@ -23,9 +25,9 @@ function nextQuestion(){
   if (run.i >= run.n){ return endRoom(true); }
   const room = ROOM[run.room];
   let q = run.retry.length && Math.random()<.5 && run.i>run.retry[0].at+1 ? run.retry.shift().q : null;
-  if (!q){ q = room.boss ? GAMES.boss.gen(run.level, run.i, run.n) : GAMES[room.id].gen(run.level); }
+  if (!q){ q = (room.boss || room.rev) ? GAMES[room.id].gen(run.gen, run.i, run.n) : GAMES[room.id].gen(run.gen); }
   run.q = q; run.answered = false; renderProgress(); renderQuestion(q);
-  const floor = FLOORS[room.floor]; const t = floor.timer ? floor.timer * (q.timeMult||1) : 0; startTimer(t);
+  const floor = FLOORS[room.floor]; const t = floor.timer ? floor.timer * (q.timeMult||1) * run.tfactor : 0; startTimer(t);
 }
 function renderQuestion(q){
   const stage = $('#stage'); stage.innerHTML = ''; const fb = $('#stage .feedback'); if (fb) fb.remove();
@@ -60,9 +62,10 @@ function submit(ok, shown){
   if (!run || run.answered) return; run.answered = true; clearInterval(timerIv);
   const room = ROOM[run.room], floor = FLOORS[room.floor]; const q = run.q;
   run.results[run.i] = ok; S.tot = S.tot || {r:0,w:0};
+  if (q.fact) recordFact(q.fact[0], q.fact[1], ok); recordSkill((room.boss || room.rev) ? (q.from || room.id) : room.id, ok); checkTables();
   const stage = $('#stage'); const fb = document.createElement('div'); fb.className = 'feedback ' + (ok?'ok':'ko');
   if (ok){
-    S.tot.r++; const gain = floor.billes + (floor.timer ? Math.round(clamp((run.tlen-(Date.now()-run.t0))/run.tlen,0,1)*5) : 0);
+    S.tot.r++; const gain = floor.billes + 3*(run.level-1) + (floor.timer ? Math.round(clamp((run.tlen-(Date.now()-run.t0))/run.tlen,0,1)*5) : 0);
     run.billes += gain; S.billes += gain; $('#room-billes').textContent = run.billes;
     fb.innerHTML = pick(['Bravo !','Super !','Oui !','Génial !','Exact !','Trop fort !']) + ` <small>+${gain} billes</small>`; SFX.ok(); setTimeout(SFX.bille, 150); sparkle($('#room-billes'), '✨');
   } else {
@@ -74,26 +77,26 @@ function submit(ok, shown){
   stage.appendChild(fb); renderProgress(); save();
   if (!ok && run.hearts<=0){ setTimeout(() => endRoom(false), 1500); return; }
   run.i++;
-  setTimeout(nextQuestion, ok ? 900 : 2200);
+  setTimeout(() => maybeCelebrate(nextQuestion), ok ? 900 : 2200);
 }
 function endRoom(won){
   clearInterval(timerIv); window.onkeydown = null;
-  const room = ROOM[run.room], d = DD[room.dd], rs = roomState(room.id);
+  const room = ROOM[run.room], d = room.rev ? {name:'Révision', desc:'', id:'hero'} : DD[room.dd], rs = roomState(room.id);
   const rewards = [];
   if (won){
-    const first = rs.done===0; rs.done++; const bonus = room.boss ? 300 : 50; S.billes += bonus; run.billes += bonus; rewards.push(`<span class="rw" style="color:var(--bille)">${run.billes>=0?'+':''}${run.billes} billes</span>`);
+    const first = !rs.found; rs.done++; if (!room.rev){ rs.found = true; rs.level = Math.min(MAX_LEVEL, (rs.level||1) + 1); } const bonus = room.boss ? 300 : 50; S.billes += bonus; run.billes += bonus; rewards.push(`<span class="rw" style="color:var(--bille)">${run.billes>=0?'+':''}${run.billes} billes</span>`);
     if (run.errors===0){ const st = room.boss ? 3 : 1; S.stars += st; rs.perfect++; rewards.push(`<span class="rw" style="color:var(--star)">⭐ ${st===1?'Une étoile : sans faute !':'Trois étoiles : sans faute !'}</span>`); }
     if (rs.best===null || run.errors<rs.best) rs.best = run.errors;
     S.sinceStorm = (S.sinceStorm||0) + 1;
     $('#cage').classList.add('free');
-    $('#res-img').src = IMG[d.id]; $('#res-title').textContent = first ? `Tu as retrouvé ${d.name} !` : `${d.name} est ravi${d.id==='vachou'?'e':''} !`;
-    $('#res-text').textContent = first ? `${d.name}, ${d.desc}, sort de sa cachette et saute dans tes bras. ${room.boss ? 'Tous les doudous sont réunis, le château est sauvé !' : 'Une nouvelle porte vient de s\'ouvrir sur la carte.'}` : `Niveau ${run.level} réussi. ${run.errors===0 ? 'Sans aucune faute !' : run.errors+' erreur'+(run.errors>1?'s':'')+', tu progresses !'}`;
+    $('#res-img').src = IMG[d.id]; $('#res-title').textContent = room.rev ? (run.errors===0 ? 'Révision parfaite !' : 'Révision terminée !') : first ? `Tu as retrouvé ${d.name} !` : `${d.name} est ravi${d.id==='vachou'?'e':''} !`;
+    $('#res-text').textContent = room.rev ? `${run.errors===0 ? 'Tout est juste, bravo !' : run.errors+' erreur'+(run.errors>1?'s':'')+', regarde ton carnet pour voir ce qui reste à travailler.'}` : first ? `${d.name}, ${d.desc}, sort de sa cachette et saute dans tes bras. ${room.boss ? 'Tous les doudous sont réunis, le château est sauvé !' : 'Une nouvelle porte vient de s\'ouvrir sur la carte.'}` : `Niveau ${run.level} réussi. ${run.errors===0 ? 'Sans aucune faute !' : run.errors+' erreur'+(run.errors>1?'s':'')+', tu progresses !'}`;
     const prevH = maxHearts(); save(); if (maxHearts()>prevH){ rewards.push('<span class="rw" style="color:var(--heart)">❤️ Un cœur de plus !</span>'); setTimeout(SFX.heart, 1200); }
-    SFX.freed(); confetti(); if (room.boss) setTimeout(MUSIC.play.bind(MUSIC,'home'), 100);
+    SFX.freed(); confetti(); if (room.boss){ setTimeout(MUSIC.play.bind(MUSIC,'home'), 100); $('#btn-res-map').textContent = '🎉 Et maintenant ?'; $('#btn-res-again').hidden = true; } else { $('#btn-res-map').textContent = '🗺️ Retour à la carte'; $('#btn-res-again').hidden = false; }
   } else {
     rewards.push(`<span class="rw" style="color:var(--bille)">${run.billes>=0?'+':''}${run.billes} billes</span>`);
-    $('#res-img').src = IMG[d.id]; $('#res-title').textContent = 'Plus de cœurs…'; $('#res-text').textContent = `${d.name} t'attend encore dans ${room.name}. Repose-toi et réessaie, tu vas y arriver !`;
-    SFX.fail(); save();
+    $('#res-img').src = IMG[d.id]; $('#res-title').textContent = 'Plus de cœurs…'; $('#res-text').textContent = room.rev ? 'La révision s\'arrête là. Repose-toi et réessaie plus tard !' : `${d.name} t'attend encore dans ${room.name}. Repose-toi et réessaie, tu vas y arriver !`;
+    SFX.fail(); save(); $('#btn-res-map').textContent = '🗺️ Retour à la carte'; $('#btn-res-again').hidden = false;
   }
   $('#res-rewards').innerHTML = rewards.join(''); $('#res-title').textContent = fr($('#res-title').textContent); $('#res-text').textContent = fr($('#res-text').textContent); show('result'); run = null;
 }
@@ -235,7 +238,8 @@ const STORM_BY_FLOOR = [
   {p:.22, n:6, tables:[2,3,4,5,6,7,8,9,10], bmax:9, dur:6000},
   {p:.22, n:6, tables:[3,4,6,7,8,9],     bmax:9, dur:5500}
 ];
-function stormTables(){ return STORM_BY_FLOOR[storm.floor].tables; }
+// Tables de l'orage : parmi celles de l'étage, les tables maîtrisées et les deux en cours d'apprentissage
+function stormTables(){ const pool = STORM_BY_FLOOR[storm.floor].tables; const act = activeTables().filter(t => pool.includes(t)); return act.length ? act : pool.slice(0,2); }
 function startStorm(after, test, floor){
   if (floor==null){ const cur = currentRoom(); floor = cur ? cur.floor : 2; }
   storm = { after, test, floor, n:STORM_BY_FLOOR[floor].n, i:0, hits:0, misses:0, hearts:3, phase:'intro', q:null, done:false, bolts:[], parts:[], drops:[], shake:0, lurk:[], nextBolt:0 };
@@ -266,7 +270,7 @@ function flash(op){ const f = $('#storm-flash'); f.style.transition='none'; f.st
 function launchPumpkin(){
   if (!storm || storm.done) return;
   if (storm.i >= storm.n) return endStorm();
-  const F = STORM_BY_FLOOR[storm.floor]; const a = pick(F.tables), b = rnd(2, F.bmax); const ans = a*b;
+  const F = STORM_BY_FLOOR[storm.floor]; const [a, b] = pickFact(stormTables(), F.bmax); const ans = a*b;
   const dur = clamp(F.dur - freedCount()*100, 4500, F.dur);
   storm.q = {a,b,ans, born:Date.now(), dur, x:.15+Math.random()*.7, hit:false};
   $('#storm-q').innerHTML = `${a} × ${b} = ?`;
@@ -275,7 +279,7 @@ function launchPumpkin(){
   SFX.pumpkin();
 }
 function stormHit(ok){
-  const q = storm.q; q.hit = true; q.hitAt = Date.now(); q.ok = ok; storm.i++;
+  const q = storm.q; q.hit = true; q.hitAt = Date.now(); q.ok = ok; storm.i++; recordFact(q.a, q.b, ok); recordSkill('tables2', ok); checkTables();
   const cv = $('#storm-cv'); const W = cv.width, H = cv.height; const p = clamp((q.hitAt-q.born)/q.dur,0,1); const sz = 40 + p*p*H*.6; const x = W*q.x + (W/2-W*q.x)*p, y = H*.3 + p*p*H*.45;
   if (ok){
     storm.hits++; storm.swing = {t:Date.now(), x, y, sz}; setTimeout(SFX.squash, 180); setTimeout(SFX.bille, 320); const gain = 20; S.billes += gain; $('#storm-score').textContent = `🎃 ${storm.hits} / ${storm.n}`;
@@ -345,7 +349,7 @@ function endStorm(){
   storm.q = null; storm.phase = 'end'; if (won){ SFX.freed(); for (let i=0;i<120;i++){ const cv = $('#storm-cv'); storm.parts.push({x:Math.random()*cv.width, y:cv.height*.5, vx:(Math.random()-.5)*8, vy:-4-Math.random()*8, s:4+Math.random()*8, c:pick(['#ffd166','#ff8fb1','#8de3c0','#7cc4ff','#fff']), t:Date.now(), life:2000}); } } else SFX.fail();
   save();
   const after = storm.after;
-  setTimeout(() => { cancelAnimationFrame(storm && storm.loop); $('#storm').hidden = true; $('#app').classList.remove('dim'); storm = null; MUSIC.stop(); if (after) after(); else renderHome(); }, 2800);
+  setTimeout(() => { cancelAnimationFrame(storm && storm.loop); $('#storm').hidden = true; $('#app').classList.remove('dim'); storm = null; MUSIC.stop(); maybeCelebrate(() => { if (after) after(); else renderHome(); }); }, 2800);
 }
 
 /* =========================================================
@@ -357,7 +361,8 @@ function renderHome(){
   const {cur,next} = rank(S.billes); $('#h-rank').textContent = cur[1]; $('#h-next').textContent = next ? `${S.billes} / ${next[0]} billes` : 'Rang maximum !';
   $('#h-rankbar').style.width = next ? clamp((S.billes-cur[0])/(next[0]-cur[0])*100, 2, 100)+'%' : '100%';
   const sm = S.stars%4; $('#h-starnext').textContent = maxHearts()>=MAX_HEARTS ? 'Cœurs au maximum !' : `${sm} / 4 étoiles`; $('#h-starbar').style.width = (maxHearts()>=MAX_HEARTS ? 100 : sm/4*100)+'%';
-  $('#home-tag').textContent = fr(S.name ? (freedCount()===ROOMS.length ? `${S.name} a sauvé tous les doudous !` : freedCount() ? `${S.name}, ${ROOMS.length-freedCount()} doudous attendent encore` : `${S.name}, les doudous se sont perdus dans le château`) : 'Les doudous se sont perdus dans le château');
+  const cyc = S.cycle ? ` · ${S.cycle+1}e exploration` : '';
+  $('#home-tag').textContent = fr(S.name ? (freedCount()===ROOMS.length ? `${S.name} a sauvé tous les doudous !` : freedCount() ? `${S.name}, ${ROOMS.length-freedCount()} doudous attendent encore${cyc}` : S.cycle ? `${S.name}, les doudous sont repartis se cacher${cyc}` : `${S.name}, les doudous se sont perdus dans le château`) : 'Les doudous se sont perdus dans le château');
   $('#btn-enter').textContent = freedCount() ? '🏰 Continuer l\'exploration' : '🏰 Entrer dans le château';
   const par = $('#parade'); par.innerHTML = ROOMS.filter(r => isDone(r.id)).map(r => `<img src="${IMG[r.dd]}" alt="${DD[r.dd].name}" class="px">`).join('');
   $('#tg-sound').setAttribute('aria-pressed', !!S.sound); $('#tg-music').setAttribute('aria-pressed', !!S.music); $('#fab-music').setAttribute('aria-pressed', !!S.music); $('#fab-music').textContent = S.music ? '🎵' : '🔇';
@@ -365,9 +370,9 @@ function renderHome(){
 }
 function renderAlbum(){
   const g = $('#album-grid'); g.innerHTML = '';
-  DOUDOUS.forEach(d => { const room = ROOMS.find(r => r.dd===d.id); const rs = S.rooms[room.id]; const done = rs && rs.done>0;
+  DOUDOUS.forEach(d => { const room = ROOMS.find(r => r.dd===d.id); const rs = S.rooms[room.id]; const done = rs && rs.done>0; const hidden = done && !rs.found;
     const el = document.createElement('div'); el.className = 'dd' + (done?'':' locked');
-    el.innerHTML = `<img src="${IMG[d.id]}" alt="" class="px"><b>${done ? d.name : '?'}</b><small>${done ? d.desc + ' · ' + room.name : 'perdu dans ' + room.name}</small><span class="stars">${done ? ('⭐'.repeat(Math.min(3,rs.perfect)) || ('niveau '+Math.min(3,rs.done))) : ''}</span>`;
+    el.innerHTML = `<img src="${IMG[d.id]}" alt="" class="px"><b>${done ? d.name : '?'}</b><small>${done ? d.desc + ' · ' + room.name + (hidden ? ' · reparti se cacher' : '') : 'perdu dans ' + room.name}</small><span class="stars">${done ? (('⭐'.repeat(Math.min(3,rs.perfect)) + ' niveau '+rs.level).trim()) : ''}</span>`;
     g.appendChild(el); });
 }
 $('#btn-enter').onclick = () => { SFX.click(); if (!S.introSeen) startIntro(() => openMap()); else openMap(); };
@@ -402,11 +407,15 @@ function renderIntro(){
 function introStep(d){ if (!intro) return; if (intro.panels[intro.i].last) return endIntro(); intro.i = clamp(intro.i+d, 0, intro.panels.length-1); renderIntro(); }
 function endIntro(){ if (!intro) return; S.introSeen = true; save(); const after = intro.after; intro = null; SFX.stairs(); after(); }
 $('#btn-album').onclick = () => { SFX.click(); renderAlbum(); show('album'); };
+$('#btn-carnet').onclick = () => { SFX.click(); renderCarnet(); show('carnet'); };
+$('#btn-carnet-back').onclick = () => { SFX.click(); renderHome(); show('home'); };
+$('#btn-revise').onclick = () => { SFX.click(); startRoom(ROOM.revision); };
+$('#btn-celebrate').onclick = () => { SFX.click(); $('#celebrate').hidden = true; const then = celebrateThen; celebrateThen = null; maybeCelebrate(then); };
 $('#btn-album-back').onclick = () => { SFX.click(); renderHome(); show('home'); };
 $('#btn-map-back').onclick = () => { SFX.click(); renderHome(); show('home'); MUSIC.play('home'); };
 $('#btn-quit').onclick = () => { if (!run) return; clearInterval(timerIv); window.onkeydown = null; run = null; SFX.click(); hero.floor = -1; openMap(); };
-$('#btn-res-map').onclick = () => { SFX.click(); hero.floor = -1; openMap(); };
-$('#btn-res-again').onclick = () => { SFX.click(); const last = $('#res-img').alt || null; const room = ROOMS.find(r => IMG[r.dd]===$('#res-img').getAttribute('src')); if (room) enterRoom(room); else openMap(); };
+$('#btn-res-map').onclick = () => { SFX.click(); hero.floor = -1; if (ROOMS.every(r => isDone(r.id))) startCycle(); else openMap(); };
+$('#btn-res-again').onclick = () => { SFX.click(); if ($('#res-img').getAttribute('src')===IMG.hero) return startRoom(ROOM.revision); const room = ROOMS.find(r => IMG[r.dd]===$('#res-img').getAttribute('src')); if (room) enterRoom(room); else openMap(); };
 $('#tg-sound').onclick = () => { S.sound = !S.sound; save(); renderHome(); if (S.sound) SFX.ok(); };
 function toggleMusic(){ S.music = !S.music; save(); const cur = MUSIC.cur; if (!S.music) MUSIC.stop(); else { MUSIC.cur = null; MUSIC.play(cur || 'home'); } $('#fab-music').setAttribute('aria-pressed', !!S.music); $('#fab-music').textContent = S.music ? '🎵' : '🔇'; $('#tg-music').setAttribute('aria-pressed', !!S.music); SFX.click(); }
 $('#tg-music').onclick = toggleMusic;
@@ -417,6 +426,65 @@ $('#btn-unlock').onclick = () => { S.unlockAll = !S.unlockAll; save(); toast(S.u
 let resetArmed = false;
 $('#btn-reset').onclick = () => { if (!resetArmed){ resetArmed = true; $('#btn-reset').textContent = 'Sûr ? Touche encore'; setTimeout(() => { resetArmed = false; $('#btn-reset').textContent = 'Tout effacer'; }, 4000); return; } const name = S.name; S = DEFAULT(); S.name = name; S.resetAt = Date.now(); save(); renderHome(); toast('Progression effacée'); resetArmed = false; $('#btn-reset').textContent = 'Tout effacer'; };
 $('#modal-form').onsubmit = e => { e.preventDefault(); const v = $('#inp-name').value.trim(); if (!v) return; S.name = v; save(); $('#modal-name').hidden = true; renderHome(); toast(`Bienvenue, ${v} ! Les doudous comptent sur toi.`); SFX.star(); };
+
+/* =========================================================
+   NOUVEAU CYCLE : Vachou retrouvée, les doudous repartent se cacher, chaque salle monte d'un niveau
+   ========================================================= */
+let cyc = null;
+function startCycle(){
+  const all = DOUDOUS.map((d,i) => `<img src="${IMG[d.id]}" alt="${d.name}" class="px" style="animation-delay:${(i*.13).toFixed(2)}s">`).join('');
+  const before = Object.fromEntries(ROOMS.map(r => [r.id, playedLevel(r.id)]));
+  cyc = { i:0, panels:[
+    {scene:`<img class="bg px" src="${IMG.castle}" alt=""><div class="night"></div><div class="row">${all}</div>`, text:`Tous les doudous sont réunis ! Mais ils adorent jouer à cache-cache…`, fx:'party'},
+    {scene:`<img class="bg px" src="${IMG.castle}" alt="" style="filter:brightness(.6)"><div class="row flee">${all}</div>`, text:`Hop ! Un par un, ils repartent se cacher dans le château.`, fx:'flee'},
+    {scene:`<div class="lvlgrid">${ROOMS.map((r,i) => `<span class="lvl" style="animation-delay:${(i*.12).toFixed(2)}s; --acc:${r.acc}"><b>${DD[r.dd].name}</b><i>${before[r.id]} ➜ <em>${roomLevel(r.id)}</em></i></span>`).join('')}</div>`, text:`Le château monte de niveau ! Chaque salle est un peu plus difficile qu'avant.`, fx:'levelup', last:true}
+  ]};
+  S.cycle = (S.cycle||0) + 1; ROOMS.forEach(r => { roomState(r.id).found = false; }); S.sinceStorm = 0; save();
+  show('cycle'); MUSIC.play('home'); renderCycle();
+}
+function renderCycle(){
+  const P = cyc.panels[cyc.i]; $('#cycle-scene').innerHTML = P.scene; $('#cycle-text').textContent = fr(P.text);
+  $('#cycle-dots').innerHTML = cyc.panels.map((_, k) => `<i class="${k===cyc.i?'on':''}"></i>`).join('');
+  $('#btn-cycle-next').textContent = P.last ? '🏰 Repartir à l’aventure' : 'Suivant ▶';
+  if (P.fx==='party'){ SFX.freed(); confetti(); }
+  if (P.fx==='flee'){ DOUDOUS.forEach((d,i) => setTimeout(SFX.bubble, 300 + i*130)); }
+  if (P.fx==='levelup'){ ROOMS.forEach((r,i) => setTimeout(() => tone(880 + i*60, 0, .12, 'triangle', .08), 200 + i*120)); setTimeout(SFX.heart, 2300); }
+}
+$('#btn-cycle-next').onclick = () => { SFX.click(); if (cyc.panels[cyc.i].last){ cyc = null; hero.floor = -1; openMap(0); return; } cyc.i++; renderCycle(); };
+
+/* =========================================================
+   CÉLÉBRATION d'une table maîtrisée (file d'attente, affichée entre deux épreuves)
+   ========================================================= */
+let celebrateThen = null;
+function maybeCelebrate(then){
+  const q = S.celebrateQueue || [];
+  if (!q.length){ if (then) then(); return; }
+  const n = q.shift(); S.billes += 100; S.stars += 1; save(); celebrateThen = then;
+  $('#celebrate-title').textContent = fr(`🎉 Table de ${n} maîtrisée !`);
+  $('#celebrate-text').textContent = fr(`Tu connais maintenant toute la table de ${n}, du ${n} × 1 au ${n} × 10. Les doudous sont fiers de toi !`);
+  const done = TABLE_ORDER.filter(tableMastered).length; const next = TABLE_ORDER.find(t => !tableMastered(t));
+  $('#celebrate-next').textContent = fr(next ? `${done} table${done>1?'s':''} sur 9. Prochaine à apprendre : la table de ${next}.` : 'Les 9 tables sont maîtrisées. Championne !');
+  $('#celebrate-parade').innerHTML = ROOMS.filter(r => everDone(r.id)).slice(0,8).map(r => `<img src="${IMG[r.dd]}" alt="" class="px">`).join('');
+  $('#celebrate').hidden = false; confetti(); SFX.freed(); setTimeout(SFX.heart, 900); if (maxHearts() > (celebrateHeartsBefore||0)) {} 
+}
+let celebrateHeartsBefore = 0;
+
+/* =========================================================
+   CARNET : tables, notions, révision
+   ========================================================= */
+function renderCarnet(){
+  const tb = $('#carnet-tables'); tb.innerHTML = '';
+  [2,3,4,5,6,7,8,9,10].forEach(n => {
+    const pr = tableProgress(n); const st = tableMastered(n) ? 'ok' : pr.seen ? 'learning' : 'new'; const lab = st==='ok' ? '✅ maîtrisée' : st==='learning' ? `🔶 en cours · ${pr.m} / 10` : '⬜ à découvrir';
+    const cells = Array.from({length:10}, (_,i) => { const b = i+1; const f = S.facts && S.facts[factKey(n,b)]; const c = factMastered(n,b) ? 'ok' : (f && f.w>0 && f.s===0) ? 'ko' : (f && (f.r||f.w)) ? 'mid' : ''; return `<i class="${c}" title="${n} × ${b} = ${n*b}">${b}</i>`; }).join('');
+    const el = document.createElement('div'); el.className = 'tcard ' + st; el.innerHTML = `<b>Table de ${n}</b><span>${lab}</span><div class="facts">${cells}</div>`; tb.appendChild(el);
+  });
+  const sk = $('#carnet-skills'); sk.innerHTML = '';
+  ROOMS.forEach(r => { const st = skillStatus(r.id); const k = S.skills && S.skills[r.id]; const lab = st==='ok' ? '✅ acquis' : st==='learning' ? '🔶 en cours' : '⬜ à découvrir';
+    const el = document.createElement('div'); el.className = 'srow ' + st; el.innerHTML = `<img src="${IMG[r.dd]}" alt="" class="px"><div><b>${r.skill}</b><small>${r.name}${k ? ` · ${k.r} justes sur ${k.r+k.w}` : ''} · niveau ${roomLevel(r.id)}</small></div><span>${lab}</span>`; sk.appendChild(el); });
+  const weak = weakRooms().length + weakFacts().length;
+  $('#carnet-hint').textContent = fr(weak ? `${weakFacts().length} multiplication${weakFacts().length>1?'s':''} et ${weakRooms().length} notion${weakRooms().length>1?'s':''} à revoir.` : 'Rien à revoir pour le moment, tout est acquis !');
+}
 
 /* =========================================================
    SYNCHRO entre appareils (db claude.ai) : fusion par progression, jamais par date seule

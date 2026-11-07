@@ -25,6 +25,7 @@
     <div class="actions">
       <button class="btn big" id="btn-enter">🏰 Entrer dans le château</button>
       <button class="btn rose" id="btn-album">🧸 Album des doudous</button>
+      <button class="btn mint" id="btn-carnet">📚 Carnet et révision</button>
       <button class="btn ghost" id="btn-intro">📖 Revoir l'histoire</button>
     </div>
   </div>
@@ -60,6 +61,26 @@
       <button class="btn ghost" id="btn-intro-skip">Passer</button>
     </div>
   </div>
+</section>
+
+<!-- ===== Nouveau cycle ===== -->
+<section id="cycle" class="screen" hidden>
+  <div class="intro">
+    <div class="scene" id="cycle-scene"></div>
+    <p class="text" id="cycle-text"></p>
+    <div class="dots" id="cycle-dots"></div>
+    <div class="actions"><button class="btn big" id="btn-cycle-next">Suivant ▶</button></div>
+  </div>
+</section>
+
+<!-- ===== Carnet ===== -->
+<section id="carnet" class="screen" hidden>
+  <div class="topbar"><h2>📚 Carnet des acquis</h2><button class="btn ghost" id="btn-carnet-back">← Retour</button></div>
+  <div class="card" style="margin-bottom:14px"><h2>Réviser</h2><p id="carnet-hint"></p><button class="btn" id="btn-revise">✏️ Réviser (10 questions)</button></div>
+  <h3 class="h3">Les tables de multiplication</h3>
+  <div class="tables" id="carnet-tables"></div>
+  <h3 class="h3">Les notions du château</h3>
+  <div class="skills" id="carnet-skills"></div>
 </section>
 
 <!-- ===== Album ===== -->
@@ -100,7 +121,7 @@
 <!-- ===== Résultat ===== -->
 <section id="result" class="screen" hidden>
   <div class="result">
-    <img id="res-img" class="big px" alt="">
+    <div class="scenebg"><img id="res-img" class="big px" alt=""></div>
     <h2 id="res-title"></h2>
     <p id="res-text" class="story"></p>
     <div class="rewards" id="res-rewards"></div>
@@ -133,6 +154,16 @@
     <h2>Bienvenue au château</h2>
     <p id="modal-msg">Comment t'appelles-tu ?</p>
     <form id="modal-form"><input id="inp-name" maxlength="20" autocomplete="off" placeholder="Ton prénom"><button class="btn" type="submit">C'est parti !</button></form>
+  </div>
+</div>
+<div class="modal" id="celebrate" hidden>
+  <div class="box">
+    <h2 id="celebrate-title"></h2>
+    <p id="celebrate-text"></p>
+    <div class="rewards" style="display:flex; gap:10px; justify-content:center; margin-bottom:10px"><span class="rw" style="color:var(--bille)">+100 billes</span><span class="rw" style="color:var(--star)">⭐ +1 étoile</span></div>
+    <p id="celebrate-next"></p>
+    <div class="parade" id="celebrate-parade" style="position:static; margin-bottom:12px"></div>
+    <button class="btn big" id="btn-celebrate">Super !</button>
   </div>
 </div>
 <div class="confetti" id="confetti" hidden></div>

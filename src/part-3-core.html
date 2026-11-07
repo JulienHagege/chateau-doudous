@@ -67,20 +67,50 @@ const ROOMS = [
   {id:'boss',     floor:3, dd:'vachou',   name:'Le Donjon de la Tour',    skill:'Toutes les énigmes',       acc:'#ff8fb1', bg:'#1a1030', rect:[6,2,8,6],   door:[9,8],  n:15, boss:true}
 ];
 const ROOM = Object.fromEntries(ROOMS.map(r => [r.id, r]));
-const RANKS = [[0,'Apprentie exploratrice'],[250,'Chercheuse de doudous'],[700,'Gardienne du château'],[1400,'Princesse des doudous'],[2600,'Reine du château'],[4500,'Légende des doudous']];
+ROOM.revision = {id:'revision', floor:1, dd:'vachou', name:'Révision du carnet', skill:'Les multiplications et notions à revoir', acc:'#ffd166', bg:'#2a2560', n:10, rev:true};
+const MAX_LEVEL = 5;
+// Calibré pour qu'il faille retrouver Vachou 5 fois (environ 3000 billes par exploration) pour atteindre le dernier rang
+const RANKS = [[0,'Apprentie exploratrice'],[600,'Chercheuse de doudous'],[1500,'Gardienne du château'],[3000,'Princesse des doudous'],[5000,'Reine du château'],[7500,'Fée du château'],[10500,'Magicienne des doudous'],[14000,'Légende des doudous']];
 function rank(b){ let cur = RANKS[0], next = null; for (const x of RANKS){ if (b>=x[0]) cur = x; else { next = x; break; } } return {cur,next}; }
 const BASE_HEARTS = 5, MAX_HEARTS = 10;
 
+/* ---------- Acquis : faits de multiplication, tables, notions ----------
+   Un fait a×b est « sûr » après 2 réussites de suite (s ≥ 2) ; b×a compte aussi. Une table est maîtrisée quand ses 10 faits sont sûrs.
+   Ordre d'apprentissage des tables : 2, 10, 5, 3, 4, 6, 7, 8, 9. Les salles de tables, le donjon et l'orage piochent dans les tables
+   maîtrisées + les deux suivantes (« en cours »), en privilégiant les faits jamais vus ou ratés. */
+const TABLE_ORDER = [2,10,5,3,4,6,7,8,9];
+const factKey = (a,b) => a+'x'+b;
+function fact(a,b){ S.facts = S.facts || {}; return S.facts[factKey(a,b)] || (S.facts[factKey(a,b)] = {r:0,w:0,s:0}); }
+function recordFact(a,b,ok){ [[a,b],[b,a]].forEach(([x,y],i) => { if (i===1 && x===y) return; const f = fact(x,y); if (ok){ f.r++; f.s++; } else { f.w++; f.s = 0; } f.t = Date.now(); }); }
+const factMastered = (a,b) => ((S.facts||{})[factKey(a,b)]||{s:0}).s >= 2;
+function tableProgress(n){ let m = 0, seen = 0; for (let b=1;b<=10;b++){ const f = (S.facts||{})[factKey(n,b)]; if (f && (f.r||f.w)) seen++; if (factMastered(n,b)) m++; } return {m, seen}; }
+const tableMastered = n => tableProgress(n).m===10;
+function activeTables(){ const done = TABLE_ORDER.filter(tableMastered), next = TABLE_ORDER.filter(n => !tableMastered(n)).slice(0,2); return [...done, ...next]; }
+function pickFact(tables, bmax=10){
+  const c = []; for (const a of tables) for (let b=1;b<=bmax;b++){ const f = (S.facts||{})[factKey(a,b)]; let w = !f ? 3 : (f.s===0 && f.w>0) ? 4 : f.s===1 ? 2.5 : f.s>=2 ? .4 : 1; if (b===1) w *= .25; c.push([a,b,w]); }
+  if (!c.length) return [2,2]; const tot = c.reduce((s,x)=>s+x[2],0); let r = Math.random()*tot; for (const x of c){ r -= x[2]; if (r<=0) return [x[0],x[1]]; } return [c[0][0],c[0][1]];
+}
+function weakFacts(){ return Object.entries(S.facts||{}).filter(([k,f]) => f.w>0 && f.s<2).map(([k]) => k.split('x').map(Number)); }
+function recordSkill(id, ok){ S.skills = S.skills || {}; const k = S.skills[id] || (S.skills[id] = {r:0,w:0}); if (ok) k.r++; else k.w++; }
+function skillStatus(id){ const k = (S.skills||{})[id]; if (!k || !(k.r+k.w)) return 'new'; return (k.r+k.w>=16 && k.r/(k.r+k.w)>=.9) ? 'ok' : 'learning'; }
+function weakRooms(){ return ROOMS.filter(r => !r.boss && skillStatus(r.id)==='learning' && (S.skills[r.id].w>0)); }
+function checkTables(){ const now = TABLE_ORDER.filter(tableMastered); const fresh = now.filter(n => !(S.tablesDone||[]).includes(n)); if (fresh.length){ S.tablesDone = now; S.celebrateQueue = [...(S.celebrateQueue||[]), ...fresh]; } }
+
 /* ---------- État ---------- */
-const DEFAULT = () => ({ name:'', billes:0, stars:0, sound:true, music:true, rooms:{}, tot:{r:0,w:0}, storms:0, stormWins:0, sinceStorm:0, unlockAll:false, heroSeen:false });
+const DEFAULT = () => ({ name:'', billes:0, stars:0, sound:true, music:true, rooms:{}, tot:{r:0,w:0}, storms:0, stormWins:0, sinceStorm:0, unlockAll:false, cycle:0 });
 let S = DEFAULT();
-function load(){ try{ const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(DEFAULT(), JSON.parse(raw)); }catch(e){} }
+function load(){ try{ const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(DEFAULT(), JSON.parse(raw)); }catch(e){} migrate(); }
+// Anciennes sauvegardes : found = salle terminée, level = prochain niveau à jouer (sans plafond)
+function migrate(){ for (const id in S.rooms){ const rs = S.rooms[id]; if (rs.found==null) rs.found = rs.done>0; if (rs.level==null) rs.level = Math.min(3, (rs.done||0)+1); rs.level = Math.min(MAX_LEVEL, rs.level); } }
 function save(){ S.updated = Date.now(); try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} cloudSave(); }
 function logErr(e, where){ try{ S.lastErr = { t:new Date().toISOString(), where:where||'', msg:String(e && (e.stack||e.message||e)).slice(0,400), ua:navigator.userAgent.slice(0,80) }; save(); const el = $('#lasterr'); if (el) el.textContent = 'Dernière erreur : ' + S.lastErr.msg; }catch(_){} }
 window.addEventListener('error', e => logErr(e.error || e.message, 'window'));
 window.addEventListener('unhandledrejection', e => logErr(e.reason, 'promise'));
-const roomState = id => S.rooms[id] || (S.rooms[id] = {done:0, best:null, perfect:0});
-const isDone = id => (S.rooms[id]||{}).done > 0;
+const roomState = id => S.rooms[id] || (S.rooms[id] = {done:0, best:null, perfect:0, found:false, level:1});
+const isDone = id => !!(S.rooms[id]||{}).found;           // retrouvé dans l'exploration en cours
+const everDone = id => (S.rooms[id]||{}).done > 0;         // retrouvé au moins une fois
+const roomLevel = id => (S.rooms[id]||{}).level || 1;      // prochain niveau à jouer dans la salle
+const playedLevel = id => Math.max(1, roomLevel(id) - 1);  // dernier niveau réussi (1 si jamais joué)
 const maxHearts = () => clamp(BASE_HEARTS + Math.floor((S.stars||0)/4), BASE_HEARTS, MAX_HEARTS);
 const freedCount = () => ROOMS.filter(r => isDone(r.id)).length;
 function roomUnlocked(r){
@@ -261,7 +291,7 @@ const MUSIC = {
 
 /* ---------- UI utilitaires ---------- */
 let screen = 'home';
-function show(id){ ['home','intro','album','mapscreen','room','result'].forEach(s => { $('#'+s).hidden = (s!==id); }); screen = id; window.scrollTo(0,0); }
+function show(id){ ['home','intro','cycle','carnet','album','mapscreen','room','result'].forEach(s => { $('#'+s).hidden = (s!==id); }); screen = id; window.scrollTo(0,0); }
 let toastT = null;
 function toast(msg, ms=2600){ let t = $('.toast'); if (!t){ t = document.createElement('div'); t.className='toast'; document.body.appendChild(t); } t.textContent = fr(msg); t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms); }
 function sparkle(el, txt='✨'){ try{ const r = el.getBoundingClientRect(); for (let i=0;i<5;i++){ const s = document.createElement('span'); s.className='sparkle'; s.textContent = txt; s.style.left = (r.left + Math.random()*r.width) + 'px'; s.style.top = (r.top + r.height/2) + 'px'; s.style.position='fixed'; s.style.zIndex = 40; document.body.appendChild(s); setTimeout(()=>s.remove(), 900); } }catch(e){} }

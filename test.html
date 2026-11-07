@@ -7,7 +7,7 @@
   window.addEventListener('error', e => log('WINDOW ERROR', e.message, e.lineno)); log('début');
   const _st = window.setTimeout;
   try{
-    for (const r of ROOMS){ for (let level=1; level<=3; level++){ let kinds = {}; for (let i=0;i<40;i++){
+    for (const r of ROOMS){ for (let level=1; level<=5; level++){ let kinds = {}; for (let i=0;i<25;i++){
       const q = r.boss ? GAMES.boss.gen(level, i%15, 15) : GAMES[r.id].gen(level);
       if (!q || !q.prompt || !q.kind) throw new Error('question invalide '+r.id);
       kinds[q.kind] = (kinds[q.kind]||0)+1;
@@ -25,7 +25,15 @@
       while (run && guard++<120){ const ok = Math.random()<.8; submit(ok, ok?'' :'x'); }
       log('salle', r.id, 'écran', screen, 'billes', S.billes, 'étoiles', S.stars, 'tours', guard, 'done', JSON.stringify(S.rooms[r.id]));
     }
-    log('cœurs max', maxHearts(), 'délivrés', freedCount());
+    log('cœurs max', maxHearts(), 'délivrés', freedCount(), 'levels', JSON.stringify(Object.fromEntries(ROOMS.map(r=>[r.id, roomLevel(r.id)]))));
+    if (ROOMS.every(r => isDone(r.id))){ $('#btn-res-map').click(); log('cycle écran', screen, 'cycle', S.cycle, 'found', freedCount()); $('#btn-cycle-next').click(); $('#btn-cycle-next').click(); log('panneau 3 chips', document.querySelectorAll('#cycle-scene .lvl').length); $('#btn-cycle-next').click(); log('après cycle écran', screen, 'salle courante', currentRoom() && currentRoom().id); }
+    // migration d'une vieille sauvegarde
+    const old = {done:2, best:0, perfect:1}; S.rooms.formes = old; migrate(); log('migration', JSON.stringify(S.rooms.formes));
+    for (let b=1;b<=10;b++){ recordFact(2,b,true); recordFact(2,b,true); } checkTables(); log('table 2 maîtrisée', tableMastered(2), 'file', JSON.stringify(S.celebrateQueue), 'actives', JSON.stringify(activeTables()));
+    let celebrated = false; maybeCelebrate(() => { celebrated = true; }); log('célébration affichée', !$('#celebrate').hidden, 'titre', $('#celebrate-title').textContent); $('#btn-celebrate').click(); log('après célébration, then appelé', celebrated, 'hidden', $('#celebrate').hidden, 'file', JSON.stringify(S.celebrateQueue));
+    recordFact(3,4,false); recordSkill('bains', false); recordSkill('bains', true); renderCarnet(); log('carnet tables', document.querySelectorAll('#carnet-tables .tcard').length, 'skills', document.querySelectorAll('#carnet-skills .srow').length, 'hint', $('#carnet-hint').textContent);
+    startRoom(ROOM.revision); log('révision', run && run.room, 'q', run && run.q.prompt.slice(0,40)); let g2=0; while (run && g2++<40){ submit(true); } log('révision finie écran', screen, 'titre', $('#res-title').textContent, 'level bains', roomLevel('bains'));
+    const picks = {}; for (let i=0;i<300;i++){ const [a,b] = pickFact(activeTables()); picks[a] = (picks[a]||0)+1; } log('tirages par table', JSON.stringify(picks));
     for (let f=0; f<4; f++){ openMap(f); drawMap(); } log('carte OK');
     startStorm(null, true); log('orage phase', storm && storm.phase); if (storm){ if (storm.phase!=='play'){ storm.phase='play'; launchPumpkin(); } stormHit(true); if (storm) { launchPumpkin(); stormHit(false); } } log('orage OK, storm =', storm ? 'actif' : 'fermé', 'billes', S.billes);
     renderAlbum(); renderHome(); log('home/album OK');
