@@ -147,6 +147,10 @@ details.parents summary{cursor:pointer; font-weight:800; color:var(--muted)}
 .stage::before{content:""; position:absolute; inset:0; z-index:-1; background:var(--room-img) center/cover no-repeat; image-rendering:pixelated; opacity:.55}
 .stage::after{content:""; position:absolute; inset:0; z-index:-1; background:linear-gradient(180deg, rgba(10,8,25,.55), rgba(10,8,25,.35) 40%, rgba(10,8,25,.7))}
 .stage > *{position:relative}
+.redo{text-align:center; font-weight:900; color:#3a2a05; background:linear-gradient(180deg,#ffe08a,var(--gold2)); border-radius:12px; padding:8px 14px; margin-bottom:10px; font-size:17px}
+.redo b{font-family:var(--font-display); font-size:20px}
+.redo small{display:block; font-size:15px; font-weight:700; margin-top:4px; color:#4a3608}
+.redo .exshape{width:84px; height:84px; display:block; margin:4px auto 0}
 .prompt{background:rgba(10,8,25,.45); border-radius:14px; padding:8px 14px; backdrop-filter:blur(2px)}
 .prompt{font-family:var(--font-display); font-size:clamp(22px, 4.5vw, 32px); text-align:center; color:#fff; text-shadow:0 2px 0 rgba(0,0,0,.4); margin:0 0 14px; text-wrap:balance}
 .prompt b{color:var(--acc)}
@@ -823,7 +827,7 @@ const GAMES = {};
 GAMES.formes = { intro:'Les vitraux du hall brillent. Touche la bonne forme !', gen(level){
   const flat = level===1 ? ['carre','rectangle','triangle','rond','losange'] : ['carre','rectangle','triangle','rond','losange','trapeze','parallelogramme','ovale','hexagone','pentagone','octogone'];
   const solids = Object.keys(SOLIDS);
-  const countQ = (id, what) => { const s = SHAPES[id] || SOLIDS[id]; const ans = what==='côtés' ? s.sides : what==='faces' ? s.faces : s.sommets; return {prompt:`Combien de ${what} a ${s.name} ?`, kind:'custom', answer:ans, show:String(ans), render(stage, api){
+  const countQ = (id, what) => { const s = SHAPES[id] || SOLIDS[id]; const ans = what==='côtés' ? s.sides : what==='faces' ? s.faces : s.sommets; return {prompt:`Combien de ${what} a ${s.name} ?`, kind:'custom', answer:ans, show:String(ans), explain:`${s.name.charAt(0).toUpperCase()+s.name.slice(1)} a ${ans} ${what}. Compte-les sur le dessin !`, explainShape:id, render(stage, api){
       stage.innerHTML = `<div class="custom"><svg class="shapes" viewBox="0 0 300 150">${shapeSvg(id,150,75,55,pick(SHAPE_COLORS),SOLIDS[id]?0:rnd(0,359),'',id)}</svg><div class="opts three" id="side-opts"></div></div>`;
       const opts = mkOptions(ans, [3,4,5,6,8,0,1], 3); const box = stage.querySelector('#side-opts');
       opts.forEach(o => { const b = document.createElement('button'); b.className='opt'; b.textContent = o; b.onclick = () => { b.classList.add(o===ans?'ok':'ko'); api.answer(o===ans); }; box.appendChild(b); });
@@ -835,7 +839,8 @@ GAMES.formes = { intro:'Les vitraux du hall brillent. Touche la bonne forme !', 
   const useSolids = level>=3 && (level===3 ? Math.random()<.75 : Math.random()<.5); const pool = level>=4 && Math.random()<.5 ? [...flat, ...solids] : (useSolids ? solids : flat); const NAMES = Object.assign({}, SHAPES, SOLIDS);
   const count = level>=5 ? 9 : 6; const target = pick(pool); const others = shuffle(pool.filter(k=>k!==target)).slice(0, count-1);
   const items = shuffle([target, ...others]); const cols = count===9 ? 3 : 3, rows = count/cols;
-  return {prompt:`Touche <b>${NAMES[target].name}</b>`, sub: level>=3 ? 'dans les vitraux du hall' : '', kind:'custom', answer:target, show:NAMES[target].name, render(stage, api){
+  const T = NAMES[target]; const explain = SHAPES[target] ? (T.sides ? `${T.name.charAt(0).toUpperCase()+T.name.slice(1)} a ${T.sides} côtés${target==='carre' ? ' tous pareils' : target==='rectangle' ? ', deux longs et deux courts' : target==='losange' ? ' pareils, penché comme un cerf-volant' : target==='trapeze' ? ', dont deux parallèles' : ''}.` : `${T.name.charAt(0).toUpperCase()+T.name.slice(1)} n'a pas de côté : il est tout rond${target==='ovale' ? ' et allongé' : ''}.`) : `${T.name.charAt(0).toUpperCase()+T.name.slice(1)} est un solide : ${T.faces ? T.faces+' faces' : 'il roule'}${target==='cube' ? ', toutes carrées' : target==='pave' ? ', comme une boîte' : target==='cone' ? ', avec une pointe' : target==='pyramide' ? ' avec une pointe en haut' : ''}.`;
+  return {prompt:`Touche <b>${NAMES[target].name}</b>`, sub: level>=3 ? 'dans les vitraux du hall' : '', kind:'custom', answer:target, show:NAMES[target].name, explain, explainShape:target, render(stage, api){
     const W = 600, H = rows*140 + 20; let svg = `<svg class="shapes" viewBox="0 0 ${W} ${H}">`;
     svg += `<rect width="${W}" height="${H}" rx="16" fill="rgba(0,0,0,.25)"/>`;
     items.forEach((id, i) => { const cx = 100 + (i%cols)*200 + rnd(-20,20), cy = 80 + Math.floor(i/cols)*140 + rnd(-10,10); const rot = (level===1 || SOLIDS[id]) ? 0 : rnd(-40,40);
@@ -857,7 +862,8 @@ GAMES.bains = { intro:'Poulpou veut un bain à la bonne hauteur. Verse les bons 
   // niveaux 3 et 5 : cible en cL seuls (il faut convertir) ; niveau 4 : en L et cL
   const label = (level===3 || level===5) ? target+' cL' : fmt(target);
   const sub = level===1 ? 'Poulpou aime les bains bien pleins' : '1 L = 100 cL';
-  return {prompt:`Remplis la baignoire de Poulpou jusqu'à <b>${label}</b>`, sub, kind:'custom', answer:target, show:label, timeMult:2.5, render(stage, api){
+  const plan = (() => { let rest = target; const parts = []; for (const j of jugs.slice().sort((a,b)=>b-a)){ while (rest>=j){ parts.push(fmt(j)); rest -= j; } } return parts.join(' + '); })();
+  return {prompt:`Remplis la baignoire de Poulpou jusqu'à <b>${label}</b>`, sub, kind:'custom', answer:target, show:label, explain:`${level===1 ? '' : '1 L = 100 cL. '}${label} = ${fmt(target)} : verse ${plan}.`, timeMult:2.5, render(stage, api){
     let cur = 0; const max = Math.max(target*1.25, jugs[jugs.length-1]*1.2);
     stage.innerHTML = `<div class="custom">
       <div class="tub"><div class="mark" style="top:${100-target/max*100}%">${label}</div><div class="water" id="water"></div></div>
@@ -901,32 +907,32 @@ GAMES.longueurs = { intro:'Hugo le kangourou saute sur la grande règle. Mesure 
   const max = L(level, [10,20,30,50,100]);
   if (t==='measure'){
     const a = level>=3 ? rnd(1, Math.floor(max*.6)) : 0; const len = rnd(2, Math.min(max-a, L(level,[10,15,15,25,40]))); const b = a+len;
-    return {prompt:`Combien mesure le ruban d'Hugo ?`, kind:'num', answer:len, suffix:'cm', show:len+' cm', render(stage){ const cv = document.createElement('canvas'); cv.className='ruler'; drawRuler(cv, max, [{a,b,color:'#ff8fb1'}]); stage.appendChild(cv); }};
+    return {prompt:`Combien mesure le ruban d'Hugo ?`, kind:'num', answer:len, suffix:'cm', show:len+' cm', explain:`Le ruban va de ${a} à ${b} : ${b} − ${a} = ${len} cm. Compte les traits entre le début et la fin.`, render(stage){ const cv = document.createElement('canvas'); cv.className='ruler'; drawRuler(cv, max, [{a,b,color:'#ff8fb1'}]); stage.appendChild(cv); }};
   }
   if (t==='compare'){
     const la = rnd(2, max-1); let lb = rnd(2, max-1); if (lb===la) lb = la===max-1 ? la-1 : la+1;
     const colors = ['#ff8fb1','#7cc4ff']; const ans = la>lb ? 'rose' : 'bleu';
-    return {prompt:`Quel ruban est le plus long ?`, kind:'custom', answer:ans, show:'le ruban '+ans, render(stage, api){
+    return {prompt:`Quel ruban est le plus long ?`, kind:'custom', answer:ans, show:'le ruban '+ans, explain:`Le rose mesure ${la} cm, le bleu ${lb} cm.`, render(stage, api){
       const cv = document.createElement('canvas'); cv.className='ruler'; drawRuler(cv, max, [{a:0,b:la,color:colors[0]},{a:0,b:lb,color:colors[1]}]); stage.appendChild(cv);
       const row = document.createElement('div'); row.className='opts'; row.style.marginTop='12px'; row.innerHTML = `<button class="opt" data-v="rose" style="background:#ff8fb1;color:#3a0a1c">Le rose</button><button class="opt" data-v="bleu" style="background:#7cc4ff;color:#0a1c3a">Le bleu</button>`; stage.appendChild(row);
       row.querySelectorAll('.opt').forEach(b => b.onclick = () => { const ok = b.dataset.v===ans; b.classList.add(ok?'ok':'ko'); api.answer(ok); });
     }};
   }
-  if (t==='unit'){ const it = pick(LEN_ITEMS); return {prompt:`${it[0].charAt(0).toUpperCase()+it[0].slice(1)} mesure <b>${it[1]} …</b>`, kind:'qcm', answer:it[2], options:['mm','cm','m','km'], show:it[1]+' '+it[2]}; }
-  if (t==='convert'){ const c = pick([['1 m = … cm',100],['2 m = … cm',200],['1 dm = … cm',10],['1 km = … m',1000],['3 m = … cm',300],['1 cm = … mm',10],['5 m = … cm',500],['1 m = … dm',10]]); return num(c[0].replace('…','<b>?</b>'), c[1]); }
+  if (t==='unit'){ const it = pick(LEN_ITEMS); return {prompt:`${it[0].charAt(0).toUpperCase()+it[0].slice(1)} mesure <b>${it[1]} …</b>`, kind:'qcm', answer:it[2], options:['mm','cm','m','km'], show:it[1]+' '+it[2], explain:`mm = tout petit (une fourmi), cm = petit (un crayon), m = grand (une porte), km = très loin (une ville à l'autre).`}; }
+  if (t==='convert'){ const c = pick([['1 m = … cm',100],['2 m = … cm',200],['1 dm = … cm',10],['1 km = … m',1000],['3 m = … cm',300],['1 cm = … mm',10],['5 m = … cm',500],['1 m = … dm',10]]); return num(c[0].replace('…','<b>?</b>'), c[1], {explain:'1 m = 100 cm = 10 dm · 1 dm = 10 cm · 1 cm = 10 mm · 1 km = 1000 m'}); }
   if (t==='convert2'){
     const c = level>=5 ? pick([[`${rnd(1,9)} m ${rnd(1,9)*10} cm = … cm`, null],[`${rnd(2,9)} km ${rnd(1,9)*100} m = … m`, null],[`${rnd(1,9)} cm ${rnd(1,9)} mm = … mm`, null],[`${rnd(2,9)}00 cm = … m`, null]]) : pick([[`${rnd(1,9)} m ${rnd(1,9)*10} cm = … cm`, null],[`${rnd(2,9)}00 cm = … m`, null],[`${rnd(1,9)} dm ${rnd(1,9)} cm = … cm`, null]]);
     const txt = c[0]; const nums = txt.match(/\d+/g).map(Number); let ans;
     if (/m .* cm = … cm/.test(txt) && !/dm/.test(txt)) ans = nums[0]*100 + nums[1]; else if (/km/.test(txt)) ans = nums[0]*1000 + nums[1]; else if (/cm .* mm/.test(txt)) ans = nums[0]*10 + nums[1]; else if (/dm/.test(txt)) ans = nums[0]*10 + nums[1]; else ans = nums[0]/100;
-    return num(txt.replace('…','<b>?</b>'), ans, {sub:'1 m = 100 cm · 1 km = 1000 m · 1 cm = 10 mm'});
+    return num(txt.replace('…','<b>?</b>'), ans, {sub:'1 m = 100 cm · 1 km = 1000 m · 1 cm = 10 mm', explain:`${txt.replace('…', ans)} : on change les grandes unités, puis on ajoute les petites.`});
   }
   if (t==='jump'){
     const from = level>=3 ? rnd(1, Math.floor(max*.4)) : 0; const d = rnd(2, Math.min(L(level,[9,9,12,20,30]), max-from)); const to = from+d;
-    return {prompt:`Regarde bien… Hugo a sauté de <b>combien de cm</b> ?`, sub:'Touche Hugo pour revoir le saut', kind:'num', answer:d, suffix:'cm', show:d+' cm', render(stage){ const cv = document.createElement('canvas'); cv.className='ruler'; stage.appendChild(cv); const play = () => hopAnim(cv, max, [], from, to, 1, null, () => drawRuler(cv, max, [], {pos:to, flag:from})); drawRuler(cv, max, [], {pos:from}); setTimeout(play, 600); cv.onclick = play; }};
+    return {prompt:`Regarde bien… Hugo a sauté de <b>combien de cm</b> ?`, sub:'Touche Hugo pour revoir le saut', kind:'num', answer:d, suffix:'cm', show:d+' cm', explain:`Hugo est parti de ${from} et arrivé à ${to} : ${to} − ${from} = ${d} cm.`, render(stage){ const cv = document.createElement('canvas'); cv.className='ruler'; stage.appendChild(cv); const play = () => hopAnim(cv, max, [], from, to, 1, null, () => drawRuler(cv, max, [], {pos:to, flag:from})); drawRuler(cv, max, [], {pos:from}); setTimeout(play, 600); cv.onclick = play; }};
   }
   const hops = L(level, [1, rnd(2,3), rnd(2,4), rnd(3,5), rnd(3,6)]); let d = rnd(2, L(level,[8,7,7,10,15])); const from = level>=3 ? rnd(0, Math.floor(max*.2)) : 0; while (from + hops*d > max) d--; const to = from + hops*d;
   const txt = hops===1 ? `Hugo part de <b>${from}</b> et saute de <b>${d} cm</b>.` : `Hugo part de <b>${from}</b> et fait <b>${hops} sauts</b> de <b>${d} cm</b>.`;
-  return {prompt:`${txt} Touche la règle là où il va atterrir !`, kind:'custom', answer:to, show:to+' cm', timeMult:1.5, render(stage, api){
+  return {prompt:`${txt} Touche la règle là où il va atterrir !`, kind:'custom', answer:to, show:to+' cm', explain:`${hops} saut${hops>1?'s':''} de ${d} cm = ${Array(hops).fill(d).join(' + ')} = ${hops*d} cm${from ? `, et ${from} + ${hops*d} = ${to}` : ''}.`, timeMult:1.5, render(stage, api){
     const cv = document.createElement('canvas'); cv.className='ruler'; stage.appendChild(cv); drawRuler(cv, max, [], {pos:from});
     const hint = document.createElement('p'); hint.className='sub'; hint.style.marginTop='6px'; hint.textContent = 'Touche un nombre sur la règle'; stage.appendChild(hint);
     cv.onclick = e => { if (api.done) return; api.done = true; const cm = clamp(cmFromClick(cv, max, e), 0, max); const ok = cm===to; hint.textContent = ok ? 'Hugo saute… et atterrit pile sur ton drapeau !' : `Tu as touché ${cm} cm, Hugo atterrit à ${to} cm`; hopAnim(cv, max, [], from, to, hops, cm, () => api.answer(ok, ok ? '' : `Hugo est arrivé à ${to} cm, pas à ${cm} cm`)); };
@@ -936,14 +942,14 @@ GAMES.longueurs = { intro:'Hugo le kangourou saute sur la grande règle. Mesure 
 /* ---------- Doubles et moitiés (Pandou, la Bibliothèque) ---------- */
 GAMES.doubles = { intro:'Dans la bibliothèque, Pandou voit tout en double… ou en moitié !', gen(level){
   const what = pick(['livres','bambous','étagères','marque-pages']);
-  if (level>=5 && Math.random()<.3){ const n = pick([rnd(1,25)*4]); return Math.random()<.5 ? num(`Pandou a ${n} ${what}. Le <b>quart</b> de ${n} ?`, n/4, {sub:'le quart = partager en 4'}) : num(`Le <b>quadruple</b> de ${n/4} ${what} ?`, n, {sub:'4 fois plus'}); }
-  if (level>=4 && Math.random()<.3){ const n = rnd(2,30); return num(`Pandou empile 3 fois ${n} ${what}. Le <b>triple</b> de ${n} ?`, n*3, {sub:`${n} + ${n} + ${n}`}); }
+  if (level>=5 && Math.random()<.3){ const n = pick([rnd(1,25)*4]); return Math.random()<.5 ? num(`Pandou a ${n} ${what}. Le <b>quart</b> de ${n} ?`, n/4, {sub:'le quart = partager en 4', explain:`Le quart de ${n} : ${n/4} + ${n/4} + ${n/4} + ${n/4} = ${n}, donc ${n/4}.`}) : num(`Le <b>quadruple</b> de ${n/4} ${what} ?`, n, {sub:'4 fois plus', explain:`Le quadruple de ${n/4} = ${n/4} × 4 = ${n}.`}); }
+  if (level>=4 && Math.random()<.3){ const n = rnd(2,30); return num(`Pandou empile 3 fois ${n} ${what}. Le <b>triple</b> de ${n} ?`, n*3, {sub:`${n} + ${n} + ${n}`, explain:`Le triple de ${n} = ${n} + ${n} + ${n} = ${n*3}.`}); }
   if (Math.random()<.5){
     const n = L(level, [rnd(1,10), pick([rnd(1,15),20,25,30,40,50]), pick([rnd(11,50),rnd(1,30)*2,100]), rnd(26,99), pick([rnd(100,250), rnd(51,99)*2])]);
-    return num(`Pandou a ${n} ${what} et son jumeau autant. Le <b>double</b> de ${n} ?`, n*2, {sub:`${n} + ${n}`});
+    return num(`Pandou a ${n} ${what} et son jumeau autant. Le <b>double</b> de ${n} ?`, n*2, {sub:`${n} + ${n}`, explain:`Le double de ${n}, c'est ${n} + ${n} = ${n*2}.`});
   }
   const n = L(level, [rnd(1,10)*2, pick([rnd(1,20)*2,50,100]), rnd(10,50)*2, rnd(25,100)*2, rnd(50,250)*2]);
-  return num(`Pandou partage ${n} ${what} en deux piles égales. La <b>moitié</b> de ${n} ?`, n/2, {sub:'la moitié = partager en 2 parts égales'});
+  return num(`Pandou partage ${n} ${what} en deux piles égales. La <b>moitié</b> de ${n} ?`, n/2, {sub:'la moitié = partager en 2 parts égales', explain:`La moitié de ${n} : ${n/2} + ${n/2} = ${n}, donc ${n/2}.`});
 }};
 
 /* ---------- Symétrie (Manchou, la Salle des miroirs) ---------- */
@@ -955,13 +961,13 @@ GAMES.symetrie = { intro:'Les miroirs de Manchou sont cassés. Complète le refl
   const expect = new Map([...src].map(([k,v]) => [mirror(k), v]));
   if (level>=2 && Math.random()<.3){
     const ok = Math.random()<.5; const shown = new Map([...src, ...expect]); if (!ok){ const arr = [...expect.keys()]; const rm = pick(arr); const v = shown.get(rm); shown.delete(rm); const [r,c] = rm.split(',').map(Number); shown.set(clamp(r+(horiz?0:1),0,rows-1)+','+clamp(c+(horiz?1:0),0,cols-1), v); }
-    return {prompt:`Cette figure est-elle <b>symétrique</b> ?`, kind:'custom', answer:ok, show:ok?'oui':'non', render(stage, api){
+    return {prompt:`Cette figure est-elle <b>symétrique</b> ?`, kind:'custom', answer:ok, show:ok?'oui':'non', explain: ok ? 'Chaque case a sa jumelle de l\'autre côté de la ligne, à la même distance : la figure est symétrique.' : 'Une case n\'a pas sa jumelle à la même distance de l\'autre côté de la ligne : ce n\'est pas symétrique.', render(stage, api){
       stage.innerHTML = `<div class="custom"><div class="sym" id="sym"></div><div class="opts" style="width:min(100%,360px)"><button class="opt" data-v="1">Oui</button><button class="opt" data-v="0">Non</button></div></div>`;
       buildSym(stage.querySelector('#sym'), cols, rows, horiz, shown, null);
       stage.querySelectorAll('.opt').forEach(b => b.onclick = () => { const v = b.dataset.v==='1'; b.classList.add(v===ok?'ok':'ko'); api.answer(v===ok); });
     }};
   }
-  return {prompt:`Complète le <b>reflet</b> dans le miroir de Manchou`, sub: twoColors ? 'Touche une case pour changer sa couleur, puis Vérifier' : 'Touche les cases, puis Vérifier', kind:'custom', answer:true, show:'le reflet exact', timeMult:3, render(stage, api){
+  return {prompt:`Complète le <b>reflet</b> dans le miroir de Manchou`, sub: twoColors ? 'Touche une case pour changer sa couleur, puis Vérifier' : 'Touche les cases, puis Vérifier', kind:'custom', answer:true, show:'le reflet exact', explain:'Dans un miroir, chaque case se retrouve de l\'autre côté de la ligne, à la même distance (les cases vertes).', timeMult:3, render(stage, api){
     stage.innerHTML = `<div class="custom"><div class="sym" id="sym"></div><div class="toolrow"><button class="tool go" id="check">✔ Vérifier</button></div></div>`;
     const sel = new Map(); const grid = stage.querySelector('#sym');
     buildSym(grid, cols, rows, horiz, src, (k, el) => { const cur = sel.get(k)||0; const next = twoColors ? (cur+1)%3 : (cur?0:1); if (next) sel.set(k, next); else sel.delete(k); el.classList.toggle('on', next===1); el.classList.toggle('on2', next===2); SFX.click(); });
@@ -988,11 +994,11 @@ function buildSym(grid, cols, rows, horiz, on, onTap){
 GAMES.complements = { intro:'Rose compte ses coussins. Combien en manque-t-il ?', gen(level){
   const what = pick(['coussins','peluches','étoiles au plafond','rubans']);
   let a, T;
-  if (level===1){ T = pick([10,10,20]); a = T===10 ? rnd(0,9) : rnd(10,19); return qcm(`Rose a ${a} ${what}, il en faut ${T}. ${a} + <b>?</b> = ${T}`, T-a, [T-a+1,T-a-1,T-a+2,T-a+10,a]); }
-  if (level===2){ T = pick([20,30,30]); a = rnd(T-19, T-1); return num(`Rose a ${a} ${what}, il en faut ${T}. ${a} + <b>?</b> = ${T}`, T-a); }
-  if (level===3){ a = rnd(11,98); while (a%10===0) a = rnd(11,98); T = Math.ceil(a/10)*10; return num(`${a} + <b>?</b> = ${T}`, T-a, {sub:'la dizaine juste au-dessus'}); }
-  if (level===4){ a = rnd(11,99); while (a%10===0) a = rnd(11,99); return num(`Rose a ${a} ${what}, il en faut 100. ${a} + <b>?</b> = 100`, 100-a, {sub:"d'abord la dizaine, puis le reste"}); }
-  a = rnd(101,899); while (a%100===0) a = rnd(101,899); T = Math.ceil(a/100)*100; return num(`${a} + <b>?</b> = ${T}`, T-a, {sub:'la centaine juste au-dessus'});
+  if (level===1){ T = pick([10,10,20]); a = T===10 ? rnd(0,9) : rnd(10,19); return qcm(`Rose a ${a} ${what}, il en faut ${T}. ${a} + <b>?</b> = ${T}`, T-a, [T-a+1,T-a-1,T-a+2,T-a+10,a], {explain:`De ${a}, compte jusqu'à ${T} : il manque ${T-a}. ${a} + ${T-a} = ${T}.`}); }
+  if (level===2){ T = pick([20,30,30]); a = rnd(T-19, T-1); return num(`Rose a ${a} ${what}, il en faut ${T}. ${a} + <b>?</b> = ${T}`, T-a, {explain:`De ${a}, compte jusqu'à ${T} : il manque ${T-a}. ${a} + ${T-a} = ${T}.`}); }
+  if (level===3){ a = rnd(11,98); while (a%10===0) a = rnd(11,98); T = Math.ceil(a/10)*10; return num(`${a} + <b>?</b> = ${T}`, T-a, {sub:'la dizaine juste au-dessus', explain:`${a} se termine par ${a%10} : il manque ${T-a} pour arriver à ${T}.`}); }
+  if (level===4){ a = rnd(11,99); while (a%10===0) a = rnd(11,99); return num(`Rose a ${a} ${what}, il en faut 100. ${a} + <b>?</b> = 100`, 100-a, {sub:"d'abord la dizaine, puis le reste", explain:`${a} + ${10-a%10} = ${a+10-a%10}, puis ${a+10-a%10} + ${90-(a-a%10)} = 100. En tout ${100-a}.`}); }
+  a = rnd(101,899); while (a%100===0) a = rnd(101,899); T = Math.ceil(a/100)*100; return num(`${a} + <b>?</b> = ${T}`, T-a, {sub:'la centaine juste au-dessus', explain:`${a} + ${T-a} = ${T} : monte d'abord à la dizaine, puis à la centaine.`});
 }};
 
 /* ---------- Monnaie (Orange, la Boutique) ---------- */
@@ -1005,7 +1011,8 @@ GAMES.monnaie = { intro:'Dans la boutique, Orange rend la monnaie. Donne les bon
   else if (level===4){ price = rnd(1,9)*100 + pick([10,20,30,40,50,60,70,80,90]); paid = 1000; coins = [10,20,50,100,200,500]; }
   else { price = rnd(11,98)*100 + pick([5,10,20,25,50,75,90]); paid = 10000; coins = [5,10,20,50,100,200,500,1000,2000,5000]; }
   const change = paid - price; const item = pick(SHOP_ITEMS);
-  return {prompt:`Ça coûte <b>${fmtEuro(price)}</b>. On te donne <b>${fmtEuro(paid)}</b>. Rends la monnaie !`, kind:'custom', answer:change, show:fmtEuro(change), timeMult:2.5, render(stage, api){
+  const plan = (() => { let rest = change; const parts = []; for (const c of coins.slice().sort((x,y)=>y-x)){ while (rest>=c){ parts.push(c<100 ? c+' c' : (c/100)+' €'); rest -= c; } } return parts.join(' + '); })();
+  return {prompt:`Ça coûte <b>${fmtEuro(price)}</b>. On te donne <b>${fmtEuro(paid)}</b>. Rends la monnaie !`, kind:'custom', answer:change, show:fmtEuro(change), explain:`${fmtEuro(paid)} − ${fmtEuro(price)} = ${fmtEuro(change)} : rends ${plan}.`, timeMult:2.5, render(stage, api){
     let tray = []; stage.innerHTML = `<div class="shop"><div class="item">${item}</div><div class="price">${fmtEuro(price)}</div>
       <div class="coins" id="coins"></div><div class="tray" id="tray"></div><div class="gauge" id="sum">Rendu : 0 €</div>
       <div class="toolrow"><button class="tool" id="undo">↩︎ Reprendre</button><button class="tool go" id="give">🤝 Donner</button></div></div>`;
@@ -1040,23 +1047,23 @@ GAMES.horloge = { intro:"Peso règle l'horloge de la tour. Quelle heure est-il ?
   const randT = () => [rnd(1,12), pick(mins)];
   if (t==='read'){
     const [h,m] = randT(); const cand = [[h,(m+30)%60],[(h%12)+1,m],[h===1?12:h-1,m],[h,(m+15)%60]].map(x=>fmtTime(x[0],x[1]));
-    return {prompt:`Quelle heure est-il à la tour de Peso ?`, kind:'qcm', answer:fmtTime(h,m), options:mkOptionsStr(fmtTime(h,m), cand), show:fmtTime(h,m), render(stage){ const d = document.createElement('div'); d.className='clocks'; const cv = document.createElement('canvas'); cv.className='single'; drawClock(cv,h,m,240); d.appendChild(cv); stage.appendChild(d); }};
+    return {prompt:`Quelle heure est-il à la tour de Peso ?`, kind:'qcm', answer:fmtTime(h,m), options:mkOptionsStr(fmtTime(h,m), cand), show:fmtTime(h,m), explain:`La petite aiguille montre les heures (${h}), la grande les minutes (${m===0 ? 'sur le 12 = pile' : m===30 ? 'sur le 6 = et demie' : m+' min, chaque chiffre vaut 5 min'}).`, render(stage){ const d = document.createElement('div'); d.className='clocks'; const cv = document.createElement('canvas'); cv.className='single'; drawClock(cv,h,m,240); d.appendChild(cv); stage.appendChild(d); }};
   }
   if (t==='pick'){
     const [h,m] = randT(); const alts = [[h,(m+30)%60],[(h%12)+1,m],[h===1?12:h-1,(m+30)%60]]; const items = shuffle([[h,m], ...alts.slice(0,2)]);
-    return {prompt:`Touche l'horloge qui montre <b>${fmtTime(h,m)}</b>`, kind:'custom', answer:fmtTime(h,m), show:fmtTime(h,m), render(stage, api){
+    return {prompt:`Touche l'horloge qui montre <b>${fmtTime(h,m)}</b>`, kind:'custom', answer:fmtTime(h,m), show:fmtTime(h,m), explain:`${fmtTime(h,m)} : la petite aiguille ${m ? 'entre ' + h + ' et ' + (h%12+1) : 'sur le ' + h}, la grande ${m===0 ? 'sur le 12' : m===30 ? 'sur le 6' : 'sur le ' + (m/5)}.`, render(stage, api){
       const d = document.createElement('div'); d.className='clocks'; items.forEach(([hh,mm]) => { const cv = document.createElement('canvas'); drawClock(cv,hh,mm,180); cv.onclick = () => { const ok = hh===h && mm===m; cv.style.outline = ok ? '5px solid #8de3c0' : '5px solid #ff7a5c'; api.answer(ok); }; d.appendChild(cv); }); stage.appendChild(d);
     }};
   }
-  if (t==='days'){ const i = rnd(0,6); const after = Math.random()<.6; const ans = DAYS[(i + (after?1:6))%7]; return {prompt:`Quel jour vient <b>${after?'après':'avant'}</b> ${DAYS[i]} ?`, kind:'qcm', answer:ans, options:mkOptionsStr(ans, shuffle(DAYS.filter(d=>d!==ans))), show:ans}; }
-  if (t==='months'){ const i = rnd(0,11); const after = Math.random()<.6; const ans = MONTHS[(i + (after?1:11))%12]; return {prompt:`Quel mois vient <b>${after?'après':'avant'}</b> ${MONTHS[i]} ?`, kind:'qcm', answer:ans, options:mkOptionsStr(ans, shuffle(MONTHS.filter(d=>d!==ans))), show:ans}; }
-  if (t==='units'){ const c = pick([['Combien de jours dans une semaine ?',7],['Combien de mois dans une année ?',12],['Combien de minutes dans une heure ?',60],["Combien d'heures dans une journée ?",24],['Combien de jours dans le mois de janvier ?',31],['Combien de secondes dans une minute ?',60],['Combien de minutes dans une demi-heure ?',30],["Combien de minutes dans un quart d'heure ?",15]]); return qcm(c[0], c[1], [7,12,24,30,31,60,10,15,100]); }
-  if (t==='pm'){ const h = rnd(13,23); const ans = h-12; return Math.random()<.5 ? qcm(`Il est ${h} h. Sur l'horloge de Peso, la petite aiguille montre le…`, ans, [ans+1,ans-1,h-10,ans+2]) : qcm(`Il est ${ans} h de l'après-midi. Sur une montre à chiffres, on lit…`, h, [h+1,h-1,ans,h+2], {show:h+' h'}); }
-  if (t==='durmin'){ const h = rnd(1,11), m = pick([0,10,15,20,30,40,45]), d = pick([5,10,15,20,25,30,45]); let mm = m+d, hh = h; if (mm>=60){ mm -= 60; hh++; } const ans = fmtTime(hh,mm); return {prompt:`Il est ${fmtTime(h,m)}. Le goûter dure <b>${d} minutes</b>. Il finit à ?`, kind:'qcm', answer:ans, options:mkOptionsStr(ans, [fmtTime(hh,(mm+5)%60), fmtTime(h,(m+d+10)%60), fmtTime(hh+1,mm), fmtTime(h,m)]), show:ans}; }
-  if (t==='between'){ const h = rnd(1,10), m1 = pick([0,15,30,45]); const d = pick([15,30,45,60,75,90]); let m2 = m1+d, h2 = h; while (m2>=60){ m2 -= 60; h2++; } const ans = d; return qcm(`De ${fmtTime(h,m1)} à ${fmtTime(h2,m2)}, combien de <b>minutes</b> passent ?`, ans, [d+15,d-15,d+30,60], {show:d+' min'}); }
+  if (t==='days'){ const i = rnd(0,6); const after = Math.random()<.6; const ans = DAYS[(i + (after?1:6))%7]; return {prompt:`Quel jour vient <b>${after?'après':'avant'}</b> ${DAYS[i]} ?`, kind:'qcm', answer:ans, options:mkOptionsStr(ans, shuffle(DAYS.filter(d=>d!==ans))), show:ans, explain:'Les jours : ' + DAYS.join(', ') + ', et on recommence.'}; }
+  if (t==='months'){ const i = rnd(0,11); const after = Math.random()<.6; const ans = MONTHS[(i + (after?1:11))%12]; return {prompt:`Quel mois vient <b>${after?'après':'avant'}</b> ${MONTHS[i]} ?`, kind:'qcm', answer:ans, options:mkOptionsStr(ans, shuffle(MONTHS.filter(d=>d!==ans))), show:ans, explain:'Les mois : ' + MONTHS.join(', ') + '.'}; }
+  if (t==='units'){ const c = pick([['Combien de jours dans une semaine ?',7],['Combien de mois dans une année ?',12],['Combien de minutes dans une heure ?',60],["Combien d'heures dans une journée ?",24],['Combien de jours dans le mois de janvier ?',31],['Combien de secondes dans une minute ?',60],['Combien de minutes dans une demi-heure ?',30],["Combien de minutes dans un quart d'heure ?",15]]); return qcm(c[0], c[1], [7,12,24,30,31,60,10,15,100], {explain:'1 semaine = 7 jours · 1 année = 12 mois · 1 jour = 24 h · 1 h = 60 min · 1 min = 60 s · une demi-heure = 30 min · un quart d\'heure = 15 min'}); }
+  if (t==='pm'){ const h = rnd(13,23); const ans = h-12; return Math.random()<.5 ? qcm(`Il est ${h} h. Sur l'horloge de Peso, la petite aiguille montre le…`, ans, [ans+1,ans-1,h-10,ans+2], {explain:`L'après-midi, on enlève 12 : ${h} − 12 = ${ans}.`}) : qcm(`Il est ${ans} h de l'après-midi. Sur une montre à chiffres, on lit…`, h, [h+1,h-1,ans,h+2], {show:h+' h', explain:`L'après-midi, on ajoute 12 : ${ans} + 12 = ${h}.`}); }
+  if (t==='durmin'){ const h = rnd(1,11), m = pick([0,10,15,20,30,40,45]), d = pick([5,10,15,20,25,30,45]); let mm = m+d, hh = h; if (mm>=60){ mm -= 60; hh++; } const ans = fmtTime(hh,mm); return {prompt:`Il est ${fmtTime(h,m)}. Le goûter dure <b>${d} minutes</b>. Il finit à ?`, kind:'qcm', answer:ans, options:mkOptionsStr(ans, [fmtTime(hh,(mm+5)%60), fmtTime(h,(m+d+10)%60), fmtTime(hh+1,mm), fmtTime(h,m)]), show:ans, explain:`${m} min + ${d} min = ${m+d} min${m+d>=60 ? ' = 1 h ' + (m+d-60) + ' min' : ''}, donc ${ans}.`}; }
+  if (t==='between'){ const h = rnd(1,10), m1 = pick([0,15,30,45]); const d = pick([15,30,45,60,75,90]); let m2 = m1+d, h2 = h; while (m2>=60){ m2 -= 60; h2++; } const ans = d; return qcm(`De ${fmtTime(h,m1)} à ${fmtTime(h2,m2)}, combien de <b>minutes</b> passent ?`, ans, [d+15,d-15,d+30,60], {show:d+' min', explain:`De ${fmtTime(h,m1)} à ${fmtTime(h2,m2)} : ${d>=60 ? '1 h = 60 min, plus ' + (d-60) + ' min' : 'compte de 15 en 15'}, soit ${d} min.`}); }
   const h = rnd(1,9), d = rnd(1, 12-h); const half = level===3 && Math.random()<.4;
-  if (half) return qcm(`Il est ${h} h. Le goûter dure <b>${d} h 30</b>. Il finit à ?`, fmtTime(h+d,30), [], {options:mkOptionsStr(fmtTime(h+d,30), [fmtTime(h+d,0),fmtTime(h+d+1,30),fmtTime(h+d+1,0)]), show:fmtTime(h+d,30)});
-  return qcm(`Il est ${h} h. Dans <b>${d} heure${d>1?'s':''}</b>, il sera ?`, fmtTime(h+d,0), [], {options:mkOptionsStr(fmtTime(h+d,0), [fmtTime(h+d+1,0),fmtTime(Math.max(1,h+d-1),0),fmtTime(h+d,30)]), show:fmtTime(h+d,0)});
+  if (half) return qcm(`Il est ${h} h. Le goûter dure <b>${d} h 30</b>. Il finit à ?`, fmtTime(h+d,30), [], {options:mkOptionsStr(fmtTime(h+d,30), [fmtTime(h+d,0),fmtTime(h+d+1,30),fmtTime(h+d+1,0)]), show:fmtTime(h+d,30), explain:`${h} h + ${d} h = ${h+d} h, et encore 30 min : ${fmtTime(h+d,30)}.`});
+  return qcm(`Il est ${h} h. Dans <b>${d} heure${d>1?'s':''}</b>, il sera ?`, fmtTime(h+d,0), [], {options:mkOptionsStr(fmtTime(h+d,0), [fmtTime(h+d+1,0),fmtTime(Math.max(1,h+d-1),0),fmtTime(h+d,30)]), show:fmtTime(h+d,0), explain:`${h} h + ${d} h = ${h+d} h.`});
 }};
 
 /* ---------- Tables (Sose puis Pengouins), pilotées par les acquis ---------- */
@@ -1068,7 +1075,7 @@ function tableQ(tables, form){
   if (form==='division' && b>1) q = qcm(`${ans} ÷ ${a} = <b>?</b>`, b, [b+1,b-1,b+2,a,ans-a]);
   else if (form==='inverted' && b>1) q = qcm(`<b>?</b> × ${a} = ${ans}`, b, [b+1,b-1,b+2,a,ans-a]);
   else q = Math.random()<.5 ? qcm(`${a} × ${b} = <b>?</b>`, ans, cand) : qcm(`${b} × ${a} = <b>?</b>`, ans, cand);
-  q.fact = [a,b]; return q;
+  q.fact = [a,b]; q.explain = b<=5 ? `${a} × ${b} = ${Array(b).fill(a).join(' + ')} = ${ans}.` : `${a} × ${b} : compte de ${a} en ${a} : ${Array.from({length:b},(_,i)=>a*(i+1)).join(', ')}.`; if (form==='division' && b>1) q.explain = `${ans} ÷ ${a} = ${b}, parce que ${a} × ${b} = ${ans}.`; return q;
 }
 const EASY_TABLES = [2,10,5,3,4];
 const tableForm = level => level<=2 ? 'direct' : level===3 ? (Math.random()<.4 ? 'inverted' : 'direct') : level===4 ? pick(['direct','inverted','division']) : pick(['inverted','division','division']);
@@ -1083,7 +1090,7 @@ GAMES.soustraction = { intro:"Dans l'aquarium, les bulles portent des nombres. T
   if (level===1){ a = rnd(3,10); b = rnd(1,a); } else if (level===2){ a = rnd(10,20); b = rnd(1,9); } else if (level===3){ a = rnd(20,99); b = rnd(2,9); }
   else if (level===4){ a = rnd(30,99); b = rnd(11, a-1); while ((a%10) < (b%10)) b = rnd(11, a-1); } else { a = rnd(30,98); while (a%10===9) a = rnd(30,98); b = rnd(11, a-1); while ((a%10) >= (b%10)) b = rnd(11, a-1); }
   const ans = a-b; const opts = mkOptions(ans, [ans+1,ans-1,ans+2,ans-2,ans+10,ans-10,a+b], 4);
-  return {prompt:`Lamantou avait ${a} bulles, ${b} ont éclaté. ${a} − ${b} = <b>?</b>`, kind:'custom', answer:ans, show:String(ans), render(stage, api){
+  return {prompt:`Lamantou avait ${a} bulles, ${b} ont éclaté. ${a} − ${b} = <b>?</b>`, kind:'custom', answer:ans, show:String(ans), explain: b<10 ? `De ${a}, j'enlève ${b} : ${a} − ${b} = ${ans}. (${ans} + ${b} = ${a})` : `${a} − ${b} : j'enlève d'abord ${b-(b%10)} (${a-(b-(b%10))}), puis ${b%10} : ${ans}.`, render(stage, api){
     stage.innerHTML = `<div class="aqua" id="aqua"></div>`; const aq = stage.querySelector('#aqua');
     opts.forEach((o, i) => { const bb = document.createElement('button'); bb.className='bubble'; bb.textContent = o; bb.style.left = (6 + i*23 + rnd(0,6)) + '%'; bb.style.top = (20 + rnd(0,45)) + '%'; bb.style.animationDelay = (-i*.9)+'s'; bb.onclick = () => { if (api.done) return; const ok = o===ans; if (ok){ bb.style.transform='scale(1.4)'; bb.style.opacity='0'; SFX.bubble(); } else bb.classList.add('ko'); api.answer(ok); }; aq.appendChild(bb); });
     for (let i=0;i<10;i++){ const s = document.createElement('i'); s.style.cssText = `position:absolute;left:${rnd(0,100)}%;top:${rnd(0,100)}%;width:${rnd(4,10)}px;height:${rnd(4,10)}px;border-radius:50%;background:rgba(255,255,255,.25);animation:float ${rnd(3,6)}s ease-in-out infinite`; aq.appendChild(s); }
@@ -1098,7 +1105,8 @@ GAMES.addition = { intro:'Chioune enterre ses os et les compte. Aide-le à addit
   else if (level===3){ a = rnd(20,90); b = rnd(2,9); c = Math.random()<.5 ? rnd(2,9) : 0; }
   else if (level===4){ a = rnd(11,88); b = rnd(11, 99-a); while ((a%10)+(b%10)>9) b = rnd(11, 99-a); }
   else { a = rnd(15,95); b = rnd(15,95); while ((a%10)+(b%10)<10) { a = rnd(15,95); b = rnd(15,95); } }
-  return num(c ? `Chioune a ${a} os, il en trouve ${b} puis ${c}. ${a} + ${b} + ${c} = <b>?</b>` : `Chioune a ${a} os, il en trouve ${b}. ${a} + ${b} = <b>?</b>`, a+b+c);
+  const ex = c ? `${a} + ${b} = ${a+b}, puis ${a+b} + ${c} = ${a+b+c}.` : b<10 ? `${a%10} + ${b} = ${a%10+b}, donc ${a} + ${b} = ${a+b}.` : `${a} + ${b} : d'abord les dizaines ${a-(a%10)} + ${b-(b%10)} = ${a-(a%10)+b-(b%10)}, puis les unités ${a%10} + ${b%10} = ${a%10+b%10} : ${a+b}.`;
+  return num(c ? `Chioune a ${a} os, il en trouve ${b} puis ${c}. ${a} + ${b} + ${c} = <b>?</b>` : `Chioune a ${a} os, il en trouve ${b}. ${a} + ${b} = <b>?</b>`, a+b+c, {explain:ex});
 }};
 
 /* ---------- Arrondi (Pegs, l'Observatoire) ---------- */
@@ -1107,7 +1115,8 @@ GAMES.arrondi = { intro:"À l'observatoire, Pegs range les étoiles près de la 
   const base = (level===3 || (level===5 && !hundreds)) ? pick([0,100,200,500]) : 0;
   let n = base + rnd(1, span-1); const bad = x => (x%step===0) || (level===1 && x%10===5) || (hundreds && x%100===50 && level<5); while (bad(n)) n = base + rnd(1, span-1);
   const ans = Math.round(n/step)*step;
-  return {prompt:`Pegs a compté <b>${n}</b> étoiles. Arrondis à la ${hundreds?'centaine':'dizaine'} la plus proche`, sub: level>=2 ? (hundreds ? 'à 50, on arrondit au-dessus' : 'à 5, on arrondit au-dessus') : '', kind:'custom', answer:ans, show:String(ans), render(stage, api){
+  const lo2 = Math.floor(n/step)*step, hi2 = lo2+step;
+  return {prompt:`Pegs a compté <b>${n}</b> étoiles. Arrondis à la ${hundreds?'centaine':'dizaine'} la plus proche`, sub: level>=2 ? (hundreds ? 'à 50, on arrondit au-dessus' : 'à 5, on arrondit au-dessus') : '', kind:'custom', answer:ans, show:String(ans), explain:`${n} est entre ${lo2} et ${hi2}, plus près de ${ans}${n%step===step/2 ? ' (juste au milieu, on arrondit au-dessus)' : ''}.`, render(stage, api){
     const lo = base, hi = base+span; const nl = document.createElement('div'); nl.className='numline'; nl.innerHTML = `<div class="ln"></div>`;
     for (let v=lo; v<=hi; v+=step){ const tk = document.createElement('div'); tk.className='tk'; tk.style.left = (4 + (v-lo)/(hi-lo)*92)+'%'; const b = document.createElement('button'); b.textContent = v; if (hundreds) b.style.fontSize='13px'; b.onclick = () => { if (api.done) return; const ok = v===ans; b.style.background = ok ? '#8de3c0' : '#c9452c'; api.answer(ok); }; tk.appendChild(b); nl.appendChild(tk); }
     const wrap = document.createElement('div'); wrap.className='custom'; wrap.appendChild(nl); stage.appendChild(wrap);
@@ -1122,16 +1131,17 @@ GAMES.complements100 = { intro:'Fanfan remplit le coffre au trésor. Combien man
   else if (level===3){ T = 100; a = rnd(11,99); while (a%10===0) a = rnd(11,99); }
   else if (level===4){ T = pick([200,500]); a = rnd(1, T/10-1)*10; }
   else { T = 1000; a = pick([rnd(1,99)*10, rnd(101,999)]); }
-  return num(`Le coffre de Fanfan contient ${a} pièces, il en faut ${T}. ${a} + <b>?</b> = ${T}`, T-a, {sub: level>=3 ? "d'abord la dizaine, puis le reste" : ''});
+  const up = a%10 ? 10-(a%10) : 0; const ex = up ? `${a} + ${up} = ${a+up}, puis ${a+up} + ${T-a-up} = ${T}. En tout ${T-a}.` : `De ${a}, compte de 10 en 10 jusqu'à ${T} : il manque ${T-a}.`;
+  return num(`Le coffre de Fanfan contient ${a} pièces, il en faut ${T}. ${a} + <b>?</b> = ${T}`, T-a, {sub: level>=3 ? "d'abord la dizaine, puis le reste" : '', explain:ex});
 }};
 
 /* ---------- Additions éclair (Minion, la Forge) ---------- */
 GAMES.rapides = { intro:'À la forge, Minion frappe vite. Réponds en un éclair !', gen(level){
-  if (level>=5 && Math.random()<.5){ const a = rnd(5,19), b = rnd(1,9); return qcm(`${a} − ${b}`, a-b, [a-b+1,a-b-1,a-b+2,a+b], {n:3}); }
-  if (level>=3 && Math.random()<(level===3?.5:.7)){ const a = rnd(1,9), b = rnd(1,9), c = rnd(1,9); return qcm(`${a} + ${b} + ${c}`, a+b+c, [a+b+c+1,a+b+c-1,a+b+c+2,a+b], {n:3}); }
-  if (level>=4 && Math.random()<.5){ const a = rnd(10,19), b = rnd(2,9); return qcm(`${a} + ${b}`, a+b, [a+b+1,a+b-1,a+b+2,a+b-2], {n:3}); }
+  if (level>=5 && Math.random()<.5){ const a = rnd(5,19), b = rnd(1,9); return qcm(`${a} − ${b}`, a-b, [a-b+1,a-b-1,a-b+2,a+b], {n:3, explain:`${a} − ${b} = ${a-b}.`}); }
+  if (level>=3 && Math.random()<(level===3?.5:.7)){ const a = rnd(1,9), b = rnd(1,9), c = rnd(1,9); return qcm(`${a} + ${b} + ${c}`, a+b+c, [a+b+c+1,a+b+c-1,a+b+c+2,a+b], {n:3, explain:`${a} + ${b} = ${a+b}, puis + ${c} = ${a+b+c}.`}); }
+  if (level>=4 && Math.random()<.5){ const a = rnd(10,19), b = rnd(2,9); return qcm(`${a} + ${b}`, a+b, [a+b+1,a+b-1,a+b+2,a+b-2], {n:3, explain:`${a} + ${b} = ${a+b}.`}); }
   const max = level===1 ? 10 : 18; let a = rnd(1,9), b = rnd(1,9); while (a+b>max){ a = rnd(1,9); b = rnd(1,9); }
-  return qcm(`${a} + ${b}`, a+b, [a+b+1,a+b-1,a+b+2,a+b-2,a*b], {n:3});
+  return qcm(`${a} + ${b}`, a+b, [a+b+1,a+b-1,a+b+2,a+b-2,a*b], {n:3, explain:`${a} + ${b} = ${a+b}${a+b>10 ? ' : ' + a + ' + ' + (10-a) + ' = 10, puis + ' + (b-(10-a)) : ''}.`});
 }};
 
 /* ---------- Boss (Vachou) : mélange de tout le château, au niveau déjà réussi dans chaque salle ---------- */
@@ -1144,7 +1154,7 @@ GAMES.boss = { intro:'Vachou se cache au sommet. Toutes les énigmes du château
 /* ---------- Révision : moitié multiplications à revoir, moitié notions en cours ---------- */
 GAMES.revision = { intro:'On revoit ce qui a posé problème.', gen(level, i, n){
   const wf = weakFacts(), wr = weakRooms();
-  if (wf.length && (Math.random()<.5 || !wr.length)){ const [a,b] = pick(wf); const ans = a*b; const q = qcm(`${a} × ${b} = <b>?</b>`, ans, [a*(b+1),a*(b-1),(a+1)*b,ans+2,ans-2]); q.fact = [a,b]; q.from = 'tables2'; return q; }
+  if (wf.length && (Math.random()<.5 || !wr.length)){ const [a,b] = pick(wf); const ans = a*b; const q = qcm(`${a} × ${b} = <b>?</b>`, ans, [a*(b+1),a*(b-1),(a+1)*b,ans+2,ans-2]); q.fact = [a,b]; q.from = 'tables2'; q.explain = b<=5 ? `${a} × ${b} = ${Array(b).fill(a).join(' + ')} = ${ans}.` : `${a} × ${b} : compte de ${a} en ${a} : ${Array.from({length:b},(_,i)=>a*(i+1)).join(', ')}.`; return q; }
   const pool = wr.length ? wr : ROOMS.filter(r => !r.boss && everDone(r.id)); const r = pool.length ? pick(pool) : ROOMS[0];
   const q = GAMES[r.id].gen(Math.min(MAX_LEVEL, playedLevel(r.id))); q.from = r.id; return q;
 }};
@@ -1176,7 +1186,11 @@ function nextQuestion(){
   if (run.i >= run.n){ return endRoom(true); }
   const room = ROOM[run.room];
   let q = run.retry.length && Math.random()<.5 && run.i>run.retry[0].at+1 ? run.retry.shift().q : null;
-  if (!q){ q = (room.boss || room.rev) ? GAMES[room.id].gen(run.gen, run.i, run.n) : GAMES[room.id].gen(run.gen); }
+  if (!q){
+    // jamais la même épreuve que les trois précédentes (Julien a eu trois fois la baignoire à 9 L)
+    run.seen = run.seen || []; for (let k=0;k<12;k++){ q = (room.boss || room.rev) ? GAMES[room.id].gen(run.gen, run.i, run.n) : GAMES[room.id].gen(run.gen); const sig = q.prompt + '|' + q.show; if (!run.seen.includes(sig)){ run.seen.push(sig); break; } if (k===11) run.seen.push(sig); }
+    if (run.seen.length>3) run.seen.shift();
+  }
   run.q = q; run.answered = false; renderProgress(); renderQuestion(q);
   const floor = FLOORS[room.floor]; const t = floor.timer ? floor.timer * (q.timeMult||1) * run.tfactor : 0; startTimer(t);
 }
@@ -1199,6 +1213,14 @@ function renderQuestion(q){
     window.onkeydown = e => { if (screen!=='room' || run.answered) return; if (/^[0-9]$/.test(e.key)){ if (val.length<4) val += e.key; } else if (e.key==='Backspace') val = val.slice(0,-1); else if (e.key==='Enter'){ if (val==='') return; const ok = Number(val)===q.answer; submit(ok); return; } else return; $('#val').textContent = val; };
   }
 }
+// Après une erreur : même épreuve, sans chrono, avec la consigne « refais-la », jusqu'à la bonne réponse
+function redoQuestion(){
+  if (!run) return; run.redo = true; run.answered = false; clearInterval(timerIv); $('#timer').hidden = true;
+  renderQuestion(run.q);
+  const q = run.q; const b = document.createElement('div'); b.className = 'redo';
+  b.innerHTML = `<div>🔁 Refais-la : la réponse est <b>${esc(q.show)}</b></div>` + (q.explain ? `<small>${fr(esc(q.explain))}</small>` : '') + (q.explainShape ? `<svg viewBox="0 0 120 120" class="exshape">${shapeSvg(q.explainShape, 60, 60, 36, '#ffd166', 0, '', q.explainShape)}</svg>` : '');
+  $('#stage').prepend(b);
+}
 function startTimer(sec){
   clearInterval(timerIv); const t = $('#timer'), bar = $('#timer-bar');
   if (!sec){ t.hidden = true; return; }
@@ -1212,21 +1234,30 @@ function startTimer(sec){
 function submit(ok, shown){
   if (!run || run.answered) return; run.answered = true; clearInterval(timerIv);
   const room = ROOM[run.room], floor = FLOORS[room.floor]; const q = run.q;
-  run.results[run.i] = ok; S.tot = S.tot || {r:0,w:0};
-  if (q.fact) recordFact(q.fact[0], q.fact[1], ok); recordSkill((room.boss || room.rev) ? (q.from || room.id) : room.id, ok); checkTables();
+  if (!run.redo) run.results[run.i] = ok; S.tot = S.tot || {r:0,w:0};
+  if (!run.redo){ if (q.fact) recordFact(q.fact[0], q.fact[1], ok); recordSkill((room.boss || room.rev) ? (q.from || room.id) : room.id, ok); checkTables(); }
   const stage = $('#stage'); const fb = document.createElement('div'); fb.className = 'feedback ' + (ok?'ok':'ko');
-  if (ok){
+  if (ok && run.redo){
+    fb.innerHTML = pick(['C\'est ça !','Voilà !','Oui, c\'est bien ça !']) + ' <small>On continue</small>'; SFX.ok();
+  } else if (ok){
     S.tot.r++; const gain = floor.billes + 3*(run.level-1) + (floor.timer ? Math.round(clamp((run.tlen-(Date.now()-run.t0))/run.tlen,0,1)*5) : 0);
     run.billes += gain; S.billes += gain; $('#room-billes').textContent = run.billes;
     fb.innerHTML = pick(['Bravo !','Super !','Oui !','Génial !','Exact !','Trop fort !']) + ` <small>+${gain} billes</small>`; SFX.ok(); setTimeout(SFX.bille, 150); sparkle($('#room-billes'), '✨');
+  } else if (run.redo){
+    // deuxième erreur sur la même épreuve : on remontre la réponse et on recommence, sans nouvelle pénalité
+    SFX.ko(); fb.innerHTML = fr(shown || ('Regarde bien : la réponse est ' + q.show)) + ' <small>Essaie encore</small>';
+    stage.appendChild(fb); setTimeout(() => redoQuestion(), 2000); return;
   } else {
     S.tot.w++; run.errors++; run.hearts--; renderHearts(); SFX.ko(); setTimeout(SFX.lose, 250);
     const loss = Math.min(S.billes, Math.ceil(floor.billes/2)); S.billes -= loss; run.billes -= loss; $('#room-billes').textContent = run.billes;
-    fb.innerHTML = fr(shown || ('La réponse était ' + q.show)) + ` <small>${loss ? '−'+loss+' billes · ' : ''}On la reverra tout à l\'heure</small>`;
+    fb.innerHTML = fr(shown || ('La réponse était ' + q.show)) + ` <small>${loss ? '−'+loss+' billes · ' : ''}Refais-la pour continuer</small>`;
     if (run.retry.length<3) run.retry.push({q, at:run.i});
+    stage.appendChild(fb); renderProgress(); save();
+    if (run.hearts<=0){ setTimeout(() => endRoom(false), 1500); return; }
+    setTimeout(() => redoQuestion(), 2200); return;
   }
   stage.appendChild(fb); renderProgress(); save();
-  if (!ok && run.hearts<=0){ setTimeout(() => endRoom(false), 1500); return; }
+  if (run.redo){ run.redo = false; }
   run.i++;
   setTimeout(() => maybeCelebrate(nextQuestion), ok ? 900 : 2200);
 }
@@ -1272,50 +1303,88 @@ function revealed(f){
   L.rooms.forEach(r => { if (isDone(r.id) || roomUnlocked(r)) set.add(r.id); }); // un étage ouvert est entièrement dévoilé
   return set;
 }
+/* ---------- Dessin de la carte : chaque salle est une fenêtre sur son décor, couloirs pavés avec tapis et torches ---------- */
+let cobble = null; const SIL = {};
+function cobbleTex(){
+  if (cobble) return cobble; const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
+  g.fillStyle = '#2b2442'; g.fillRect(0,0,64,64);
+  for (let y=0;y<4;y++) for (let x=0;x<4;x++){ const sh = .8+hash(x*5+y,y*3+x)*.35; g.fillStyle = `rgb(${Math.round(96*sh)},${Math.round(84*sh)},${Math.round(130*sh)})`; g.fillRect(x*16+1, y*16+1, 14, 14); g.fillStyle = 'rgba(255,255,255,.14)'; g.fillRect(x*16+1, y*16+1, 14, 2); g.fillRect(x*16+1, y*16+1, 2, 14); g.fillStyle = 'rgba(0,0,0,.3)'; g.fillRect(x*16+1, y*16+13, 14, 2); g.fillRect(x*16+13, y*16+1, 2, 14); }
+  cobble = c; return c;
+}
+function silhouette(sp, key){ if (SIL[key]) return SIL[key]; const c = document.createElement('canvas'); c.width = sp.width; c.height = sp.height; const g = c.getContext('2d'); g.drawImage(sp,0,0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#0a0818'; g.fillRect(0,0,c.width,c.height); SIL[key] = c; return c; }
+function roundRect(g,x,y,w,h,r){ g.beginPath(); g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r); g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath(); }
+function torch(g,x,y,t){ g.fillStyle='#5a3a1a'; g.fillRect(x-2,y+2,4,9); const fl = 3+Math.sin(t/120)*1.4; const gr = g.createRadialGradient(x,y,1,x,y,30); gr.addColorStop(0,'rgba(255,190,80,.5)'); gr.addColorStop(1,'rgba(255,190,80,0)'); g.fillStyle=gr; g.fillRect(x-30,y-30,60,60); g.fillStyle='#ff9a3c'; g.beginPath(); g.arc(x,y,fl,0,Math.PI*2); g.fill(); g.fillStyle='#fff0a0'; g.beginPath(); g.arc(x,y,fl*.5,0,Math.PI*2); g.fill(); }
+// Badge « Niveau N » avec cinq points, bien visible en bas à droite de chaque salle
+function levelBadge(g, r, px, py, pw, ph, done){
+  const lvl = roomLevel(r.id); const bw = 52, bh = 20, bx = px+12, by = py+ph-bh-12;
+  for (let i=0;i<MAX_LEVEL;i++){ g.fillStyle = i < lvl ? '#ffd166' : 'rgba(255,255,255,.25)'; g.fillRect(bx+2+i*10, by-9, 7, 5); }
+  g.fillStyle = done ? '#ffd166' : 'rgba(10,8,25,.85)'; roundRect(g, bx, by, bw, bh, 7); g.fill(); g.strokeStyle = done ? '#8a6a1c' : 'rgba(255,209,102,.6)'; g.lineWidth = 2; g.stroke();
+  g.font = 'bold 12px Fredoka, Nunito, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = done ? '#3a2a05' : '#ffd166'; g.fillText('Niv. ' + lvl, bx+bw/2, by+bh/2+1);
+  g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+}
 function drawMap(){
   const cv = mapCv; const W = MW*TILE, H = MH*TILE; cv.width = W; cv.height = H; const g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
-  const f = mapFloor, L = floorLayout(f), rev = revealed(f);
-  // fond roche
-  for (let y=0;y<MH;y++) for (let x=0;x<MW;x++){ g.fillStyle = hash(x,y)<.5 ? '#141127' : '#19152f'; g.fillRect(x*TILE,y*TILE,TILE,TILE); }
-  const floorTile = (x,y,c1,c2) => { g.fillStyle = (x+y)%2 ? c1 : c2; g.fillRect(x*TILE,y*TILE,TILE,TILE); g.fillStyle='rgba(0,0,0,.08)'; g.fillRect(x*TILE+TILE-3,y*TILE,3,TILE); g.fillRect(x*TILE,y*TILE+TILE-3,TILE,3); };
-  const drawRect = (rc, c1, c2, wall) => { const [x,y,w,h] = rc; for (let yy=y;yy<y+h;yy++) for (let xx=x;xx<x+w;xx++) floorTile(xx,yy,c1,c2); g.strokeStyle = wall; g.lineWidth = 6; g.strokeRect(x*TILE+3, y*TILE+3, w*TILE-6, h*TILE-6); g.fillStyle='rgba(255,255,255,.12)'; g.fillRect(x*TILE+6, y*TILE+6, w*TILE-12, 5); };
-  // couloirs (révélés dès que l'étage est accessible)
-  const anyRev = rev.size>0;
-  if (anyRev){ L.corr.forEach(c => drawRect(c, '#4a4068', '#3f3660', '#2a2340')); }
-  // salles
+  const f = mapFloor, L = floorLayout(f); const now = Date.now();
+  // roche sombre
+  g.fillStyle = '#0f0c20'; g.fillRect(0,0,W,H);
+  for (let y=0;y<MH;y++) for (let x=0;x<MW;x++){ const v = hash(x,y); g.fillStyle = `rgba(70,58,110,${.08+v*.14})`; g.fillRect(x*TILE+3, y*TILE+3, TILE-6, TILE-6); }
+  const pat = g.createPattern(cobbleTex(), 'repeat');
+  // couloirs : pavés, tapis, murs, torches
+  L.corr.forEach(([x,y,w,h]) => {
+    g.fillStyle = pat; g.fillRect(x*TILE, y*TILE, w*TILE, h*TILE);
+    const horiz = w>=h; g.fillStyle = '#7d2538';
+    if (horiz) g.fillRect(x*TILE, (y+h/2)*TILE-11, w*TILE, 22); else g.fillRect((x+w/2)*TILE-11, y*TILE, 22, h*TILE);
+    g.fillStyle = '#e0b84a'; if (horiz){ g.fillRect(x*TILE,(y+h/2)*TILE-11,w*TILE,2); g.fillRect(x*TILE,(y+h/2)*TILE+9,w*TILE,2); } else { g.fillRect((x+w/2)*TILE-11,y*TILE,2,h*TILE); g.fillRect((x+w/2)*TILE+9,y*TILE,2,h*TILE); }
+    g.strokeStyle = '#1a1530'; g.lineWidth = 5; g.strokeRect(x*TILE+2, y*TILE+2, w*TILE-4, h*TILE-4);
+    g.strokeStyle = 'rgba(255,255,255,.08)'; g.lineWidth = 2; g.strokeRect(x*TILE+6, y*TILE+6, w*TILE-12, h*TILE-12);
+    if (horiz) for (let i=2;i<w;i+=4) torch(g, (x+i)*TILE, y*TILE+8, now+i*300);
+  });
+  // entrée
+  if (f<3){ g.fillStyle = pat; g.fillRect(9*TILE, 11*TILE, 2*TILE, TILE); g.fillStyle='#1a1530'; g.fillRect(9*TILE+6, 11*TILE+8, 2*TILE-12, TILE-8); g.fillStyle='#7a4a1a'; roundRect(g, 9*TILE+10, 11*TILE+10, 2*TILE-20, TILE, 12); g.fill(); g.fillStyle='#ffd166'; g.fillRect(10*TILE-2, 11*TILE+20, 4, 4); g.font='bold 12px Nunito,sans-serif'; g.fillStyle='#fff'; g.textAlign='center'; g.fillText(f===0?'Entrée':'Escalier', 10*TILE, 11*TILE+5); }
+  // salles : fenêtre sur le décor
   L.rooms.forEach(r => {
-    const done = isDone(r.id), open = roomUnlocked(r), vis = rev.has(r.id);
-    const [x,y,w,h] = r.rect;
-    if (!vis) return;
-    const c1 = done ? '#6b5a8a' : open ? '#5a4a7a' : '#3a3250', c2 = done ? '#5f4f7e' : open ? '#4f4070' : '#332c48';
-    drawRect(r.rect, c1, c2, r.acc);
-    // meubles symboliques par salle (petits pixels colorés)
-    g.fillStyle = r.acc; g.globalAlpha = .55; for (let i=0;i<3;i++){ const fx = x+1+Math.floor(hash(i,x)*(w-2)), fy = y+1+Math.floor(hash(x,i)*(h-2)); g.fillRect(fx*TILE+8, fy*TILE+8, 16, 16); } g.globalAlpha = 1;
-    // porte
-    const [dx,dy] = r.door; const inside = dy>=y && dy<y+h; const doorY = inside ? (dy+1)*TILE-10 : dy*TILE+TILE-8; g.fillStyle = '#7a4a1a'; g.fillRect(dx*TILE+6, doorY, TILE-12, 14); g.fillStyle = '#ffd166'; g.fillRect(dx*TILE+TILE-12, doorY+5, 3, 3); if (!inside){ g.fillStyle = '#3f3660'; g.fillRect(dx*TILE+4, dy*TILE+2, TILE-8, TILE-10); }
-    // nom + doudou
-    g.font = 'bold 13px Fredoka, Nunito, sans-serif'; g.fillStyle = '#fff'; g.textAlign = 'center'; g.fillText(r.name, (x+w/2)*TILE, y*TILE+22);
-    const sp = SPR[r.dd]; const cx = (x+w/2)*TILE, cy = (y+h/2)*TILE+6;
-    if (sp && sp.complete){ if (done){ g.drawImage(sp, cx-28, cy-24, 56, 56); } else { g.globalAlpha = .35; g.filter = 'brightness(0)'; g.drawImage(sp, cx-28, cy-24, 56, 56); g.filter = 'none'; g.globalAlpha = 1; g.font='bold 22px Fredoka, sans-serif'; g.fillStyle='#ffd166'; g.fillText('?', cx, cy+10); } }
-    if (done){ g.font='14px sans-serif'; g.fillStyle='#ffe066'; const st = roomState(r.id); g.fillText('⭐'.repeat(Math.min(3, st.perfect)) || '✔', (x+w/2)*TILE, (y+h)*TILE-10); }
-    if (open && !done){ const t = (Date.now()/400)%2; g.strokeStyle = `rgba(255,209,102,${.5+.4*Math.sin(t*Math.PI)})`; g.lineWidth = 4; g.strokeRect(x*TILE+1, y*TILE+1, w*TILE-2, h*TILE-2); g.font='22px sans-serif'; g.fillText('✨', (x+w/2)*TILE+40, y*TILE+26); }
+    const [x,y,w,h] = r.rect; const px = x*TILE, py = y*TILE, pw = w*TILE, ph = h*TILE; const done = isDone(r.id), open = roomUnlocked(r); const bg = SPR['bg_'+r.id];
+    g.save(); g.beginPath(); g.rect(px+5, py+5, pw-10, ph-10); g.clip();
+    if (bg && bg.complete){ const sc = Math.max((pw-10)/bg.width, (ph-10)/bg.height); const dw = bg.width*sc, dh = bg.height*sc; g.drawImage(bg, px+5+((pw-10)-dw)/2, py+5+((ph-10)-dh)/2, dw, dh); }
+    else { g.fillStyle = r.bg; g.fillRect(px,py,pw,ph); }
+    if (!done) { g.fillStyle = 'rgba(8,6,20,.5)'; g.fillRect(px,py,pw,ph); }
+    if (!open) { g.fillStyle = 'rgba(8,6,20,.75)'; g.fillRect(px,py,pw,ph); }
+    g.restore();
+    g.strokeStyle = '#1a1530'; g.lineWidth = 10; g.strokeRect(px+5, py+5, pw-10, ph-10);
+    g.strokeStyle = done ? r.acc : 'rgba(255,255,255,.35)'; g.lineWidth = 3; g.strokeRect(px+5, py+5, pw-10, ph-10);
+    if (open && !done){ const a = .45+.4*Math.sin(now/350); g.strokeStyle = `rgba(255,209,102,${a})`; g.lineWidth = 4; g.strokeRect(px+1, py+1, pw-2, ph-2); }
+    // ruban du nom
+    g.font = 'bold 13px Fredoka, Nunito, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; const tw = g.measureText(r.name).width + 18;
+    g.fillStyle = done ? r.acc : 'rgba(10,8,25,.8)'; roundRect(g, px+pw/2-tw/2, py+10, tw, 20, 7); g.fill(); g.fillStyle = done ? '#1a1030' : '#fff'; g.fillText(r.name, px+pw/2, py+20); g.textBaseline = 'alphabetic';
+    // doudou retrouvé, ou silhouette et point d'interrogation
+    const sp = SPR[r.dd]; const cx = px+pw/2, cy = py+ph/2+10;
+    if (done){ if (sp && sp.complete){ const bob = Math.sin(now/350 + x)*2; g.drawImage(sp, cx-28, cy-28+bob, 56, 56); }
+      const st = roomState(r.id); g.font='13px sans-serif'; g.fillStyle='#ffe066'; g.textAlign='right'; g.fillText('⭐'.repeat(Math.min(3, st.perfect)) || '✔', px+pw-14, py+ph-16); g.textAlign='center';
+      levelBadge(g, r, px, py, pw, ph, true); }
+    else { if (sp && sp.complete){ g.globalAlpha = .55; g.drawImage(silhouette(sp, r.dd), cx-28, cy-28, 56, 56); g.globalAlpha = 1; }
+      g.font='bold 26px Fredoka, sans-serif'; g.fillStyle='#ffd166'; g.shadowColor='#ffd166'; g.shadowBlur = 12; g.fillText('?', cx, cy+10); g.shadowBlur = 0;
+      if (open){ g.font='16px sans-serif'; g.fillText('✨', cx+34, cy-12+Math.sin(now/300)*3); }
+      levelBadge(g, r, px, py, pw, ph, false); }
+    // porte voûtée (dans la salle pour les salles du haut, sur sa case pour celles du bas)
+    const [dx,dy] = r.door; const inside = dy>=y && dy<y+h;
+    if (!inside){ g.fillStyle = pat; g.fillRect(dx*TILE+3, dy*TILE, TILE-6, TILE); g.strokeStyle='#1a1530'; g.lineWidth=4; g.strokeRect(dx*TILE+3, dy*TILE-2, TILE-6, TILE+4); }
+    const doorY = inside ? (dy+1)*TILE-16 : dy*TILE+TILE-14;
+    g.fillStyle = '#1a1530'; g.fillRect(dx*TILE+5, doorY-3, TILE-10, 19);
+    g.fillStyle = done ? '#a8742e' : '#6b4a1a'; roundRect(g, dx*TILE+8, doorY-1, TILE-16, 16, 7); g.fill(); g.fillStyle='#3a2410'; g.fillRect(dx*TILE+16, doorY-1, 1, 15); g.fillStyle='#ffd166'; g.fillRect(dx*TILE+TILE-13, doorY+6, 3, 3);
   });
   // escalier
-  if (L.stairs){ const [sx,sy] = L.stairs; const up = floorUnlocked(f+1); g.fillStyle = up ? '#ffd166' : '#3a3250'; for (let i=0;i<4;i++) g.fillRect(sx*TILE+4, sy*TILE+4+i*7, TILE-8-i*5, 5); if (up){ g.font='bold 12px Nunito,sans-serif'; g.fillStyle='#ffd166'; g.textAlign='center'; g.fillText('↑', sx*TILE+16, sy*TILE+54); } }
-  // entrée
-  if (f<3){ g.fillStyle='#7a4a1a'; g.fillRect(9*TILE+4, 11*TILE+10, 2*TILE-8, 18); g.font='bold 12px Nunito,sans-serif'; g.fillStyle='#fff'; g.textAlign='center'; g.fillText(f===0?'Entrée':'Escalier', 10*TILE, 11*TILE+4); }
-  // héroïne : là où elle marche (clavier, pavé ou placement automatique)
-  const heroSp = SPR['hero'+(hero.dir==='s'?'':'_'+hero.dir)] || SPR.hero;
-  const hx = hero.x*TILE+16, hy = hero.y*TILE+16;
-  if (heroSp && heroSp.complete){ const bob = Math.sin(Date.now()/300)*2; g.drawImage(heroSp, hx-24, hy-30+bob, 48, 48); }
-  // doudous libérés suivent l'héroïne (petite file)
+  if (L.stairs){ const [sx,sy] = L.stairs; const up = floorUnlocked(f+1); g.fillStyle = pat; g.fillRect(sx*TILE, sy*TILE, TILE, 2*TILE);
+    for (let i=0;i<5;i++){ g.fillStyle = up ? (i%2 ? '#e0b84a' : '#ffd166') : (i%2 ? '#3a3250' : '#48405f'); g.fillRect(sx*TILE+4+i*2, sy*TILE+6+i*10, TILE-8-i*4, 8); }
+    if (up){ const gr = g.createRadialGradient(sx*TILE+16, sy*TILE+30, 4, sx*TILE+16, sy*TILE+30, 40); gr.addColorStop(0,'rgba(255,220,120,.45)'); gr.addColorStop(1,'rgba(255,220,120,0)'); g.fillStyle = gr; g.fillRect(sx*TILE-24, sy*TILE-10, 80, 80); g.font='bold 14px Nunito,sans-serif'; g.fillStyle='#ffd166'; g.textAlign='center'; g.fillText('↑', sx*TILE+16, sy*TILE+64); }
+    g.strokeStyle='#1a1530'; g.lineWidth=4; g.strokeRect(sx*TILE+2, sy*TILE+2, TILE-4, 2*TILE-4); }
+  // héroïne avec le halo de sa lanterne, et les doudous qui la suivent
+  const heroSp = SPR['hero'+(hero.dir==='s'?'':'_'+hero.dir)] || SPR.hero; const hx = hero.x*TILE+16, hy = hero.y*TILE+16;
+  const halo = g.createRadialGradient(hx, hy, 6, hx, hy, 80); halo.addColorStop(0,'rgba(255,210,120,.32)'); halo.addColorStop(1,'rgba(255,210,120,0)'); g.fillStyle = halo; g.fillRect(hx-80, hy-80, 160, 160);
   const freed = ROOMS.filter(r => isDone(r.id)).slice(-4);
-  freed.forEach((r, i) => { const sp = SPR[r.dd]; if (sp && sp.complete){ g.drawImage(sp, hx+10+i*18, hy-10+Math.sin(Date.now()/300+i)*2, 26, 26); } });
-  // brouillard : voile + nuages sur les cases non révélées
-  for (let y=0;y<MH;y++) for (let x=0;x<MW;x++){
-    const inRev = L.rooms.some(r => rev.has(r.id) && x>=r.rect[0]-0 && x<r.rect[0]+r.rect[2] && y>=r.rect[1] && y<r.rect[1]+r.rect[3]) || (anyRev && L.corr.some(c => x>=c[0] && x<c[0]+c[2] && y>=c[1] && y<c[1]+c[3])) || (L.stairs && anyRev && x===L.stairs[0] && y===L.stairs[1]) || (f<3 && y===11 && (x===9||x===10)) || L.rooms.some(r => rev.has(r.id) && r.door[0]===x && r.door[1]===y);
-    if (!inRev){ g.fillStyle = `rgba(20,16,40,${.55+hash(x,y)*.3})`; g.fillRect(x*TILE,y*TILE,TILE,TILE); g.fillStyle = 'rgba(120,110,160,.12)'; g.beginPath(); g.arc(x*TILE+16+hash(y,x)*10, y*TILE+16, 12+hash(x,y)*8, 0, Math.PI*2); g.fill(); }
-  }
+  freed.forEach((r, i) => { const sp = SPR[r.dd]; if (sp && sp.complete){ g.drawImage(sp, hx+14+i*16, hy-8+Math.sin(now/300+i)*2, 24, 24); } });
+  if (heroSp && heroSp.complete){ const bob = Math.sin(now/300)*2; g.drawImage(heroSp, hx-26, hy-36+bob, 52, 52); }
+  // vignette
+  const vg = g.createRadialGradient(W/2,H/2,H*.45,W/2,H/2,H*1.05); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.55)'); g.fillStyle = vg; g.fillRect(0,0,W,H);
 }
 function heroStart(f){
   const L = floorLayout(f); const cur = L.rooms.find(r => !isDone(r.id) && roomUnlocked(r));

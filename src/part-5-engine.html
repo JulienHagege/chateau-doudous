@@ -25,7 +25,11 @@ function nextQuestion(){
   if (run.i >= run.n){ return endRoom(true); }
   const room = ROOM[run.room];
   let q = run.retry.length && Math.random()<.5 && run.i>run.retry[0].at+1 ? run.retry.shift().q : null;
-  if (!q){ q = (room.boss || room.rev) ? GAMES[room.id].gen(run.gen, run.i, run.n) : GAMES[room.id].gen(run.gen); }
+  if (!q){
+    // jamais la même épreuve que les trois précédentes (Julien a eu trois fois la baignoire à 9 L)
+    run.seen = run.seen || []; for (let k=0;k<12;k++){ q = (room.boss || room.rev) ? GAMES[room.id].gen(run.gen, run.i, run.n) : GAMES[room.id].gen(run.gen); const sig = q.prompt + '|' + q.show; if (!run.seen.includes(sig)){ run.seen.push(sig); break; } if (k===11) run.seen.push(sig); }
+    if (run.seen.length>3) run.seen.shift();
+  }
   run.q = q; run.answered = false; renderProgress(); renderQuestion(q);
   const floor = FLOORS[room.floor]; const t = floor.timer ? floor.timer * (q.timeMult||1) * run.tfactor : 0; startTimer(t);
 }
@@ -48,6 +52,14 @@ function renderQuestion(q){
     window.onkeydown = e => { if (screen!=='room' || run.answered) return; if (/^[0-9]$/.test(e.key)){ if (val.length<4) val += e.key; } else if (e.key==='Backspace') val = val.slice(0,-1); else if (e.key==='Enter'){ if (val==='') return; const ok = Number(val)===q.answer; submit(ok); return; } else return; $('#val').textContent = val; };
   }
 }
+// Après une erreur : même épreuve, sans chrono, avec la consigne « refais-la », jusqu'à la bonne réponse
+function redoQuestion(){
+  if (!run) return; run.redo = true; run.answered = false; clearInterval(timerIv); $('#timer').hidden = true;
+  renderQuestion(run.q);
+  const q = run.q; const b = document.createElement('div'); b.className = 'redo';
+  b.innerHTML = `<div>🔁 Refais-la : la réponse est <b>${esc(q.show)}</b></div>` + (q.explain ? `<small>${fr(esc(q.explain))}</small>` : '') + (q.explainShape ? `<svg viewBox="0 0 120 120" class="exshape">${shapeSvg(q.explainShape, 60, 60, 36, '#ffd166', 0, '', q.explainShape)}</svg>` : '');
+  $('#stage').prepend(b);
+}
 function startTimer(sec){
   clearInterval(timerIv); const t = $('#timer'), bar = $('#timer-bar');
   if (!sec){ t.hidden = true; return; }
@@ -61,21 +73,30 @@ function startTimer(sec){
 function submit(ok, shown){
   if (!run || run.answered) return; run.answered = true; clearInterval(timerIv);
   const room = ROOM[run.room], floor = FLOORS[room.floor]; const q = run.q;
-  run.results[run.i] = ok; S.tot = S.tot || {r:0,w:0};
-  if (q.fact) recordFact(q.fact[0], q.fact[1], ok); recordSkill((room.boss || room.rev) ? (q.from || room.id) : room.id, ok); checkTables();
+  if (!run.redo) run.results[run.i] = ok; S.tot = S.tot || {r:0,w:0};
+  if (!run.redo){ if (q.fact) recordFact(q.fact[0], q.fact[1], ok); recordSkill((room.boss || room.rev) ? (q.from || room.id) : room.id, ok); checkTables(); }
   const stage = $('#stage'); const fb = document.createElement('div'); fb.className = 'feedback ' + (ok?'ok':'ko');
-  if (ok){
+  if (ok && run.redo){
+    fb.innerHTML = pick(['C\'est ça !','Voilà !','Oui, c\'est bien ça !']) + ' <small>On continue</small>'; SFX.ok();
+  } else if (ok){
     S.tot.r++; const gain = floor.billes + 3*(run.level-1) + (floor.timer ? Math.round(clamp((run.tlen-(Date.now()-run.t0))/run.tlen,0,1)*5) : 0);
     run.billes += gain; S.billes += gain; $('#room-billes').textContent = run.billes;
     fb.innerHTML = pick(['Bravo !','Super !','Oui !','Génial !','Exact !','Trop fort !']) + ` <small>+${gain} billes</small>`; SFX.ok(); setTimeout(SFX.bille, 150); sparkle($('#room-billes'), '✨');
+  } else if (run.redo){
+    // deuxième erreur sur la même épreuve : on remontre la réponse et on recommence, sans nouvelle pénalité
+    SFX.ko(); fb.innerHTML = fr(shown || ('Regarde bien : la réponse est ' + q.show)) + ' <small>Essaie encore</small>';
+    stage.appendChild(fb); setTimeout(() => redoQuestion(), 2000); return;
   } else {
     S.tot.w++; run.errors++; run.hearts--; renderHearts(); SFX.ko(); setTimeout(SFX.lose, 250);
     const loss = Math.min(S.billes, Math.ceil(floor.billes/2)); S.billes -= loss; run.billes -= loss; $('#room-billes').textContent = run.billes;
-    fb.innerHTML = fr(shown || ('La réponse était ' + q.show)) + ` <small>${loss ? '−'+loss+' billes · ' : ''}On la reverra tout à l\'heure</small>`;
+    fb.innerHTML = fr(shown || ('La réponse était ' + q.show)) + ` <small>${loss ? '−'+loss+' billes · ' : ''}Refais-la pour continuer</small>`;
     if (run.retry.length<3) run.retry.push({q, at:run.i});
+    stage.appendChild(fb); renderProgress(); save();
+    if (run.hearts<=0){ setTimeout(() => endRoom(false), 1500); return; }
+    setTimeout(() => redoQuestion(), 2200); return;
   }
   stage.appendChild(fb); renderProgress(); save();
-  if (!ok && run.hearts<=0){ setTimeout(() => endRoom(false), 1500); return; }
+  if (run.redo){ run.redo = false; }
   run.i++;
   setTimeout(() => maybeCelebrate(nextQuestion), ok ? 900 : 2200);
 }
@@ -121,50 +142,88 @@ function revealed(f){
   L.rooms.forEach(r => { if (isDone(r.id) || roomUnlocked(r)) set.add(r.id); }); // un étage ouvert est entièrement dévoilé
   return set;
 }
+/* ---------- Dessin de la carte : chaque salle est une fenêtre sur son décor, couloirs pavés avec tapis et torches ---------- */
+let cobble = null; const SIL = {};
+function cobbleTex(){
+  if (cobble) return cobble; const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
+  g.fillStyle = '#2b2442'; g.fillRect(0,0,64,64);
+  for (let y=0;y<4;y++) for (let x=0;x<4;x++){ const sh = .8+hash(x*5+y,y*3+x)*.35; g.fillStyle = `rgb(${Math.round(96*sh)},${Math.round(84*sh)},${Math.round(130*sh)})`; g.fillRect(x*16+1, y*16+1, 14, 14); g.fillStyle = 'rgba(255,255,255,.14)'; g.fillRect(x*16+1, y*16+1, 14, 2); g.fillRect(x*16+1, y*16+1, 2, 14); g.fillStyle = 'rgba(0,0,0,.3)'; g.fillRect(x*16+1, y*16+13, 14, 2); g.fillRect(x*16+13, y*16+1, 2, 14); }
+  cobble = c; return c;
+}
+function silhouette(sp, key){ if (SIL[key]) return SIL[key]; const c = document.createElement('canvas'); c.width = sp.width; c.height = sp.height; const g = c.getContext('2d'); g.drawImage(sp,0,0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#0a0818'; g.fillRect(0,0,c.width,c.height); SIL[key] = c; return c; }
+function roundRect(g,x,y,w,h,r){ g.beginPath(); g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r); g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath(); }
+function torch(g,x,y,t){ g.fillStyle='#5a3a1a'; g.fillRect(x-2,y+2,4,9); const fl = 3+Math.sin(t/120)*1.4; const gr = g.createRadialGradient(x,y,1,x,y,30); gr.addColorStop(0,'rgba(255,190,80,.5)'); gr.addColorStop(1,'rgba(255,190,80,0)'); g.fillStyle=gr; g.fillRect(x-30,y-30,60,60); g.fillStyle='#ff9a3c'; g.beginPath(); g.arc(x,y,fl,0,Math.PI*2); g.fill(); g.fillStyle='#fff0a0'; g.beginPath(); g.arc(x,y,fl*.5,0,Math.PI*2); g.fill(); }
+// Badge « Niveau N » avec cinq points, bien visible en bas à droite de chaque salle
+function levelBadge(g, r, px, py, pw, ph, done){
+  const lvl = roomLevel(r.id); const bw = 52, bh = 20, bx = px+12, by = py+ph-bh-12;
+  for (let i=0;i<MAX_LEVEL;i++){ g.fillStyle = i < lvl ? '#ffd166' : 'rgba(255,255,255,.25)'; g.fillRect(bx+2+i*10, by-9, 7, 5); }
+  g.fillStyle = done ? '#ffd166' : 'rgba(10,8,25,.85)'; roundRect(g, bx, by, bw, bh, 7); g.fill(); g.strokeStyle = done ? '#8a6a1c' : 'rgba(255,209,102,.6)'; g.lineWidth = 2; g.stroke();
+  g.font = 'bold 12px Fredoka, Nunito, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = done ? '#3a2a05' : '#ffd166'; g.fillText('Niv. ' + lvl, bx+bw/2, by+bh/2+1);
+  g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+}
 function drawMap(){
   const cv = mapCv; const W = MW*TILE, H = MH*TILE; cv.width = W; cv.height = H; const g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
-  const f = mapFloor, L = floorLayout(f), rev = revealed(f);
-  // fond roche
-  for (let y=0;y<MH;y++) for (let x=0;x<MW;x++){ g.fillStyle = hash(x,y)<.5 ? '#141127' : '#19152f'; g.fillRect(x*TILE,y*TILE,TILE,TILE); }
-  const floorTile = (x,y,c1,c2) => { g.fillStyle = (x+y)%2 ? c1 : c2; g.fillRect(x*TILE,y*TILE,TILE,TILE); g.fillStyle='rgba(0,0,0,.08)'; g.fillRect(x*TILE+TILE-3,y*TILE,3,TILE); g.fillRect(x*TILE,y*TILE+TILE-3,TILE,3); };
-  const drawRect = (rc, c1, c2, wall) => { const [x,y,w,h] = rc; for (let yy=y;yy<y+h;yy++) for (let xx=x;xx<x+w;xx++) floorTile(xx,yy,c1,c2); g.strokeStyle = wall; g.lineWidth = 6; g.strokeRect(x*TILE+3, y*TILE+3, w*TILE-6, h*TILE-6); g.fillStyle='rgba(255,255,255,.12)'; g.fillRect(x*TILE+6, y*TILE+6, w*TILE-12, 5); };
-  // couloirs (révélés dès que l'étage est accessible)
-  const anyRev = rev.size>0;
-  if (anyRev){ L.corr.forEach(c => drawRect(c, '#4a4068', '#3f3660', '#2a2340')); }
-  // salles
+  const f = mapFloor, L = floorLayout(f); const now = Date.now();
+  // roche sombre
+  g.fillStyle = '#0f0c20'; g.fillRect(0,0,W,H);
+  for (let y=0;y<MH;y++) for (let x=0;x<MW;x++){ const v = hash(x,y); g.fillStyle = `rgba(70,58,110,${.08+v*.14})`; g.fillRect(x*TILE+3, y*TILE+3, TILE-6, TILE-6); }
+  const pat = g.createPattern(cobbleTex(), 'repeat');
+  // couloirs : pavés, tapis, murs, torches
+  L.corr.forEach(([x,y,w,h]) => {
+    g.fillStyle = pat; g.fillRect(x*TILE, y*TILE, w*TILE, h*TILE);
+    const horiz = w>=h; g.fillStyle = '#7d2538';
+    if (horiz) g.fillRect(x*TILE, (y+h/2)*TILE-11, w*TILE, 22); else g.fillRect((x+w/2)*TILE-11, y*TILE, 22, h*TILE);
+    g.fillStyle = '#e0b84a'; if (horiz){ g.fillRect(x*TILE,(y+h/2)*TILE-11,w*TILE,2); g.fillRect(x*TILE,(y+h/2)*TILE+9,w*TILE,2); } else { g.fillRect((x+w/2)*TILE-11,y*TILE,2,h*TILE); g.fillRect((x+w/2)*TILE+9,y*TILE,2,h*TILE); }
+    g.strokeStyle = '#1a1530'; g.lineWidth = 5; g.strokeRect(x*TILE+2, y*TILE+2, w*TILE-4, h*TILE-4);
+    g.strokeStyle = 'rgba(255,255,255,.08)'; g.lineWidth = 2; g.strokeRect(x*TILE+6, y*TILE+6, w*TILE-12, h*TILE-12);
+    if (horiz) for (let i=2;i<w;i+=4) torch(g, (x+i)*TILE, y*TILE+8, now+i*300);
+  });
+  // entrée
+  if (f<3){ g.fillStyle = pat; g.fillRect(9*TILE, 11*TILE, 2*TILE, TILE); g.fillStyle='#1a1530'; g.fillRect(9*TILE+6, 11*TILE+8, 2*TILE-12, TILE-8); g.fillStyle='#7a4a1a'; roundRect(g, 9*TILE+10, 11*TILE+10, 2*TILE-20, TILE, 12); g.fill(); g.fillStyle='#ffd166'; g.fillRect(10*TILE-2, 11*TILE+20, 4, 4); g.font='bold 12px Nunito,sans-serif'; g.fillStyle='#fff'; g.textAlign='center'; g.fillText(f===0?'Entrée':'Escalier', 10*TILE, 11*TILE+5); }
+  // salles : fenêtre sur le décor
   L.rooms.forEach(r => {
-    const done = isDone(r.id), open = roomUnlocked(r), vis = rev.has(r.id);
-    const [x,y,w,h] = r.rect;
-    if (!vis) return;
-    const c1 = done ? '#6b5a8a' : open ? '#5a4a7a' : '#3a3250', c2 = done ? '#5f4f7e' : open ? '#4f4070' : '#332c48';
-    drawRect(r.rect, c1, c2, r.acc);
-    // meubles symboliques par salle (petits pixels colorés)
-    g.fillStyle = r.acc; g.globalAlpha = .55; for (let i=0;i<3;i++){ const fx = x+1+Math.floor(hash(i,x)*(w-2)), fy = y+1+Math.floor(hash(x,i)*(h-2)); g.fillRect(fx*TILE+8, fy*TILE+8, 16, 16); } g.globalAlpha = 1;
-    // porte
-    const [dx,dy] = r.door; const inside = dy>=y && dy<y+h; const doorY = inside ? (dy+1)*TILE-10 : dy*TILE+TILE-8; g.fillStyle = '#7a4a1a'; g.fillRect(dx*TILE+6, doorY, TILE-12, 14); g.fillStyle = '#ffd166'; g.fillRect(dx*TILE+TILE-12, doorY+5, 3, 3); if (!inside){ g.fillStyle = '#3f3660'; g.fillRect(dx*TILE+4, dy*TILE+2, TILE-8, TILE-10); }
-    // nom + doudou
-    g.font = 'bold 13px Fredoka, Nunito, sans-serif'; g.fillStyle = '#fff'; g.textAlign = 'center'; g.fillText(r.name, (x+w/2)*TILE, y*TILE+22);
-    const sp = SPR[r.dd]; const cx = (x+w/2)*TILE, cy = (y+h/2)*TILE+6;
-    if (sp && sp.complete){ if (done){ g.drawImage(sp, cx-28, cy-24, 56, 56); } else { g.globalAlpha = .35; g.filter = 'brightness(0)'; g.drawImage(sp, cx-28, cy-24, 56, 56); g.filter = 'none'; g.globalAlpha = 1; g.font='bold 22px Fredoka, sans-serif'; g.fillStyle='#ffd166'; g.fillText('?', cx, cy+10); } }
-    if (done){ g.font='14px sans-serif'; g.fillStyle='#ffe066'; const st = roomState(r.id); g.fillText('⭐'.repeat(Math.min(3, st.perfect)) || '✔', (x+w/2)*TILE, (y+h)*TILE-10); }
-    if (open && !done){ const t = (Date.now()/400)%2; g.strokeStyle = `rgba(255,209,102,${.5+.4*Math.sin(t*Math.PI)})`; g.lineWidth = 4; g.strokeRect(x*TILE+1, y*TILE+1, w*TILE-2, h*TILE-2); g.font='22px sans-serif'; g.fillText('✨', (x+w/2)*TILE+40, y*TILE+26); }
+    const [x,y,w,h] = r.rect; const px = x*TILE, py = y*TILE, pw = w*TILE, ph = h*TILE; const done = isDone(r.id), open = roomUnlocked(r); const bg = SPR['bg_'+r.id];
+    g.save(); g.beginPath(); g.rect(px+5, py+5, pw-10, ph-10); g.clip();
+    if (bg && bg.complete){ const sc = Math.max((pw-10)/bg.width, (ph-10)/bg.height); const dw = bg.width*sc, dh = bg.height*sc; g.drawImage(bg, px+5+((pw-10)-dw)/2, py+5+((ph-10)-dh)/2, dw, dh); }
+    else { g.fillStyle = r.bg; g.fillRect(px,py,pw,ph); }
+    if (!done) { g.fillStyle = 'rgba(8,6,20,.5)'; g.fillRect(px,py,pw,ph); }
+    if (!open) { g.fillStyle = 'rgba(8,6,20,.75)'; g.fillRect(px,py,pw,ph); }
+    g.restore();
+    g.strokeStyle = '#1a1530'; g.lineWidth = 10; g.strokeRect(px+5, py+5, pw-10, ph-10);
+    g.strokeStyle = done ? r.acc : 'rgba(255,255,255,.35)'; g.lineWidth = 3; g.strokeRect(px+5, py+5, pw-10, ph-10);
+    if (open && !done){ const a = .45+.4*Math.sin(now/350); g.strokeStyle = `rgba(255,209,102,${a})`; g.lineWidth = 4; g.strokeRect(px+1, py+1, pw-2, ph-2); }
+    // ruban du nom
+    g.font = 'bold 13px Fredoka, Nunito, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; const tw = g.measureText(r.name).width + 18;
+    g.fillStyle = done ? r.acc : 'rgba(10,8,25,.8)'; roundRect(g, px+pw/2-tw/2, py+10, tw, 20, 7); g.fill(); g.fillStyle = done ? '#1a1030' : '#fff'; g.fillText(r.name, px+pw/2, py+20); g.textBaseline = 'alphabetic';
+    // doudou retrouvé, ou silhouette et point d'interrogation
+    const sp = SPR[r.dd]; const cx = px+pw/2, cy = py+ph/2+10;
+    if (done){ if (sp && sp.complete){ const bob = Math.sin(now/350 + x)*2; g.drawImage(sp, cx-28, cy-28+bob, 56, 56); }
+      const st = roomState(r.id); g.font='13px sans-serif'; g.fillStyle='#ffe066'; g.textAlign='right'; g.fillText('⭐'.repeat(Math.min(3, st.perfect)) || '✔', px+pw-14, py+ph-16); g.textAlign='center';
+      levelBadge(g, r, px, py, pw, ph, true); }
+    else { if (sp && sp.complete){ g.globalAlpha = .55; g.drawImage(silhouette(sp, r.dd), cx-28, cy-28, 56, 56); g.globalAlpha = 1; }
+      g.font='bold 26px Fredoka, sans-serif'; g.fillStyle='#ffd166'; g.shadowColor='#ffd166'; g.shadowBlur = 12; g.fillText('?', cx, cy+10); g.shadowBlur = 0;
+      if (open){ g.font='16px sans-serif'; g.fillText('✨', cx+34, cy-12+Math.sin(now/300)*3); }
+      levelBadge(g, r, px, py, pw, ph, false); }
+    // porte voûtée (dans la salle pour les salles du haut, sur sa case pour celles du bas)
+    const [dx,dy] = r.door; const inside = dy>=y && dy<y+h;
+    if (!inside){ g.fillStyle = pat; g.fillRect(dx*TILE+3, dy*TILE, TILE-6, TILE); g.strokeStyle='#1a1530'; g.lineWidth=4; g.strokeRect(dx*TILE+3, dy*TILE-2, TILE-6, TILE+4); }
+    const doorY = inside ? (dy+1)*TILE-16 : dy*TILE+TILE-14;
+    g.fillStyle = '#1a1530'; g.fillRect(dx*TILE+5, doorY-3, TILE-10, 19);
+    g.fillStyle = done ? '#a8742e' : '#6b4a1a'; roundRect(g, dx*TILE+8, doorY-1, TILE-16, 16, 7); g.fill(); g.fillStyle='#3a2410'; g.fillRect(dx*TILE+16, doorY-1, 1, 15); g.fillStyle='#ffd166'; g.fillRect(dx*TILE+TILE-13, doorY+6, 3, 3);
   });
   // escalier
-  if (L.stairs){ const [sx,sy] = L.stairs; const up = floorUnlocked(f+1); g.fillStyle = up ? '#ffd166' : '#3a3250'; for (let i=0;i<4;i++) g.fillRect(sx*TILE+4, sy*TILE+4+i*7, TILE-8-i*5, 5); if (up){ g.font='bold 12px Nunito,sans-serif'; g.fillStyle='#ffd166'; g.textAlign='center'; g.fillText('↑', sx*TILE+16, sy*TILE+54); } }
-  // entrée
-  if (f<3){ g.fillStyle='#7a4a1a'; g.fillRect(9*TILE+4, 11*TILE+10, 2*TILE-8, 18); g.font='bold 12px Nunito,sans-serif'; g.fillStyle='#fff'; g.textAlign='center'; g.fillText(f===0?'Entrée':'Escalier', 10*TILE, 11*TILE+4); }
-  // héroïne : là où elle marche (clavier, pavé ou placement automatique)
-  const heroSp = SPR['hero'+(hero.dir==='s'?'':'_'+hero.dir)] || SPR.hero;
-  const hx = hero.x*TILE+16, hy = hero.y*TILE+16;
-  if (heroSp && heroSp.complete){ const bob = Math.sin(Date.now()/300)*2; g.drawImage(heroSp, hx-24, hy-30+bob, 48, 48); }
-  // doudous libérés suivent l'héroïne (petite file)
+  if (L.stairs){ const [sx,sy] = L.stairs; const up = floorUnlocked(f+1); g.fillStyle = pat; g.fillRect(sx*TILE, sy*TILE, TILE, 2*TILE);
+    for (let i=0;i<5;i++){ g.fillStyle = up ? (i%2 ? '#e0b84a' : '#ffd166') : (i%2 ? '#3a3250' : '#48405f'); g.fillRect(sx*TILE+4+i*2, sy*TILE+6+i*10, TILE-8-i*4, 8); }
+    if (up){ const gr = g.createRadialGradient(sx*TILE+16, sy*TILE+30, 4, sx*TILE+16, sy*TILE+30, 40); gr.addColorStop(0,'rgba(255,220,120,.45)'); gr.addColorStop(1,'rgba(255,220,120,0)'); g.fillStyle = gr; g.fillRect(sx*TILE-24, sy*TILE-10, 80, 80); g.font='bold 14px Nunito,sans-serif'; g.fillStyle='#ffd166'; g.textAlign='center'; g.fillText('↑', sx*TILE+16, sy*TILE+64); }
+    g.strokeStyle='#1a1530'; g.lineWidth=4; g.strokeRect(sx*TILE+2, sy*TILE+2, TILE-4, 2*TILE-4); }
+  // héroïne avec le halo de sa lanterne, et les doudous qui la suivent
+  const heroSp = SPR['hero'+(hero.dir==='s'?'':'_'+hero.dir)] || SPR.hero; const hx = hero.x*TILE+16, hy = hero.y*TILE+16;
+  const halo = g.createRadialGradient(hx, hy, 6, hx, hy, 80); halo.addColorStop(0,'rgba(255,210,120,.32)'); halo.addColorStop(1,'rgba(255,210,120,0)'); g.fillStyle = halo; g.fillRect(hx-80, hy-80, 160, 160);
   const freed = ROOMS.filter(r => isDone(r.id)).slice(-4);
-  freed.forEach((r, i) => { const sp = SPR[r.dd]; if (sp && sp.complete){ g.drawImage(sp, hx+10+i*18, hy-10+Math.sin(Date.now()/300+i)*2, 26, 26); } });
-  // brouillard : voile + nuages sur les cases non révélées
-  for (let y=0;y<MH;y++) for (let x=0;x<MW;x++){
-    const inRev = L.rooms.some(r => rev.has(r.id) && x>=r.rect[0]-0 && x<r.rect[0]+r.rect[2] && y>=r.rect[1] && y<r.rect[1]+r.rect[3]) || (anyRev && L.corr.some(c => x>=c[0] && x<c[0]+c[2] && y>=c[1] && y<c[1]+c[3])) || (L.stairs && anyRev && x===L.stairs[0] && y===L.stairs[1]) || (f<3 && y===11 && (x===9||x===10)) || L.rooms.some(r => rev.has(r.id) && r.door[0]===x && r.door[1]===y);
-    if (!inRev){ g.fillStyle = `rgba(20,16,40,${.55+hash(x,y)*.3})`; g.fillRect(x*TILE,y*TILE,TILE,TILE); g.fillStyle = 'rgba(120,110,160,.12)'; g.beginPath(); g.arc(x*TILE+16+hash(y,x)*10, y*TILE+16, 12+hash(x,y)*8, 0, Math.PI*2); g.fill(); }
-  }
+  freed.forEach((r, i) => { const sp = SPR[r.dd]; if (sp && sp.complete){ g.drawImage(sp, hx+14+i*16, hy-8+Math.sin(now/300+i)*2, 24, 24); } });
+  if (heroSp && heroSp.complete){ const bob = Math.sin(now/300)*2; g.drawImage(heroSp, hx-26, hy-36+bob, 52, 52); }
+  // vignette
+  const vg = g.createRadialGradient(W/2,H/2,H*.45,W/2,H/2,H*1.05); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.55)'); g.fillStyle = vg; g.fillRect(0,0,W,H);
 }
 function heroStart(f){
   const L = floorLayout(f); const cur = L.rooms.find(r => !isDone(r.id) && roomUnlocked(r));

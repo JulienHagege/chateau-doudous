@@ -33,6 +33,11 @@
     let celebrated = false; maybeCelebrate(() => { celebrated = true; }); log('célébration affichée', !$('#celebrate').hidden, 'titre', $('#celebrate-title').textContent); $('#btn-celebrate').click(); log('après célébration, then appelé', celebrated, 'hidden', $('#celebrate').hidden, 'file', JSON.stringify(S.celebrateQueue));
     recordFact(3,4,false); recordSkill('bains', false); recordSkill('bains', true); renderCarnet(); log('carnet tables', document.querySelectorAll('#carnet-tables .tcard').length, 'skills', document.querySelectorAll('#carnet-skills .srow').length, 'hint', $('#carnet-hint').textContent);
     startRoom(ROOM.revision); log('révision', run && run.room, 'q', run && run.q.prompt.slice(0,40)); let g2=0; while (run && g2++<40){ submit(true); } log('révision finie écran', screen, 'titre', $('#res-title').textContent, 'level bains', roomLevel('bains'));
+    let noex = {}; for (const r of ROOMS){ if (r.boss) continue; for (let lv=1; lv<=5; lv++) for (let i=0;i<20;i++){ const q = GAMES[r.id].gen(lv); if (!q.explain) noex[r.id+'/'+lv] = (noex[r.id+'/'+lv]||0)+1; } } log('explications manquantes', JSON.stringify(noex));
+    // anti-répétition : 30 questions d'affilée dans la baignoire niveau 1, jamais deux identiques de suite
+    startRoom(ROOM.bains); let prev = null, dup = 0; for (let i=0;i<30;i++){ const sig = run.q.prompt; if (sig===prev) dup++; prev = sig; run.answered = true; run.i = 0; nextQuestion(); } log('doublons consécutifs baignoire', dup); run = null;
+    // refaire : une erreur puis la bonne réponse
+    startRoom(ROOM.doubles); const q0 = run.q; submit(false); redoQuestion(); log('après erreur : redo', run.redo, 'bandeau', !!$('#stage .redo'), 'cœurs', run.hearts); submit(true); log('bonne réponse au refaire : redo', run.redo, 'i', run.i, 'billes', run.billes); run = null; 
     const picks = {}; for (let i=0;i<300;i++){ const [a,b] = pickFact(activeTables()); picks[a] = (picks[a]||0)+1; } log('tirages par table', JSON.stringify(picks));
     for (let f=0; f<4; f++){ openMap(f); drawMap(); } log('carte OK');
     startStorm(null, true); log('orage phase', storm && storm.phase); if (storm){ if (storm.phase!=='play'){ storm.phase='play'; launchPumpkin(); } stormHit(true); if (storm) { launchPumpkin(); stormHit(false); } } log('orage OK, storm =', storm ? 'actif' : 'fermé', 'billes', S.billes);
