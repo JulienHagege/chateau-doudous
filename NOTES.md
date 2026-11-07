@@ -45,6 +45,7 @@ Jeu de maths pour la fille de Julien (6 ans, CP, forte en maths), créé le 2026
 - Bibliothèque : les quantités sont dessinées en livres sur des étagères (`shelfSvg`, paquets de 10 au-delà de 20) : deux étagères pour le double, une étagère pleine et des paniers vides pour la moitié et le quart, trois ou quatre étagères pour le triple et le quadruple (demande de Julien).
 - Aquarium : bulles irisées, la bonne éclate comme du savon (`popBubble`, gouttelettes, son `SFX.pop`), la mauvaise rougit et tremble.
 - Cour des os (Chioune) et Salle du trésor (Fanfan) : chrono × 1,5 au niveau 1 (demandes de Julien).
+- Boutons de réponse et pavé : fond opaque à 86 %, chiffres plus gros et gras avec ombre (lisibilité sur les fonds, demande de Julien).
 - Affichage des épreuves : `q.story` (phrase, petite) + `q.prompt` (calcul, très gros, classe `.prompt.calc`) ; `splitPrompt` découpe automatiquement « Phrase. 5 + ? = 10 » (demande de Julien : pas besoin de lire la phrase pour répondre).
 - Typo FR : `fr()` pose l'espace insécable avant ! ? : dans les textes affichés.
 - Style : jamais de tiret cadratin, phrases courtes et simples (elle lit bien mais débute), typo FR.
