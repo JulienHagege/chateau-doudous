@@ -160,6 +160,7 @@ const SFX = {
   pour(){ if(!S.sound) return; noise(.35,.12,1800); tone(500,0,.2,'sine',.05); tone(700,.1,.2,'sine',.05); },
   coin(){ if(!S.sound) return; tone(2349,0,.05,'square',.06); tone(3136,.05,.15,'square',.06); },
   bubble(){ if(!S.sound) return; tone(600,0,.08,'sine',.1); tone(1200,.05,.12,'sine',.08); },
+  pop(){ if(!S.sound) return; noise(.08,.35,5000); tone(900,0,.05,'sine',.14); tone(1500,.03,.08,'sine',.1); tone(2600,.06,.06,'sine',.06); },
   boom(){ if(!S.sound) return; noise(.5,.45,400); tone(90,0,.5,'sawtooth',.2); },
   thunder(){ if(!S.sound) return; noise(1.4,.6,320); tone(45,0,1.2,'sawtooth',.25); tone(60,.3,1,'sawtooth',.15); },
   pumpkin(){ if(!S.sound) return; tone(150,0,.2,'sawtooth',.12); tone(110,.15,.3,'square',.08); },

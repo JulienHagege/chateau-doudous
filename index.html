@@ -224,7 +224,13 @@ canvas.ruler{width:100%; max-width:640px; height:auto; display:block; border-rad
 .clocks canvas{width:150px; height:150px; border-radius:50%; cursor:pointer}
 .clocks canvas.single{width:200px; height:200px; cursor:default}
 .aqua{position:relative; width:100%; height:300px; border-radius:14px; background:linear-gradient(180deg,#1c6f9a,#0b3350); overflow:hidden; border:3px solid rgba(255,255,255,.15)}
-.bubble{position:absolute; width:86px; height:86px; border-radius:50%; background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.75), rgba(160,220,255,.35) 50%, rgba(80,160,220,.3)); border:3px solid rgba(255,255,255,.6); display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-size:32px; color:#fff; text-shadow:0 2px 0 rgba(0,0,0,.4); animation:float 4s ease-in-out infinite; cursor:pointer}
+.bubble{position:absolute; width:86px; height:86px; border-radius:50%; background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.8), rgba(200,230,255,.35) 40%, rgba(255,180,230,.25) 70%, rgba(150,220,255,.4)); border:3px solid rgba(255,255,255,.7); box-shadow:inset -8px -10px 18px rgba(255,160,230,.35), inset 8px 10px 18px rgba(160,240,255,.35), 0 0 12px rgba(255,255,255,.25); display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-size:32px; color:#fff; text-shadow:0 2px 0 rgba(0,0,0,.4); animation:float 4s ease-in-out infinite; cursor:pointer}
+.bubble::after{content:""; position:absolute; left:18%; top:12%; width:26%; height:16%; border-radius:50%; background:rgba(255,255,255,.85); transform:rotate(-25deg)}
+.bubble.pop{animation:burst .45s ease-out forwards; pointer-events:none}
+@keyframes burst{0%{transform:scale(1); opacity:1} 35%{transform:scale(1.25); opacity:1; border-color:#fff} 60%{transform:scale(1.35); opacity:.5; border-width:1px} 100%{transform:scale(1.6); opacity:0}}
+.bubble.ko{animation:shake .4s; background:radial-gradient(circle at 35% 30%, rgba(255,200,200,.8), rgba(255,120,120,.4) 60%)}
+.droplet{position:absolute; width:12px; height:12px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #fff, rgba(190,235,255,.9) 60%, rgba(255,170,230,.7)); pointer-events:none; animation:droplet .7s ease-out forwards}
+@keyframes droplet{0%{transform:translate(0,0) scale(1); opacity:1} 100%{transform:translate(var(--dx), var(--dy)) scale(.2); opacity:0}}
 @keyframes float{0%,100%{transform:translateY(0)} 50%{transform:translateY(-16px)}}
 .numline{position:relative; width:100%; max-width:640px; height:120px}
 .numline .ln{position:absolute; left:4%; right:4%; top:46px; height:6px; background:#fff; border-radius:3px}
@@ -639,6 +645,7 @@ const SFX = {
   pour(){ if(!S.sound) return; noise(.35,.12,1800); tone(500,0,.2,'sine',.05); tone(700,.1,.2,'sine',.05); },
   coin(){ if(!S.sound) return; tone(2349,0,.05,'square',.06); tone(3136,.05,.15,'square',.06); },
   bubble(){ if(!S.sound) return; tone(600,0,.08,'sine',.1); tone(1200,.05,.12,'sine',.08); },
+  pop(){ if(!S.sound) return; noise(.08,.35,5000); tone(900,0,.05,'sine',.14); tone(1500,.03,.08,'sine',.1); tone(2600,.06,.06,'sine',.06); },
   boom(){ if(!S.sound) return; noise(.5,.45,400); tone(90,0,.5,'sawtooth',.2); },
   thunder(){ if(!S.sound) return; noise(1.4,.6,320); tone(45,0,1.2,'sawtooth',.25); tone(60,.3,1,'sawtooth',.15); },
   pumpkin(){ if(!S.sound) return; tone(150,0,.2,'sawtooth',.12); tone(110,.15,.3,'square',.08); },
@@ -1121,10 +1128,21 @@ GAMES.soustraction = { intro:"Dans l'aquarium, les bulles portent des nombres. T
   const ans = a-b; const opts = mkOptions(ans, [ans+1,ans-1,ans+2,ans-2,ans+10,ans-10,a+b], 4);
   return {prompt:`Lamantou avait ${a} bulles, ${b} ont éclaté. ${a} − ${b} = <b>?</b>`, kind:'custom', answer:ans, show:String(ans), explain: b<10 ? `De ${a}, j'enlève ${b} : ${a} − ${b} = ${ans}. (${ans} + ${b} = ${a})` : `${a} − ${b} : j'enlève d'abord ${b-(b%10)} (${a-(b-(b%10))}), puis ${b%10} : ${ans}.`, render(stage, api){
     stage.innerHTML = `<div class="aqua" id="aqua"></div>`; const aq = stage.querySelector('#aqua');
-    opts.forEach((o, i) => { const bb = document.createElement('button'); bb.className='bubble'; bb.textContent = o; bb.style.left = (6 + i*23 + rnd(0,6)) + '%'; bb.style.top = (20 + rnd(0,45)) + '%'; bb.style.animationDelay = (-i*.9)+'s'; bb.onclick = () => { if (api.done) return; const ok = o===ans; if (ok){ bb.style.transform='scale(1.4)'; bb.style.opacity='0'; SFX.bubble(); } else bb.classList.add('ko'); api.answer(ok); }; aq.appendChild(bb); });
+    opts.forEach((o, i) => { const bb = document.createElement('button'); bb.className='bubble'; bb.textContent = o; bb.style.left = (6 + i*23 + rnd(0,6)) + '%'; bb.style.top = (20 + rnd(0,45)) + '%'; bb.style.animationDelay = (-i*.9)+'s'; bb.onclick = () => { if (api.done) return; const ok = o===ans;
+      if (ok){ api.done = true; popBubble(aq, bb); SFX.pop(); setTimeout(() => api.answer(true), 350); }
+      else { bb.classList.add('ko'); SFX.ko(); api.answer(false); } }; aq.appendChild(bb); });
     for (let i=0;i<10;i++){ const s = document.createElement('i'); s.style.cssText = `position:absolute;left:${rnd(0,100)}%;top:${rnd(0,100)}%;width:${rnd(4,10)}px;height:${rnd(4,10)}px;border-radius:50%;background:rgba(255,255,255,.25);animation:float ${rnd(3,6)}s ease-in-out infinite`; aq.appendChild(s); }
   }};
 }};
+
+// Éclatement façon bulle de savon : la bulle gonfle et se déchire, des gouttelettes partent dans toutes les directions
+function popBubble(aq, bb){
+  bb.classList.add('pop'); bb.style.animationDelay = '0s';
+  const r = bb.getBoundingClientRect(), ar = aq.getBoundingClientRect(); const cx = r.left - ar.left + r.width/2, cy = r.top - ar.top + r.height/2;
+  for (let i=0;i<14;i++){ const d = document.createElement('i'); d.className = 'droplet'; const a = i/14*Math.PI*2 + Math.random()*.4, v = 50 + Math.random()*70;
+    d.style.left = cx-6+'px'; d.style.top = cy-6+'px'; d.style.setProperty('--dx', Math.cos(a)*v+'px'); d.style.setProperty('--dy', (Math.sin(a)*v + 30)+'px'); d.style.animationDelay = (Math.random()*.08)+'s'; aq.appendChild(d); setTimeout(() => d.remove(), 900); }
+  setTimeout(() => bb.remove(), 500);
+}
 
 /* ---------- Additions (Chioune, la Cour des os) ---------- */
 GAMES.addition = { intro:'Chioune enterre ses os et les compte. Aide-le à additionner !', gen(level){

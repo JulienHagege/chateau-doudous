@@ -42,6 +42,7 @@ Jeu de maths pour la fille de Julien (6 ans, CP, forte en maths), créé le 2026
 - Arrondi : la ligne des dizaines n'indique pas où se trouve le nombre ; pile au milieu (5 ou 50), les deux arrondis sont acceptés (demandes de Julien).
 - Intro : six tableaux façon livre de contes (`startIntro`), jouée au premier « Entrer dans le château » (`S.introSeen`), rejouable depuis l'accueil.
 - Formes : niveau 1 formes de base, niveau 2 + losange, trapèze, parallélogramme, ovale, hexagone, pentagone, octogone et « combien de côtés », niveau 3 solides en volume (cube, pavé droit, boule, cylindre, cône, pyramide).
+- Aquarium : bulles irisées, la bonne éclate comme du savon (`popBubble`, gouttelettes, son `SFX.pop`), la mauvaise rougit et tremble.
 - Cour des os (Chioune) et Salle du trésor (Fanfan) : chrono × 1,5 au niveau 1 (demandes de Julien).
 - Affichage des épreuves : `q.story` (phrase, petite) + `q.prompt` (calcul, très gros, classe `.prompt.calc`) ; `splitPrompt` découpe automatiquement « Phrase. 5 + ? = 10 » (demande de Julien : pas besoin de lire la phrase pour répondre).
 - Typo FR : `fr()` pose l'espace insécable avant ! ? : dans les textes affichés.

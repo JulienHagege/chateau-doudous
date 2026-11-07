@@ -225,7 +225,13 @@ canvas.ruler{width:100%; max-width:640px; height:auto; display:block; border-rad
 .clocks canvas{width:150px; height:150px; border-radius:50%; cursor:pointer}
 .clocks canvas.single{width:200px; height:200px; cursor:default}
 .aqua{position:relative; width:100%; height:300px; border-radius:14px; background:linear-gradient(180deg,#1c6f9a,#0b3350); overflow:hidden; border:3px solid rgba(255,255,255,.15)}
-.bubble{position:absolute; width:86px; height:86px; border-radius:50%; background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.75), rgba(160,220,255,.35) 50%, rgba(80,160,220,.3)); border:3px solid rgba(255,255,255,.6); display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-size:32px; color:#fff; text-shadow:0 2px 0 rgba(0,0,0,.4); animation:float 4s ease-in-out infinite; cursor:pointer}
+.bubble{position:absolute; width:86px; height:86px; border-radius:50%; background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.8), rgba(200,230,255,.35) 40%, rgba(255,180,230,.25) 70%, rgba(150,220,255,.4)); border:3px solid rgba(255,255,255,.7); box-shadow:inset -8px -10px 18px rgba(255,160,230,.35), inset 8px 10px 18px rgba(160,240,255,.35), 0 0 12px rgba(255,255,255,.25); display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-size:32px; color:#fff; text-shadow:0 2px 0 rgba(0,0,0,.4); animation:float 4s ease-in-out infinite; cursor:pointer}
+.bubble::after{content:""; position:absolute; left:18%; top:12%; width:26%; height:16%; border-radius:50%; background:rgba(255,255,255,.85); transform:rotate(-25deg)}
+.bubble.pop{animation:burst .45s ease-out forwards; pointer-events:none}
+@keyframes burst{0%{transform:scale(1); opacity:1} 35%{transform:scale(1.25); opacity:1; border-color:#fff} 60%{transform:scale(1.35); opacity:.5; border-width:1px} 100%{transform:scale(1.6); opacity:0}}
+.bubble.ko{animation:shake .4s; background:radial-gradient(circle at 35% 30%, rgba(255,200,200,.8), rgba(255,120,120,.4) 60%)}
+.droplet{position:absolute; width:12px; height:12px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #fff, rgba(190,235,255,.9) 60%, rgba(255,170,230,.7)); pointer-events:none; animation:droplet .7s ease-out forwards}
+@keyframes droplet{0%{transform:translate(0,0) scale(1); opacity:1} 100%{transform:translate(var(--dx), var(--dy)) scale(.2); opacity:0}}
 @keyframes float{0%,100%{transform:translateY(0)} 50%{transform:translateY(-16px)}}
 .numline{position:relative; width:100%; max-width:640px; height:120px}
 .numline .ln{position:absolute; left:4%; right:4%; top:46px; height:6px; background:#fff; border-radius:3px}
