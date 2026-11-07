@@ -1487,10 +1487,10 @@ function enterRoom(room){
 let storm = null;
 // L'orage se corse avec les étages : probabilité, nombre de citrouilles, tables, vitesse
 const STORM_BY_FLOOR = [
-  {p:.10, n:4, tables:[2,10],            bmax:5, dur:9500},
-  {p:.16, n:5, tables:[2,3,5,10],        bmax:9, dur:7500},
-  {p:.22, n:6, tables:[2,3,4,5,6,7,8,9,10], bmax:9, dur:6000},
-  {p:.22, n:6, tables:[3,4,6,7,8,9],     bmax:9, dur:5500}
+  {p:.07, n:4, tables:[2,10],            bmax:5, dur:9500},
+  {p:.11, n:5, tables:[2,3,5,10],        bmax:9, dur:7500},
+  {p:.15, n:6, tables:[2,3,4,5,6,7,8,9,10], bmax:9, dur:6000},
+  {p:.15, n:6, tables:[3,4,6,7,8,9],     bmax:9, dur:5500}
 ];
 // Tables de l'orage : parmi celles de l'étage, les tables maîtrisées et les deux en cours d'apprentissage
 function stormTables(){ const pool = STORM_BY_FLOOR[storm.floor].tables; const act = activeTables().filter(t => pool.includes(t)); return act.length ? act : pool.slice(0,2); }
