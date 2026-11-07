@@ -1,0 +1,351 @@
+<script>
+/* =========================================================
+   MOTEUR DE SALLE : enchaîne les épreuves, chrono, cœurs, billes, étoiles
+   ========================================================= */
+let run = null, timerIv = null;
+function startRoom(room){
+  const rs = roomState(room.id); const level = clamp(rs.done + 1, 1, 3);
+  run = { room:room.id, level, i:0, n:room.n, errors:0, hearts:maxHearts(), billes:0, results:[], asked:0, retry:[], q:null, answered:false, t0:0 };
+  MUSIC.play(room.floor===3 ? 'tower' : 'floor'+room.floor);
+  SFX.door();
+  show('room'); renderRoomHead(); nextQuestion();
+}
+function renderRoomHead(){
+  const room = ROOM[run.room], d = DD[room.dd]; const el = $('#room');
+  el.style.setProperty('--acc', room.acc); el.style.setProperty('--room-bg', room.bg);
+  $('#cage').classList.remove('free'); $('#cage-img').src = IMG[d.id]; $('#cage-img').alt = d.name;
+  $('#room-name').textContent = room.name; $('#room-skill').textContent = `${room.skill} · niveau ${run.level} · ${d.name} t'attend`;
+  renderHearts(); renderProgress(); $('#room-billes').textContent = run.billes;
+}
+function renderHearts(){ const h = $('#hearts'); h.innerHTML = ''; for (let i=0;i<maxHearts();i++){ const s = document.createElement('span'); if (i>=run.hearts) s.className='off'; h.appendChild(s); } }
+function renderProgress(){ const p = $('#progress'); p.innerHTML = ''; for (let i=0;i<run.n;i++){ const s = document.createElement('i'); if (run.results[i]===true) s.className='ok'; else if (run.results[i]===false) s.className='ko'; else if (i===run.i) s.className='cur'; p.appendChild(s); } }
+function nextQuestion(){
+  if (run.i >= run.n){ return endRoom(true); }
+  const room = ROOM[run.room];
+  let q = run.retry.length && Math.random()<.5 && run.i>run.retry[0].at+1 ? run.retry.shift().q : null;
+  if (!q){ q = room.boss ? GAMES.boss.gen(run.level, run.i, run.n) : GAMES[room.id].gen(run.level); }
+  run.q = q; run.answered = false; renderProgress(); renderQuestion(q);
+  const floor = FLOORS[room.floor]; const t = floor.timer ? floor.timer * (q.timeMult||1) : 0; startTimer(t);
+}
+function renderQuestion(q){
+  const stage = $('#stage'); stage.innerHTML = ''; const fb = $('#stage .feedback'); if (fb) fb.remove();
+  const p = document.createElement('p'); p.className='prompt'; p.innerHTML = q.prompt; stage.appendChild(p);
+  if (q.sub){ const s = document.createElement('p'); s.className='sub'; s.textContent = q.sub; stage.appendChild(s); }
+  const api = { done:false, answer:(ok, shown) => submit(ok, shown) };
+  if (q.kind==='custom'){ const box = document.createElement('div'); stage.appendChild(box); q.render(box, api); return; }
+  if (q.render){ const box = document.createElement('div'); box.className='custom'; stage.appendChild(box); q.render(box, api); }
+  if (q.kind==='qcm'){
+    const box = document.createElement('div'); box.className = 'opts' + (q.options.length===3 ? ' three' : ''); stage.appendChild(box);
+    q.options.forEach(o => { const b = document.createElement('button'); b.className='opt'; b.textContent = o; b.onclick = () => { if (run.answered) return; const ok = String(o)===String(q.answer); b.classList.add(ok?'ok':'ko'); if (!ok) box.querySelectorAll('.opt').forEach(x => { if (String(x.textContent)===String(q.answer)) x.classList.add('ok'); }); submit(ok); }; box.appendChild(b); });
+  } else if (q.kind==='num'){
+    const entry = document.createElement('div'); entry.className='entry'; entry.innerHTML = `<span class="val" id="val"></span>${q.suffix?'<span>'+q.suffix+'</span>':''}`; stage.appendChild(entry);
+    const pad = document.createElement('div'); pad.className='pad'; stage.appendChild(pad); let val = '';
+    const keys = ['1','2','3','4','5','6','7','8','9','⌫','0','✔'];
+    keys.forEach(k => { const b = document.createElement('button'); b.textContent = k; if (k==='✔') b.className='go'; if (k==='⌫') b.className='del';
+      b.onclick = () => { if (run.answered) return; SFX.click(); if (k==='⌫') val = val.slice(0,-1); else if (k==='✔'){ if (val==='') return; const ok = Number(val)===q.answer; $('#val').style.borderBottomColor = ok ? '#8de3c0' : '#ff7a5c'; submit(ok); return; } else if (val.length<4) val += k; $('#val').textContent = val; }; pad.appendChild(b); });
+    window.onkeydown = e => { if (screen!=='room' || run.answered) return; if (/^[0-9]$/.test(e.key)){ if (val.length<4) val += e.key; } else if (e.key==='Backspace') val = val.slice(0,-1); else if (e.key==='Enter'){ if (val==='') return; const ok = Number(val)===q.answer; submit(ok); return; } else return; $('#val').textContent = val; };
+  }
+}
+function startTimer(sec){
+  clearInterval(timerIv); const t = $('#timer'), bar = $('#timer-bar');
+  if (!sec){ t.hidden = true; return; }
+  t.hidden = false; bar.style.width = '100%'; bar.classList.remove('low'); run.t0 = Date.now(); run.tlen = sec*1000; let lastTick = -1;
+  timerIv = setInterval(() => {
+    const left = run.tlen - (Date.now()-run.t0); const pct = clamp(left/run.tlen*100, 0, 100); bar.style.width = pct+'%';
+    if (pct<30){ bar.classList.add('low'); const s = Math.ceil(left/1000); if (s!==lastTick && s<=3 && s>0){ lastTick = s; SFX.tick(); } }
+    if (left<=0){ clearInterval(timerIv); submit(false, 'Trop tard ! La réponse était ' + run.q.show); }
+  }, 100);
+}
+function submit(ok, shown){
+  if (!run || run.answered) return; run.answered = true; clearInterval(timerIv);
+  const room = ROOM[run.room], floor = FLOORS[room.floor]; const q = run.q;
+  run.results[run.i] = ok; S.tot = S.tot || {r:0,w:0};
+  const stage = $('#stage'); const fb = document.createElement('div'); fb.className = 'feedback ' + (ok?'ok':'ko');
+  if (ok){
+    S.tot.r++; const gain = floor.billes + (floor.timer ? Math.round(clamp((run.tlen-(Date.now()-run.t0))/run.tlen,0,1)*5) : 0);
+    run.billes += gain; S.billes += gain; $('#room-billes').textContent = run.billes;
+    fb.innerHTML = pick(['Bravo !','Super !','Oui !','Génial !','Exact !','Trop fort !']) + ` <small>+${gain} billes</small>`; SFX.ok(); setTimeout(SFX.bille, 150); sparkle($('#room-billes'), '✨');
+  } else {
+    S.tot.w++; run.errors++; run.hearts--; renderHearts(); SFX.ko(); setTimeout(SFX.lose, 250);
+    fb.innerHTML = (shown || ('La réponse était ' + q.show)) + ' <small>On la reverra tout à l\'heure</small>';
+    if (run.retry.length<3) run.retry.push({q, at:run.i});
+  }
+  stage.appendChild(fb); renderProgress(); save();
+  if (!ok && run.hearts<=0){ setTimeout(() => endRoom(false), 1500); return; }
+  run.i++;
+  setTimeout(nextQuestion, ok ? 900 : 2200);
+}
+function endRoom(won){
+  clearInterval(timerIv); window.onkeydown = null;
+  const room = ROOM[run.room], d = DD[room.dd], rs = roomState(room.id);
+  const rewards = [];
+  if (won){
+    const first = rs.done===0; rs.done++; const bonus = room.boss ? 300 : 50; S.billes += bonus; run.billes += bonus; rewards.push(`<span class="rw" style="color:var(--bille)">+${run.billes} billes</span>`);
+    if (run.errors===0){ const st = room.boss ? 3 : 1; S.stars += st; rs.perfect++; rewards.push(`<span class="rw" style="color:var(--star)">⭐ ${st===1?'Une étoile : sans faute !':'Trois étoiles : sans faute !'}</span>`); }
+    if (rs.best===null || run.errors<rs.best) rs.best = run.errors;
+    S.sinceStorm = (S.sinceStorm||0) + 1;
+    $('#cage').classList.add('free');
+    $('#res-img').src = IMG[d.id]; $('#res-title').textContent = first ? `${d.name} est délivré${d.id==='vachou'?'e':''} !` : `${d.name} est ravi${d.id==='vachou'?'e':''} !`;
+    $('#res-text').textContent = first ? `${d.name}, ${d.desc}, saute dans tes bras. ${room.boss ? 'Tous les doudous sont réunis, le château est sauvé !' : 'Une nouvelle porte vient de s\'ouvrir sur la carte.'}` : `Niveau ${run.level} réussi. ${run.errors===0 ? 'Sans aucune faute !' : run.errors+' erreur'+(run.errors>1?'s':'')+', tu progresses !'}`;
+    const prevH = maxHearts(); save(); if (maxHearts()>prevH){ rewards.push('<span class="rw" style="color:var(--heart)">❤️ Un cœur de plus !</span>'); setTimeout(SFX.heart, 1200); }
+    SFX.freed(); confetti(); if (room.boss) setTimeout(MUSIC.play.bind(MUSIC,'home'), 100);
+  } else {
+    rewards.push(`<span class="rw" style="color:var(--bille)">+${run.billes} billes quand même</span>`);
+    $('#res-img').src = IMG[d.id]; $('#res-title').textContent = 'Plus de cœurs…'; $('#res-text').textContent = `${d.name} t'attend encore dans ${room.name}. Repose-toi et réessaie, tu vas y arriver !`;
+    SFX.fail(); save();
+  }
+  $('#res-rewards').innerHTML = rewards.join(''); show('result'); run = null;
+}
+
+/* =========================================================
+   CARTE : plan d'étage vu du dessus, dessiné sur canvas, brouillard qui se lève
+   ========================================================= */
+let mapFloor = 0; const TILE = 32, MW = 20, MH = 12;
+const mapCv = $('#map'); const SPR = {};
+function loadSprites(){ for (const k in IMG){ const im = new Image(); im.src = IMG[k]; SPR[k] = im; im.onload = () => { if (screen==='mapscreen') drawMap(); }; } }
+function hash(x,y){ let h = (x*374761393 + y*668265263) ^ 0x5bd1e995; h = (h ^ (h>>13)) * 1274126177; return ((h ^ (h>>16)) >>> 0) / 4294967295; }
+function floorLayout(f){
+  const rooms = ROOMS.filter(r => r.floor===f);
+  // couloir : barre horizontale rangées 5-6 (ou autour du donjon), escalier à droite, entrée en bas au centre
+  const corr = f===3 ? [[9,9,2,3]] : [[1,5,18,2],[9,7,2,4]];
+  const stairs = f===3 ? null : [19,5,1,1];
+  return {rooms, corr, stairs};
+}
+function revealed(f){
+  // Salles visibles : terminées + la prochaine accessible (brouillard sur le reste)
+  const L = floorLayout(f); const set = new Set();
+  L.rooms.forEach(r => { if (isDone(r.id) || roomUnlocked(r)) set.add(r.id); });
+  return set;
+}
+function drawMap(){
+  const cv = mapCv; const W = MW*TILE, H = MH*TILE; cv.width = W; cv.height = H; const g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
+  const f = mapFloor, L = floorLayout(f), rev = revealed(f);
+  // fond roche
+  for (let y=0;y<MH;y++) for (let x=0;x<MW;x++){ g.fillStyle = hash(x,y)<.5 ? '#141127' : '#19152f'; g.fillRect(x*TILE,y*TILE,TILE,TILE); }
+  const floorTile = (x,y,c1,c2) => { g.fillStyle = (x+y)%2 ? c1 : c2; g.fillRect(x*TILE,y*TILE,TILE,TILE); g.fillStyle='rgba(0,0,0,.08)'; g.fillRect(x*TILE+TILE-3,y*TILE,3,TILE); g.fillRect(x*TILE,y*TILE+TILE-3,TILE,3); };
+  const drawRect = (rc, c1, c2, wall) => { const [x,y,w,h] = rc; for (let yy=y;yy<y+h;yy++) for (let xx=x;xx<x+w;xx++) floorTile(xx,yy,c1,c2); g.strokeStyle = wall; g.lineWidth = 6; g.strokeRect(x*TILE+3, y*TILE+3, w*TILE-6, h*TILE-6); g.fillStyle='rgba(255,255,255,.12)'; g.fillRect(x*TILE+6, y*TILE+6, w*TILE-12, 5); };
+  // couloirs (révélés dès que l'étage est accessible)
+  const anyRev = rev.size>0;
+  if (anyRev){ L.corr.forEach(c => drawRect(c, '#4a4068', '#3f3660', '#2a2340')); }
+  // salles
+  L.rooms.forEach(r => {
+    const done = isDone(r.id), open = roomUnlocked(r), vis = rev.has(r.id);
+    const [x,y,w,h] = r.rect;
+    if (!vis) return;
+    const c1 = done ? '#6b5a8a' : open ? '#5a4a7a' : '#3a3250', c2 = done ? '#5f4f7e' : open ? '#4f4070' : '#332c48';
+    drawRect(r.rect, c1, c2, r.acc);
+    // meubles symboliques par salle (petits pixels colorés)
+    g.fillStyle = r.acc; g.globalAlpha = .55; for (let i=0;i<3;i++){ const fx = x+1+Math.floor(hash(i,x)*(w-2)), fy = y+1+Math.floor(hash(x,i)*(h-2)); g.fillRect(fx*TILE+8, fy*TILE+8, 16, 16); } g.globalAlpha = 1;
+    // porte
+    const [dx,dy] = r.door; g.fillStyle = '#7a4a1a'; g.fillRect(dx*TILE+6, dy>=y+h ? dy*TILE-6 : dy*TILE+TILE-8, TILE-12, 14); g.fillStyle = '#ffd166'; g.fillRect(dx*TILE+TILE-12, dy>=y+h ? dy*TILE-1 : dy*TILE+TILE-3, 3, 3);
+    // nom + doudou
+    g.font = 'bold 13px Fredoka, Nunito, sans-serif'; g.fillStyle = '#fff'; g.textAlign = 'center'; g.fillText(r.name, (x+w/2)*TILE, y*TILE+22);
+    const sp = SPR[r.dd]; const cx = (x+w/2)*TILE, cy = (y+h/2)*TILE+6;
+    if (sp && sp.complete){ if (done){ g.drawImage(sp, cx-28, cy-24, 56, 56); } else { g.globalAlpha = .35; g.filter = 'brightness(0)'; g.drawImage(sp, cx-28, cy-24, 56, 56); g.filter = 'none'; g.globalAlpha = 1; g.font='bold 22px Fredoka, sans-serif'; g.fillStyle='#ffd166'; g.fillText('?', cx, cy+10); } }
+    if (done){ g.font='14px sans-serif'; g.fillStyle='#ffe066'; const st = roomState(r.id); g.fillText('⭐'.repeat(Math.min(3, st.perfect)) || '✔', (x+w/2)*TILE, (y+h)*TILE-10); }
+    if (open && !done){ const t = (Date.now()/400)%2; g.strokeStyle = `rgba(255,209,102,${.5+.4*Math.sin(t*Math.PI)})`; g.lineWidth = 4; g.strokeRect(x*TILE+1, y*TILE+1, w*TILE-2, h*TILE-2); g.font='22px sans-serif'; g.fillText('✨', (x+w/2)*TILE+40, y*TILE+26); }
+  });
+  // escalier
+  if (L.stairs){ const [sx,sy] = L.stairs; const up = floorUnlocked(f+1); g.fillStyle = up ? '#ffd166' : '#3a3250'; for (let i=0;i<4;i++) g.fillRect(sx*TILE+4, sy*TILE+4+i*7, TILE-8-i*5, 5); if (up){ g.font='bold 12px Nunito,sans-serif'; g.fillStyle='#ffd166'; g.textAlign='center'; g.fillText('↑', sx*TILE+16, sy*TILE+54); } }
+  // entrée
+  if (f<3){ g.fillStyle='#7a4a1a'; g.fillRect(9*TILE+4, 11*TILE+10, 2*TILE-8, 18); g.font='bold 12px Nunito,sans-serif'; g.fillStyle='#fff'; g.textAlign='center'; g.fillText(f===0?'Entrée':'Escalier', 10*TILE, 11*TILE+4); }
+  // héroïne : devant la porte de la salle à explorer (ou à l'entrée)
+  const cur = L.rooms.find(r => !isDone(r.id) && roomUnlocked(r)); const hero = SPR.hero;
+  let hx = 10*TILE, hy = 10*TILE; if (cur){ hx = cur.door[0]*TILE+16; hy = (cur.door[1])*TILE+16; } else if (L.rooms.every(r => isDone(r.id)) && L.stairs){ hx = L.stairs[0]*TILE-20; hy = L.stairs[1]*TILE+36; }
+  if (hero && hero.complete){ const bob = Math.sin(Date.now()/300)*2; g.drawImage(hero, hx-24, hy-30+bob, 48, 48); }
+  // doudous libérés suivent l'héroïne (petite file)
+  const freed = ROOMS.filter(r => isDone(r.id)).slice(-4);
+  freed.forEach((r, i) => { const sp = SPR[r.dd]; if (sp && sp.complete){ g.drawImage(sp, hx+10+i*18, hy-10+Math.sin(Date.now()/300+i)*2, 26, 26); } });
+  // brouillard : voile + nuages sur les cases non révélées
+  for (let y=0;y<MH;y++) for (let x=0;x<MW;x++){
+    const inRev = L.rooms.some(r => rev.has(r.id) && x>=r.rect[0]-0 && x<r.rect[0]+r.rect[2] && y>=r.rect[1] && y<r.rect[1]+r.rect[3]) || (anyRev && L.corr.some(c => x>=c[0] && x<c[0]+c[2] && y>=c[1] && y<c[1]+c[3])) || (L.stairs && anyRev && x===L.stairs[0] && y===L.stairs[1]) || (f<3 && y===11 && (x===9||x===10));
+    if (!inRev){ g.fillStyle = `rgba(20,16,40,${.55+hash(x,y)*.3})`; g.fillRect(x*TILE,y*TILE,TILE,TILE); g.fillStyle = 'rgba(120,110,160,.12)'; g.beginPath(); g.arc(x*TILE+16+hash(y,x)*10, y*TILE+16, 12+hash(x,y)*8, 0, Math.PI*2); g.fill(); }
+  }
+}
+let mapAnim = null;
+function mapLoop(){ if (screen!=='mapscreen'){ mapAnim = null; return; } drawMap(); mapAnim = requestAnimationFrame(mapLoop); }
+function openMap(f){
+  if (f==null){ const cur = currentRoom(); f = cur ? cur.floor : 3; }
+  mapFloor = f; $('#map-title').textContent = FLOORS[f].name;
+  const fl = $('#floors'); fl.innerHTML = ''; FLOORS.forEach((F, i) => { const b = document.createElement('button'); b.textContent = F.short; b.disabled = !floorUnlocked(i); b.setAttribute('aria-current', i===f); b.onclick = () => { SFX.click(); openMap(i); }; fl.appendChild(b); });
+  const cur = ROOMS.find(r => r.floor===f && !isDone(r.id) && roomUnlocked(r));
+  $('#maphint').textContent = cur ? `✨ ${cur.name} : ${DD[cur.dd].name} t'attend. ${FLOORS[f].intro}` : (floorUnlocked(f+1) ? 'Étage terminé ! Prends l\'escalier en haut à droite.' : 'Touche une salle pour la rejouer.');
+  MUSIC.play(f===3 ? 'tower' : 'floor'+f);
+  show('mapscreen'); if (!mapAnim) mapLoop();
+}
+mapCv.addEventListener('click', e => {
+  const r = mapCv.getBoundingClientRect(); const x = (e.clientX-r.left)/r.width*MW, y = (e.clientY-r.top)/r.height*MH;
+  const L = floorLayout(mapFloor);
+  if (L.stairs && x>=L.stairs[0] && x<L.stairs[0]+1 && y>=L.stairs[1] && y<L.stairs[1]+2){ if (floorUnlocked(mapFloor+1)){ SFX.stairs(); openMap(mapFloor+1); } else toast('L\'escalier est fermé. Délivre tous les doudous de cet étage !'); return; }
+  const room = L.rooms.find(rm => x>=rm.rect[0] && x<rm.rect[0]+rm.rect[2] && y>=rm.rect[1] && y<rm.rect[1]+rm.rect[3]);
+  if (!room) return;
+  if (!roomUnlocked(room)){ SFX.ko(); const i = ROOMS.indexOf(room); const prev = ROOMS[i-1]; toast(room.boss ? 'Délivre tous les autres doudous avant de monter voir Vachou !' : `Cette porte est fermée. Délivre d'abord ${DD[prev.dd].name} !`); return; }
+  enterRoom(room);
+});
+function enterRoom(room){
+  const d = DD[room.dd]; const rs = roomState(room.id); const level = clamp(rs.done+1,1,3);
+  // Orage surprise : jamais sur la première salle, jamais au donjon, environ une salle sur trois une fois lancé
+  if (!room.boss && freedCount()>=1 && (S.sinceStorm||0)>=2 && Math.random()<.45){ S.sinceStorm = 0; save(); return startStorm(() => startRoom(room)); }
+  toast(`${GAMES[room.id].intro}`, 3200);
+  startRoom(room);
+}
+
+/* =========================================================
+   ORAGE : les éclairs se rapprochent, la lumière s'éteint, les citrouilles attaquent (multiplications rapides)
+   ========================================================= */
+let storm = null;
+function stormTables(){ const n = freedCount(); return n<5 ? [2,3,10] : n<10 ? [2,3,4,5,10] : [2,3,4,5,6,7,8,9,10]; }
+function startStorm(after, test){
+  storm = { after, test, n:6, i:0, hits:0, misses:0, hearts:3, pumpkins:[], phase:'intro', t:0, q:null, done:false, flashes:0 };
+  const el = $('#storm'); el.hidden = false; $('#storm-opts').innerHTML = ''; $('#storm-q').textContent = ''; $('#storm-title').textContent = '⛈️ Un orage approche…';
+  $('#storm-score').textContent = '🎃 0 / 6'; $('#storm-hearts').textContent = '❤️❤️❤️';
+  $('#app').classList.add('dim'); MUSIC.stop();
+  const cv = $('#storm-cv'); cv.width = 640; cv.height = 400;
+  storm.t0 = Date.now(); storm.loop = requestAnimationFrame(stormFrame);
+  // éclairs qui se rapprochent : 4 coups, de plus en plus forts, puis extinction
+  [[600,.15,.2],[1700,.3,.4],[2900,.55,.7],[4100,1,1]].forEach(([t,vol,op], i) => setTimeout(() => { if (!storm) return; flash(op); setTimeout(() => { if (S.sound){ noise(1+i*.3, .25+vol*.4, 250+i*100); tone(40+i*8,0,1,'sawtooth',.08+vol*.15); } }, 120+ (3-i)*180); }, t));
+  setTimeout(() => { if (!storm) return; $('#storm-title').textContent = '💡 La lumière s\'est éteinte !'; }, 4600);
+  setTimeout(() => { if (!storm) return; $('#storm-title').textContent = '🎃 Les citrouilles attaquent ! Multiplie vite !'; storm.phase = 'play'; MUSIC.play('storm'); launchPumpkin(); }, 6200);
+}
+function flash(op){ const f = $('#storm-flash'); f.style.transition='none'; f.style.opacity = op; setTimeout(() => { f.style.transition='opacity .5s'; f.style.opacity = 0; }, 80); setTimeout(() => { f.style.transition='none'; f.style.opacity = op*.6; setTimeout(()=>{ f.style.transition='opacity .6s'; f.style.opacity=0; }, 60); }, 220); }
+function launchPumpkin(){
+  if (!storm || storm.done) return;
+  if (storm.i >= storm.n) return endStorm();
+  const tables = stormTables(); const a = pick(tables), b = rnd(2,9); const ans = a*b;
+  const dur = clamp(7000 - freedCount()*150, 4200, 7000);
+  storm.q = {a,b,ans, born:Date.now(), dur, x:.2+Math.random()*.6, hit:false};
+  $('#storm-q').innerHTML = `${a} × ${b} = ?`;
+  const box = $('#storm-opts'); box.innerHTML = '';
+  mkOptions(ans, [a*(b+1),a*(b-1),(a+1)*b,ans+2,ans-2,a+b], 3).forEach(o => { const bt = document.createElement('button'); bt.className='opt'; bt.textContent = o; bt.onclick = () => { if (!storm || storm.q.hit || storm.phase!=='play') return; if (o===ans){ stormHit(true); bt.classList.add('ok'); } else { bt.classList.add('ko'); stormHit(false); } }; box.appendChild(bt); });
+  SFX.pumpkin();
+}
+function stormHit(ok){
+  const q = storm.q; q.hit = true; q.hitAt = Date.now(); q.ok = ok; storm.i++;
+  if (ok){ storm.hits++; SFX.squash(); const gain = 20; S.billes += gain; $('#storm-score').textContent = `🎃 ${storm.hits} / ${storm.n}`; }
+  else { storm.misses++; storm.hearts--; SFX.boom(); flash(.5); $('#storm-hearts').textContent = '❤️'.repeat(storm.hearts) + '🖤'.repeat(3-storm.hearts); $('#storm-q').innerHTML = `${q.a} × ${q.b} = <span style="color:#8de3c0">${q.ans}</span>`; }
+  setTimeout(() => { if (!storm) return; if (storm.hearts<=0) endStorm(); else launchPumpkin(); }, ok ? 600 : 1300);
+}
+function stormFrame(){
+  if (!storm) return; const cv = $('#storm-cv'), g = cv.getContext('2d'); g.imageSmoothingEnabled = false; const W = cv.width, H = cv.height; const now = Date.now();
+  // salle sombre : sol, murs, fenêtre avec pluie
+  g.fillStyle = '#07050d'; g.fillRect(0,0,W,H);
+  const lit = storm.phase==='intro' ? clamp(1-(now-storm.t0)/5200, 0, 1) : 0.08;
+  g.fillStyle = `rgba(80,60,120,${.25*lit+.03})`; g.fillRect(0,0,W,H*.62); g.fillStyle = `rgba(60,45,90,${.35*lit+.05})`; g.fillRect(0,H*.62,W,H*.38);
+  // fenêtre
+  g.fillStyle = `rgba(30,25,60,.9)`; g.fillRect(W*.4, 30, W*.2, 120); g.strokeStyle = '#2a2340'; g.lineWidth = 6; g.strokeRect(W*.4, 30, W*.2, 120);
+  for (let i=0;i<40;i++){ const rx = W*.4 + ((i*53 + now/6)%(W*.2)), ry = 30 + ((i*37 + now/3)%120); g.fillStyle='rgba(160,180,255,.35)'; g.fillRect(rx, ry, 2, 8); }
+  // lanterne de l'héroïne (petit halo au premier plan)
+  const halo = g.createRadialGradient(W/2, H-10, 10, W/2, H-10, 140); halo.addColorStop(0, 'rgba(255,200,120,.35)'); halo.addColorStop(1, 'rgba(255,200,120,0)'); g.fillStyle = halo; g.fillRect(0,0,W,H);
+  const hero = SPR.hero; if (hero && hero.complete) g.drawImage(hero, W/2-30, H-78, 60, 60);
+  // citrouille qui fonce
+  const q = storm.q;
+  if (q && storm.phase==='play'){
+    const p = q.hit ? clamp((q.hitAt-q.born)/q.dur,0,1) : clamp((now-q.born)/q.dur, 0, 1);
+    if (!q.hit && p>=1){ stormHit(false); }
+    const sz = 30 + p*p*230; const x = W*q.x + (W/2-W*q.x)*p, y = H*.35 + p*p*H*.45; const sp = SPR.pumpkin;
+    const glow = g.createRadialGradient(x, y, sz*.1, x, y, sz*.9); glow.addColorStop(0, `rgba(255,140,0,${.35+.25*Math.sin(now/90)})`); glow.addColorStop(1, 'rgba(255,140,0,0)'); g.fillStyle = glow; g.fillRect(x-sz, y-sz, sz*2, sz*2);
+    if (q.hit){ const k = clamp((now-q.hitAt)/500, 0, 1); if (q.ok){ for (let i=0;i<10;i++){ const a = i*Math.PI/5; g.fillStyle = `rgba(255,${120+i*10},40,${1-k})`; g.fillRect(x+Math.cos(a)*k*sz, y+Math.sin(a)*k*sz, 10, 10); } } else { g.globalAlpha = 1-k; if (sp && sp.complete) g.drawImage(sp, x-sz/2, y-sz/2, sz, sz); g.globalAlpha = 1; } }
+    else { const wob = Math.sin(now/80)*p*6; if (sp && sp.complete) g.drawImage(sp, x-sz/2+wob, y-sz/2, sz, sz); else { g.fillStyle='#ff8c00'; g.beginPath(); g.arc(x,y,sz/2,0,Math.PI*2); g.fill(); } }
+  }
+  storm.loop = requestAnimationFrame(stormFrame);
+}
+function endStorm(){
+  if (!storm || storm.done) return; storm.done = true; cancelAnimationFrame(storm.loop); const won = storm.hearts>0;
+  S.storms = (S.storms||0)+1; if (won) S.stormWins = (S.stormWins||0)+1;
+  let bonus = storm.hits*20; if (won && storm.misses===0){ bonus += 60; }
+  $('#storm-q').innerHTML = won ? (storm.misses===0 ? `☀️ Orage repoussé sans faute ! +${bonus} billes` : `☀️ Orage repoussé ! +${bonus} billes`) : `🎃 Les citrouilles ont gagné cette fois… +${bonus} billes`;
+  $('#storm-opts').innerHTML = ''; $('#storm-title').textContent = won ? 'La lumière revient' : 'Le calme revient';
+  if (won){ SFX.freed(); } else SFX.fail();
+  if (!storm.test) S.billes += (won && storm.misses===0 ? 60 : 0); // les 20 par citrouille sont déjà comptés
+  save();
+  const after = storm.after;
+  setTimeout(() => { $('#storm').hidden = true; $('#app').classList.remove('dim'); storm = null; MUSIC.stop(); if (after) after(); else renderHome(); }, 2600);
+}
+
+/* =========================================================
+   ACCUEIL, ALBUM, RÉSULTAT
+   ========================================================= */
+function renderHome(){
+  $('#castle-img').src = IMG.castle;
+  $('#h-billes').textContent = S.billes; $('#h-stars').textContent = S.stars; $('#h-hearts').textContent = maxHearts(); $('#h-freed').textContent = freedCount();
+  const {cur,next} = rank(S.billes); $('#h-rank').textContent = cur[1]; $('#h-next').textContent = next ? `${S.billes} / ${next[0]} billes` : 'Rang maximum !';
+  $('#h-rankbar').style.width = next ? clamp((S.billes-cur[0])/(next[0]-cur[0])*100, 2, 100)+'%' : '100%';
+  const sm = S.stars%4; $('#h-starnext').textContent = maxHearts()>=MAX_HEARTS ? 'Cœurs au maximum !' : `${sm} / 4 étoiles`; $('#h-starbar').style.width = (maxHearts()>=MAX_HEARTS ? 100 : sm/4*100)+'%';
+  $('#home-tag').textContent = S.name ? (freedCount()===ROOMS.length ? `${S.name} a sauvé tous les doudous !` : freedCount() ? `${S.name}, ${ROOMS.length-freedCount()} doudous attendent encore` : `${S.name}, les doudous se sont perdus dans le château`) : 'Les doudous se sont perdus dans le château';
+  $('#btn-enter').textContent = freedCount() ? '🏰 Continuer l\'exploration' : '🏰 Entrer dans le château';
+  const par = $('#parade'); par.innerHTML = ROOMS.filter(r => isDone(r.id)).map(r => `<img src="${IMG[r.dd]}" alt="${DD[r.dd].name}" class="px">`).join('');
+  $('#tg-sound').setAttribute('aria-pressed', !!S.sound); $('#tg-music').setAttribute('aria-pressed', !!S.music);
+  $('#lasterr').textContent = S.lastErr ? 'Dernière erreur : ' + S.lastErr.msg : '';
+}
+function renderAlbum(){
+  const g = $('#album-grid'); g.innerHTML = '';
+  DOUDOUS.forEach(d => { const room = ROOMS.find(r => r.dd===d.id); const rs = S.rooms[room.id]; const done = rs && rs.done>0;
+    const el = document.createElement('div'); el.className = 'dd' + (done?'':' locked');
+    el.innerHTML = `<img src="${IMG[d.id]}" alt="" class="px"><b>${done ? d.name : '?'}</b><small>${done ? d.desc + ' · ' + room.name : 'perdu dans ' + room.name}</small><span class="stars">${done ? ('⭐'.repeat(Math.min(3,rs.perfect)) || ('niveau '+Math.min(3,rs.done))) : ''}</span>`;
+    g.appendChild(el); });
+}
+$('#btn-enter').onclick = () => { SFX.click(); openMap(); };
+$('#btn-album').onclick = () => { SFX.click(); renderAlbum(); show('album'); };
+$('#btn-album-back').onclick = () => { SFX.click(); renderHome(); show('home'); };
+$('#btn-map-back').onclick = () => { SFX.click(); renderHome(); show('home'); MUSIC.play('home'); };
+$('#btn-quit').onclick = () => { if (!run) return; clearInterval(timerIv); window.onkeydown = null; run = null; SFX.click(); openMap(); };
+$('#btn-res-map').onclick = () => { SFX.click(); openMap(); };
+$('#btn-res-again').onclick = () => { SFX.click(); const last = $('#res-img').alt || null; const room = ROOMS.find(r => IMG[r.dd]===$('#res-img').getAttribute('src')); if (room) enterRoom(room); else openMap(); };
+$('#tg-sound').onclick = () => { S.sound = !S.sound; save(); renderHome(); if (S.sound) SFX.ok(); };
+$('#tg-music').onclick = () => { S.music = !S.music; save(); renderHome(); MUSIC.refresh(); if (S.music) MUSIC.play('home'); };
+$('#btn-rename').onclick = () => { $('#modal-name').hidden = false; $('#modal-msg').textContent = 'Comment t\'appelles-tu ?'; $('#modal-form').hidden = false; $('#inp-name').value = S.name; $('#inp-name').focus(); };
+$('#btn-storm-test').onclick = () => { startStorm(null, true); };
+$('#btn-unlock').onclick = () => { S.unlockAll = !S.unlockAll; save(); toast(S.unlockAll ? 'Toutes les salles sont ouvertes (mode test)' : 'Retour au parcours normal'); };
+let resetArmed = false;
+$('#btn-reset').onclick = () => { if (!resetArmed){ resetArmed = true; $('#btn-reset').textContent = 'Sûr ? Touche encore'; setTimeout(() => { resetArmed = false; $('#btn-reset').textContent = 'Tout effacer'; }, 4000); return; } const name = S.name; S = DEFAULT(); S.name = name; S.resetAt = Date.now(); save(); renderHome(); toast('Progression effacée'); resetArmed = false; $('#btn-reset').textContent = 'Tout effacer'; };
+$('#modal-form').onsubmit = e => { e.preventDefault(); const v = $('#inp-name').value.trim(); if (!v) return; S.name = v; save(); $('#modal-name').hidden = true; renderHome(); toast(`Bienvenue, ${v} ! Les doudous comptent sur toi.`); SFX.star(); };
+
+/* =========================================================
+   SYNCHRO entre appareils (db claude.ai) : fusion par progression, jamais par date seule
+   ========================================================= */
+let DBREF = null, cloudTimer = null, cloudWriting = false, cloudDirty = false;
+function setSync(state, text){ const c = $('#sync-chip'); if (!c) return; c.textContent = text; c.style.color = state==='ok' ? 'var(--mint)' : state==='err' ? 'var(--danger)' : 'var(--muted)'; }
+function adoptRemote(remote){ const name = S.name; S = Object.assign(DEFAULT(), remote); if (!S.name) S.name = name; try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} if (S.name) $('#modal-name').hidden = true; if (screen==='home') renderHome(); }
+const prog = x => ((x.tot&&x.tot.r)||0) + ((x.tot&&x.tot.w)||0);
+async function cloudPull(){
+  if (!DBREF) return; const snap = await DBREF.get();
+  if (snap.exists){ const remote = snap.data().state; if (remote){
+    const remoteReset = (remote.resetAt||0) > (S.updated||0), localReset = (S.resetAt||0) > (remote.updated||0); let winner;
+    if (remoteReset && !localReset) winner = 'remote'; else if (localReset && !remoteReset) winner = 'local';
+    else if (prog(remote)!==prog(S)) winner = prog(remote)>prog(S) ? 'remote' : 'local'; else winner = (remote.updated||0)>=(S.updated||0) ? 'remote' : 'local';
+    if (winner==='remote'){ if ((remote.updated||0)!==(S.updated||0) || prog(remote)!==prog(S)){ adoptRemote(remote); return 'pulled'; } return 'same'; }
+    cloudDirty = true; await cloudFlush(); return 'pushed'; } }
+  cloudDirty = true; await cloudFlush(); return 'created';
+}
+async function cloudFlush(){
+  if (!DBREF || cloudWriting || !cloudDirty) return; cloudWriting = true; cloudDirty = false;
+  try{ await DBREF.set({state:S, updated:S.updated||Date.now(), v:1}); setSync('ok', '☁️ Synchronisé'); }
+  catch(e){ if (e && (e.code==='invalid_argument' || e.code==='not_granted' || e.code==='revoked' || e.code==='quota_exceeded')){ DBREF = null; cloudDirty = false; setSync('off', '☁️ Sauvegarde locale'); } else { cloudDirty = true; setSync('err', '☁️ Synchro en attente'); } }
+  finally{ cloudWriting = false; if (cloudDirty) setTimeout(cloudFlush, 2500); }
+}
+function cloudSave(){ if (!DBREF) return; cloudDirty = true; clearTimeout(cloudTimer); cloudTimer = setTimeout(cloudFlush, 1500); }
+async function initCloud(){
+  if (!window.claude || typeof window.claude.use!=='function'){ settleModal(); return; }
+  try{ const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]); if (!db || !user){ settleModal(); return; }
+    const id = await user.id(); if (!id){ settleModal(); return; } DBREF = db.doc('data/users/'+id+'/save');
+    const r = await cloudPull(); setSync('ok', '☁️ Synchronisé'); if (r==='pulled') toast('☁️ Progression récupérée depuis ton autre appareil'); }
+  catch(e){ console.warn('synchro', e); setSync('err', '☁️ Synchro indisponible'); }
+  finally{ settleModal(); }
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden){ cloudFlush(); } else if (DBREF && !run && !storm){ cloudPull().catch(()=>{}); } });
+addEventListener('pagehide', () => { cloudFlush(); });
+
+/* =========================================================
+   DÉMARRAGE
+   ========================================================= */
+function drawStars(){ const cv = $('#stars'); const g = cv.getContext('2d'); const W = cv.width = innerWidth, H = cv.height = innerHeight; g.clearRect(0,0,W,H); for (let i=0;i<120;i++){ g.fillStyle = `rgba(255,240,200,${.2+Math.random()*.6})`; const s = Math.random()<.15 ? 3 : 2; g.fillRect(Math.random()*W, Math.random()*H, s, s); } }
+addEventListener('resize', drawStars); drawStars();
+load(); loadSprites();
+function boot(){ renderHome(); show('home'); if (!S.name){ $('#modal-name').hidden = false; $('#modal-msg').textContent = 'Recherche d\'une sauvegarde sur ton compte…'; $('#modal-form').hidden = true; } }
+let cloudSettled = false;
+function settleModal(){ if (cloudSettled) return; cloudSettled = true; if (S.name){ $('#modal-name').hidden = true; return; } $('#modal-msg').textContent = 'Comment t\'appelles-tu ?'; $('#modal-form').hidden = false; $('#inp-name').focus(); }
+setTimeout(settleModal, 8000);
+(window.claude && window.claude.hot && window.claude.hot.ready) ? window.claude.hot.ready(boot) : boot();
+initCloud();
+document.addEventListener('pointerdown', function first(){ if (S.music && screen==='home') MUSIC.play('home'); document.removeEventListener('pointerdown', first); }, {once:true});
+</script>

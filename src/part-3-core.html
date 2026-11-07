@@ -1,0 +1,204 @@
+<script>
+/* =========================================================
+   LE CHÂTEAU DES DOUDOUS : jeu de maths (CP fort, vers CE1/CE2)
+   Un seul fichier. Sections : données, état et sauvegarde, son, mini-jeux, moteur de salle, carte, orage, accueil, démarrage.
+   ========================================================= */
+const KEY = 'chateau-doudous-v1';
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const IMG = /*IMG*/;
+const rnd = (a,b) => a + Math.floor(Math.random()*(b-a+1));
+const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+const shuffle = arr => { const a = arr.slice(); for (let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; } return a; };
+const clamp = (x,a,b) => Math.max(a, Math.min(b, x));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- Doudous, du plus précieux au moins précieux ---------- */
+const DOUDOUS = [
+  {id:'vachou',   name:'Vachou',    desc:'la vache marron'},
+  {id:'pengouins',name:'Pengouins', desc:'le petit pingouin noir et jaune'},
+  {id:'minion',   name:'Minion',    desc:'le petit pingouin gris'},
+  {id:'pegs',     name:'Pegs',      desc:'le gros pingouin gris au visage fin'},
+  {id:'fanfan',   name:'Fanfan',    desc:'le bébé éléphant'},
+  {id:'chioune',  name:'Chioune',   desc:'le petit chien'},
+  {id:'lamantou', name:'Lamantou',  desc:'le lamantin'},
+  {id:'sose',     name:'Sose',      desc:'le très grand pingouin'},
+  {id:'peso',     name:'Peso',      desc:'le pingouin aux pattes orange'},
+  {id:'orange',   name:'Orange',    desc:'le pingouin à la tête orange'},
+  {id:'rose',     name:'Rose',      desc:'le pingouin à la tache rose'},
+  {id:'manchou',  name:'Manchou',   desc:'le gorfou aux plumes jaunes'},
+  {id:'pandou',   name:'Pandou',    desc:'le panda'},
+  {id:'hugo',     name:'Hugo',      desc:'le petit kangourou'},
+  {id:'poulpou',  name:'Poulpou',   desc:'la petite pieuvre'},
+  {id:'crabou',   name:'Crabou',    desc:'le crabe'}
+];
+const DD = Object.fromEntries(DOUDOUS.map(d => [d.id, d]));
+
+/* ---------- Étages : la difficulté monte avec les étages (pas de chrono au rez-de-chaussée) ---------- */
+const FLOORS = [
+  {name:'Rez-de-chaussée', short:'RDC', timer:0,  billes:10, intro:'Pas de chrono ici. Prends ton temps.'},
+  {name:'1er étage',       short:'1er', timer:25, billes:15, intro:'Un sablier apparaît, mais il est généreux.'},
+  {name:'2e étage',        short:'2e',  timer:12, billes:20, intro:'Le sablier est plus rapide. Reste concentrée !'},
+  {name:'La Tour',         short:'Tour',timer:18, billes:30, intro:'Tout en haut, Vachou. Toutes les énigmes du château, mélangées.'}
+];
+
+/* ---------- Salles, dans l'ordre d'exploration (Crabou près de l'entrée, Vachou au sommet) ----------
+   rect = [x, y, largeur, hauteur] en tuiles sur la carte 20 x 12 ; door = [x, y] la case de porte (sur le couloir). */
+const ROOMS = [
+  {id:'formes',   floor:0, dd:'crabou',   name:'Le Hall aux vitraux',     skill:'Les formes',               acc:'#ff8fb1', bg:'#2a1f4a', rect:[1,1,5,4],   door:[3,5],  n:8},
+  {id:'bains',    floor:0, dd:'poulpou',  name:'Les Bains',               skill:'Les contenances',          acc:'#7cc4ff', bg:'#0f3550', rect:[7,1,6,4],   door:[10,5], n:8},
+  {id:'longueurs',floor:0, dd:'hugo',     name:'La Galerie des sauts',    skill:'Les longueurs',            acc:'#8de3c0', bg:'#1d3a2e', rect:[14,1,5,4],  door:[16,5], n:8},
+  {id:'doubles',  floor:0, dd:'pandou',   name:'La Bibliothèque',         skill:'Doubles et moitiés',       acc:'#ffd166', bg:'#3a2a1a', rect:[2,8,7,3],   door:[5,7],  n:8},
+  {id:'symetrie', floor:0, dd:'manchou',  name:'La Salle des miroirs',    skill:'La symétrie',              acc:'#c9b6ff', bg:'#2a2250', rect:[11,8,7,3],  door:[14,7], n:7},
+
+  {id:'complements',floor:1, dd:'rose',   name:'La Chambre rose',         skill:'Compléments à 10, 20, 30', acc:'#ff8fb1', bg:'#4a1f3a', rect:[1,1,5,4],   door:[3,5],  n:8},
+  {id:'monnaie',  floor:1, dd:'orange',   name:'La Boutique',             skill:'Rendre la monnaie',        acc:'#ffb347', bg:'#3a2a10', rect:[7,1,6,4],   door:[10,5], n:7},
+  {id:'horloge',  floor:1, dd:'peso',     name:"La Tour de l'horloge",    skill:'Heures, jours et durées',  acc:'#7cc4ff', bg:'#1a2a4a', rect:[14,1,5,4],  door:[16,5], n:8},
+  {id:'tables1',  floor:1, dd:'sose',     name:'La Salle des bannières',  skill:'Tables de 2, 3, 5 et 10',  acc:'#ffd166', bg:'#3a1a1a', rect:[2,8,7,3],   door:[5,7],  n:10},
+  {id:'soustraction',floor:1, dd:'lamantou', name:"L'Aquarium",           skill:'Soustractions',            acc:'#8de3c0', bg:'#0b3350', rect:[11,8,7,3],  door:[14,7], n:8},
+
+  {id:'addition', floor:2, dd:'chioune',  name:'La Cour des os',          skill:'Additions jusquà 100',  acc:'#ffb347', bg:'#2a2a1a', rect:[1,1,5,4],   door:[3,5],  n:8},
+  {id:'arrondi',  floor:2, dd:'pegs',     name:"L'Observatoire",          skill:'Arrondir à la dizaine',    acc:'#c9b6ff', bg:'#141a3a', rect:[7,1,6,4],   door:[10,5], n:8},
+  {id:'complements100',floor:2, dd:'fanfan', name:'La Salle du trésor',   skill:'Compléments à 50 et 100',  acc:'#ffd166', bg:'#3a2a0a', rect:[14,1,5,4],  door:[16,5], n:8},
+  {id:'rapides',  floor:2, dd:'minion',   name:'La Forge',                skill:'Additions éclair',         acc:'#ff7a5c', bg:'#3a1510', rect:[2,8,7,3],   door:[5,7],  n:12},
+  {id:'tables2',  floor:2, dd:'pengouins',name:'La Salle du trône',       skill:'Toutes les tables',        acc:'#ffd166', bg:'#2a1a3a', rect:[11,8,7,3],  door:[14,7], n:10},
+
+  {id:'boss',     floor:3, dd:'vachou',   name:'Le Donjon de la Tour',    skill:'Toutes les énigmes',       acc:'#ff8fb1', bg:'#1a1030', rect:[6,2,8,6],   door:[9,9],  n:15, boss:true}
+];
+const ROOM = Object.fromEntries(ROOMS.map(r => [r.id, r]));
+const RANKS = [[0,'Apprentie exploratrice'],[250,'Chercheuse de doudous'],[700,'Gardienne du château'],[1400,'Princesse des doudous'],[2600,'Reine du château'],[4500,'Légende des doudous']];
+function rank(b){ let cur = RANKS[0], next = null; for (const x of RANKS){ if (b>=x[0]) cur = x; else { next = x; break; } } return {cur,next}; }
+const BASE_HEARTS = 5, MAX_HEARTS = 10;
+
+/* ---------- État ---------- */
+const DEFAULT = () => ({ name:'', billes:0, stars:0, sound:true, music:true, rooms:{}, tot:{r:0,w:0}, storms:0, stormWins:0, sinceStorm:0, unlockAll:false, heroSeen:false });
+let S = DEFAULT();
+function load(){ try{ const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(DEFAULT(), JSON.parse(raw)); }catch(e){} }
+function save(){ S.updated = Date.now(); try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} cloudSave(); }
+function logErr(e, where){ try{ S.lastErr = { t:new Date().toISOString(), where:where||'', msg:String(e && (e.stack||e.message||e)).slice(0,400), ua:navigator.userAgent.slice(0,80) }; save(); const el = $('#lasterr'); if (el) el.textContent = 'Dernière erreur : ' + S.lastErr.msg; }catch(_){} }
+window.addEventListener('error', e => logErr(e.error || e.message, 'window'));
+window.addEventListener('unhandledrejection', e => logErr(e.reason, 'promise'));
+const roomState = id => S.rooms[id] || (S.rooms[id] = {done:0, best:null, perfect:0});
+const isDone = id => (S.rooms[id]||{}).done > 0;
+const maxHearts = () => clamp(BASE_HEARTS + Math.floor((S.stars||0)/4), BASE_HEARTS, MAX_HEARTS);
+const freedCount = () => ROOMS.filter(r => isDone(r.id)).length;
+function roomUnlocked(r){
+  if (S.unlockAll) return true;
+  const i = ROOMS.indexOf(r);
+  if (r.boss) return ROOMS.filter(x => !x.boss).every(x => isDone(x.id));
+  return i===0 || isDone(ROOMS[i-1].id);
+}
+function floorUnlocked(f){ return S.unlockAll || f===0 || ROOMS.filter(r => r.floor===f-1).every(r => isDone(r.id)); }
+function currentRoom(){ return ROOMS.find(r => !isDone(r.id) && roomUnlocked(r)) || null; }
+
+/* =========================================================
+   SON : tout est synthétisé (Web Audio), bruitages + petites musiques par étage
+   ========================================================= */
+let AC = null;
+function ac(){ if(!AC){ try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(AC && AC.state!=='running'){ try{ AC.resume(); }catch(e){} } return AC; }
+['touchend','pointerdown','keydown'].forEach(ev => document.addEventListener(ev, () => { if (S.sound||S.music) ac(); }, {passive:true}));
+document.addEventListener('visibilitychange', () => { if (!document.hidden && AC) ac(); });
+function tone(f, t0, dur, type='sine', vol=.18, dest){
+  const c = ac(); if(!c) return;
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, c.currentTime+t0);
+  g.gain.setValueAtTime(0, c.currentTime+t0);
+  g.gain.linearRampToValueAtTime(vol, c.currentTime+t0+.01);
+  g.gain.exponentialRampToValueAtTime(.0001, c.currentTime+t0+dur);
+  o.connect(g).connect(dest||c.destination); o.start(c.currentTime+t0); o.stop(c.currentTime+t0+dur+.05);
+}
+function noise(dur, vol=.4, cutoff=600){
+  const c = ac(); if(!c) return;
+  const len = Math.floor(c.sampleRate*dur), buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
+  for (let i=0;i<len;i++) d[i] = (Math.random()*2-1) * Math.pow(1-i/len, 2.2);
+  const src = c.createBufferSource(); src.buffer = buf; const f = c.createBiquadFilter(); f.type='lowpass'; f.frequency.value = cutoff;
+  const g = c.createGain(); g.gain.value = vol; src.connect(f).connect(g).connect(c.destination); src.start();
+}
+const SFX = {
+  click(){ if(!S.sound) return; tone(880,0,.05,'square',.05); },
+  ok(){ if(!S.sound) return; tone(659,0,.1,'triangle'); tone(988,.09,.16,'triangle'); },
+  ko(){ if(!S.sound) return; tone(220,0,.2,'sawtooth',.1); tone(165,.14,.3,'sawtooth',.1); },
+  bille(){ if(!S.sound) return; tone(1568,0,.06,'square',.06); tone(2093,.06,.1,'square',.06); },
+  star(){ if(!S.sound) return; [1047,1319,1568,2093].forEach((f,i)=>tone(f,i*.07,.2,'triangle',.12)); },
+  heart(){ if(!S.sound) return; [523,659,784,1047,1319].forEach((f,i)=>tone(f,i*.09,.3,'triangle',.14)); },
+  lose(){ if(!S.sound) return; tone(392,0,.15,'triangle',.12); tone(330,.12,.25,'triangle',.12); },
+  tick(){ if(!S.sound) return; tone(1200,0,.03,'square',.04); },
+  door(){ if(!S.sound) return; tone(196,0,.3,'sawtooth',.08); tone(147,.1,.5,'sawtooth',.06); noise(.3,.15,300); },
+  freed(){ if(!S.sound) return; const m=[[784,0,.12],[988,.12,.12],[1175,.24,.12],[1568,.36,.5],[1319,.6,.14],[1568,.72,.8]]; m.forEach(([f,t,d])=>tone(f,t,d,'triangle',.16)); tone(392,.36,1,'sine',.08); tone(2093,.9,.7,'sine',.05); },
+  fail(){ if(!S.sound) return; [330,311,294,262].forEach((f,i)=>tone(f,i*.2,.4,'triangle',.12)); },
+  pour(){ if(!S.sound) return; noise(.35,.12,1800); tone(500,0,.2,'sine',.05); tone(700,.1,.2,'sine',.05); },
+  coin(){ if(!S.sound) return; tone(2349,0,.05,'square',.06); tone(3136,.05,.15,'square',.06); },
+  bubble(){ if(!S.sound) return; tone(600,0,.08,'sine',.1); tone(1200,.05,.12,'sine',.08); },
+  boom(){ if(!S.sound) return; noise(.5,.45,400); tone(90,0,.5,'sawtooth',.2); },
+  thunder(){ if(!S.sound) return; noise(1.4,.6,320); tone(45,0,1.2,'sawtooth',.25); tone(60,.3,1,'sawtooth',.15); },
+  pumpkin(){ if(!S.sound) return; tone(150,0,.2,'sawtooth',.12); tone(110,.15,.3,'square',.08); },
+  squash(){ if(!S.sound) return; noise(.25,.35,900); tone(300,0,.1,'square',.1); tone(180,.08,.15,'square',.1); },
+  stairs(){ if(!S.sound) return; [523,587,659,698,784,880,988,1047].forEach((f,i)=>tone(f,i*.08,.2,'triangle',.1)); }
+};
+
+/* ---------- Musiques : petit séquenceur, une boucle par ambiance ---------- */
+// Notes en demi-tons depuis le la 440 (0 = la4). Chaque piste : {bpm, lead:[[note|null, durée en croches]...], bass:[...], type}
+const NOTE = n => 440 * Math.pow(2, n/12);
+const MUSIC_TRACKS = {
+  home:  {bpm:92,  lead:'triangle', bass:'sine', vol:.07,
+          melody:[[3,2],[7,2],[10,2],[7,2],[5,2],[3,2],[-2,4], [3,2],[7,2],[10,2],[12,2],[10,2],[7,2],[5,4]],
+          bassl:[[-21,4],[-14,4],[-17,4],[-12,4],[-21,4],[-14,4],[-19,4],[-12,4]]},
+  floor0:{bpm:104, lead:'square', bass:'triangle', vol:.05,
+          melody:[[0,1],[4,1],[7,2],[4,1],[7,1],[12,2],[9,1],[7,1],[4,2],[5,1],[4,1],[2,2], [0,1],[4,1],[7,2],[12,2],[11,1],[9,1],[7,2],[5,2],[2,2],[0,4]],
+          bassl:[[-24,4],[-17,4],[-19,4],[-12,4],[-24,4],[-17,4],[-19,4],[-24,4]]},
+  floor1:{bpm:112, lead:'triangle', bass:'triangle', vol:.06,
+          melody:[[2,1],[5,1],[9,1],[12,1],[9,2],[7,2],[5,1],[7,1],[9,1],[5,1],[2,4], [0,1],[2,1],[5,1],[9,1],[7,2],[5,2],[2,1],[0,1],[-3,1],[0,1],[2,4]],
+          bassl:[[-22,4],[-15,4],[-17,4],[-10,4],[-22,4],[-15,4],[-19,4],[-22,4]]},
+  floor2:{bpm:126, lead:'square', bass:'sawtooth', vol:.045,
+          melody:[[-3,1],[0,1],[4,1],[7,1],[9,1],[7,1],[4,1],[0,1],[-1,1],[2,1],[5,1],[9,1],[11,1],[9,1],[5,1],[2,1], [-3,1],[0,1],[4,1],[7,1],[12,2],[11,1],[9,1],[7,2],[4,2],[0,4]],
+          bassl:[[-27,2],[-27,2],[-20,2],[-20,2],[-25,2],[-25,2],[-18,2],[-18,2],[-27,2],[-27,2],[-20,2],[-20,2],[-22,2],[-22,2],[-27,4]]},
+  tower: {bpm:96,  lead:'triangle', bass:'sawtooth', vol:.06,
+          melody:[[0,3],[3,1],[7,2],[3,2],[2,3],[5,1],[8,2],[5,2],[0,3],[3,1],[7,2],[10,2],[12,4],[10,2],[7,2]],
+          bassl:[[-24,4],[-21,4],[-22,4],[-19,4],[-24,4],[-21,4],[-17,4],[-12,4]]},
+  storm: {bpm:140, lead:'sawtooth', bass:'sawtooth', vol:.045,
+          melody:[[-3,1],[-3,1],[-2,1],[-3,1],[null,1],[-9,1],[-3,2],[-3,1],[-3,1],[-2,1],[-3,1],[null,1],[-5,1],[-7,2]],
+          bassl:[[-27,2],[-27,2],[-26,2],[-27,2],[-27,2],[-27,2],[-29,2],[-31,2]]}
+};
+const MUSIC = {
+  cur:null, timer:null, nextT:0, mi:0, bi:0, mbeat:0, bbeat:0, gain:null,
+  play(name){
+    if (this.cur===name && this.timer) return;
+    this.stop(); if (!S.music) { this.cur = name; return; }
+    const c = ac(); if (!c) { this.cur = name; return; }
+    this.cur = name; this.gain = c.createGain(); this.gain.gain.value = 1; this.gain.connect(c.destination);
+    this.mi = 0; this.bi = 0; this.mbeat = 0; this.bbeat = 0; this.nextT = c.currentTime + .05; this.t0 = this.nextT;
+    this.timer = setInterval(() => this.tick(), 120);
+    this.tick();
+  },
+  tick(){
+    const c = ac(); const T = MUSIC_TRACKS[this.cur]; if (!c || !T || !this.gain) return;
+    const eighth = 30 / T.bpm; // durée d'une croche
+    while (this.t0 + this.mbeat*eighth < c.currentTime + .4){
+      const [n, d] = T.melody[this.mi % T.melody.length];
+      if (n!==null) tone(NOTE(n), Math.max(0, this.t0 + this.mbeat*eighth - c.currentTime), d*eighth*.9, T.lead, T.vol, this.gain);
+      this.mbeat += d; this.mi++;
+    }
+    while (this.t0 + this.bbeat*eighth < c.currentTime + .4){
+      const [n, d] = T.bassl[this.bi % T.bassl.length];
+      if (n!==null) tone(NOTE(n), Math.max(0, this.t0 + this.bbeat*eighth - c.currentTime), d*eighth*.95, T.bass, T.vol*.9, this.gain);
+      this.bbeat += d; this.bi++;
+    }
+  },
+  stop(){ clearInterval(this.timer); this.timer = null; if (this.gain){ try{ const g = this.gain; g.gain.setTargetAtTime(0, ac().currentTime, .08); setTimeout(()=>{ try{ g.disconnect(); }catch(e){} }, 600); }catch(e){} this.gain = null; } },
+  refresh(){ const n = this.cur; this.stop(); if (n && S.music) { this.cur = null; this.play(n); } else this.cur = n; }
+};
+
+/* ---------- UI utilitaires ---------- */
+let screen = 'home';
+function show(id){ ['home','album','mapscreen','room','result'].forEach(s => { $('#'+s).hidden = (s!==id); }); screen = id; window.scrollTo(0,0); }
+let toastT = null;
+function toast(msg, ms=2600){ let t = $('.toast'); if (!t){ t = document.createElement('div'); t.className='toast'; document.body.appendChild(t); } t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms); }
+function sparkle(el, txt='✨'){ try{ const r = el.getBoundingClientRect(); for (let i=0;i<5;i++){ const s = document.createElement('span'); s.className='sparkle'; s.textContent = txt; s.style.left = (r.left + Math.random()*r.width) + 'px'; s.style.top = (r.top + r.height/2) + 'px'; s.style.position='fixed'; s.style.zIndex = 40; document.body.appendChild(s); setTimeout(()=>s.remove(), 900); } }catch(e){} }
+function confetti(){
+  const c = $('#confetti'); c.hidden = false; c.innerHTML = '';
+  for (let i=0;i<60;i++){ const s = document.createElement('i'); const col = pick(['#ffd166','#ff8fb1','#8de3c0','#7cc4ff','#c9b6ff','#fff']);
+    s.style.cssText = `position:absolute;left:${Math.random()*100}%;top:-10px;width:10px;height:14px;background:${col};transform:rotate(${Math.random()*360}deg);animation:fall ${2+Math.random()*2}s linear ${Math.random()*1.2}s forwards`; c.appendChild(s); }
+  setTimeout(() => { c.hidden = true; c.innerHTML=''; }, 4500);
+}
+const st = document.createElement('style'); st.textContent = '@keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:.7}}'; document.head.appendChild(st);
+</script>

@@ -1,0 +1,38 @@
+<!doctype html><html><head><meta charset="utf-8"><style>[hidden]{display:none!important}</style></head><body>
+<!--GAME-->
+<pre id="testout"></pre>
+<script>
+(() => {
+  const out = []; const log = (...a) => { out.push(a.join(' ')); document.getElementById('testout').textContent = out.join('\n'); };
+  window.addEventListener('error', e => log('WINDOW ERROR', e.message, e.lineno)); log('début');
+  const _st = window.setTimeout;
+  try{
+    for (const r of ROOMS){ for (let level=1; level<=3; level++){ let kinds = {}; for (let i=0;i<40;i++){
+      const q = r.boss ? GAMES.boss.gen(level, i%15, 15) : GAMES[r.id].gen(level);
+      if (!q || !q.prompt || !q.kind) throw new Error('question invalide '+r.id);
+      kinds[q.kind] = (kinds[q.kind]||0)+1;
+      if (q.kind==='qcm'){ if (!q.options.map(String).includes(String(q.answer))) throw new Error('réponse absente '+r.id+' '+q.prompt+' '+q.answer+' '+q.options); if (new Set(q.options.map(String)).size!==q.options.length) throw new Error('doublons '+r.id+' '+q.options); }
+      if (q.kind==='num' && typeof q.answer!=='number') throw new Error('num sans nombre '+r.id);
+      const stage = document.createElement('div'); document.body.appendChild(stage);
+      try{ if (q.kind==='custom') q.render(stage, {done:false, answer(){}}); else if (q.render) q.render(stage, {done:false, answer(){}}); }catch(e){ throw new Error('render '+r.id+' L'+level+' : '+e.message); }
+      stage.remove();
+    } log('OK', r.id, level, JSON.stringify(kinds)); } }
+    // 2. moteur : les délais longs deviennent synchrones
+    S.name='Test'; S.unlockAll = true;
+    window.setTimeout = (f, ms, ...a) => { if (ms>=600){ f(...a); return 0; } return _st(f, ms, ...a); };
+    for (const r of ROOMS){
+      startRoom(r); let guard = 0;
+      while (run && guard++<120){ const ok = Math.random()<.8; submit(ok, ok?'' :'x'); }
+      log('salle', r.id, 'écran', screen, 'billes', S.billes, 'étoiles', S.stars, 'tours', guard, 'done', JSON.stringify(S.rooms[r.id]));
+    }
+    log('cœurs max', maxHearts(), 'délivrés', freedCount());
+    for (let f=0; f<4; f++){ openMap(f); drawMap(); } log('carte OK');
+    startStorm(null, true); log('orage phase', storm && storm.phase); if (storm){ if (storm.phase!=='play'){ storm.phase='play'; launchPumpkin(); } stormHit(true); if (storm) { launchPumpkin(); stormHit(false); } } log('orage OK, storm =', storm ? 'actif' : 'fermé', 'billes', S.billes);
+    renderAlbum(); renderHome(); log('home/album OK');
+    // 3. écran salle réel : une question de chaque type rendue dans #stage
+    window.setTimeout = _st;
+    enterRoom(ROOM.formes); log('enterRoom OK, run =', !!run, 'stage html', $('#stage').innerHTML.length);
+  }catch(e){ log('ERREUR', e.stack||e.message); }
+  window.setTimeout = _st;
+})();
+</script></body></html>

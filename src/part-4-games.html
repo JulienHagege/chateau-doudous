@@ -1,0 +1,313 @@
+<script>
+/* =========================================================
+   MINI-JEUX : chaque salle a son générateur gen(level) -> question
+   question = {prompt, sub?, kind:'qcm'|'num'|'custom', options?, answer, suffix?, show?, render?(stage, api), timeMult?}
+   api (custom) : api.answer(ok, shown) termine l'épreuve ; api.ok/api.ko jouent les sons.
+   ========================================================= */
+function mkOptions(answer, cand, n=4){
+  const set = new Set([answer]); const c = cand.filter(x => x!==answer && x>=0 && Number.isFinite(x));
+  for (const x of shuffle(c)){ if (set.size>=n) break; set.add(x); }
+  let k = 1; while (set.size<n){ set.add(answer + k); if (set.size<n && answer-k>=0) set.add(answer-k); k++; }
+  return shuffle([...set]);
+}
+function qcm(prompt, answer, cand, extra={}){ return Object.assign({prompt, kind:'qcm', answer, options:mkOptions(answer, cand, extra.n||4), show:String(answer)}, extra); }
+function num(prompt, answer, extra={}){ return Object.assign({prompt, kind:'num', answer, show:String(answer)+(extra.suffix?' '+extra.suffix:'')}, extra); }
+const fmtEuro = c => (c%100===0) ? (c/100)+' €' : Math.floor(c/100)+' € '+String(c%100).padStart(2,'0');
+
+/* ---------- Formes (Crabou) : vitraux à toucher ---------- */
+const SHAPES = {
+  carre:{name:'le carré', sides:4, pts:(r)=>[[-r,-r],[r,-r],[r,r],[-r,r]]},
+  rectangle:{name:'le rectangle', sides:4, pts:(r)=>[[-r*1.3,-r*.7],[r*1.3,-r*.7],[r*1.3,r*.7],[-r*1.3,r*.7]]},
+  triangle:{name:'le triangle', sides:3, pts:(r)=>[[0,-r*1.1],[r*1.1,r*.8],[-r*1.1,r*.8]]},
+  rond:{name:'le rond', sides:0, circle:true},
+  losange:{name:'le losange', sides:4, pts:(r)=>[[0,-r*1.25],[r*.8,0],[0,r*1.25],[-r*.8,0]]},
+  ovale:{name:"l'ovale", sides:0, ellipse:true},
+  hexagone:{name:"l'hexagone", sides:6, pts:(r)=>Array.from({length:6},(_,i)=>[r*1.05*Math.cos(i*Math.PI/3), r*1.05*Math.sin(i*Math.PI/3)])},
+  pentagone:{name:'le pentagone', sides:5, pts:(r)=>Array.from({length:5},(_,i)=>[r*1.1*Math.cos(-Math.PI/2+i*2*Math.PI/5), r*1.1*Math.sin(-Math.PI/2+i*2*Math.PI/5)])}
+};
+const SHAPE_COLORS = ['#ff8fb1','#ffd166','#8de3c0','#7cc4ff','#c9b6ff','#ffb347','#ff7a5c','#9ef0ff'];
+function shapeSvg(id, cx, cy, r, color, rot, cls, data){
+  const s = SHAPES[id]; const st = `fill="${color}" fill-opacity=".85" stroke="#fff" stroke-width="3" stroke-linejoin="round"`;
+  const g = `<g class="${cls}" data-id="${data}" transform="translate(${cx} ${cy}) rotate(${rot})">`;
+  if (s.circle) return g + `<circle r="${r}" ${st}/></g>`;
+  if (s.ellipse) return g + `<ellipse rx="${r*1.3}" ry="${r*.8}" ${st}/></g>`;
+  return g + `<polygon points="${s.pts(r).map(p=>p.join(',')).join(' ')}" ${st}/></g>`;
+}
+const GAMES = {};
+GAMES.formes = { intro:'Les vitraux du hall brillent. Touche la bonne forme !', gen(level){
+  const pool = level===1 ? ['carre','rectangle','triangle','rond'] : level===2 ? ['carre','rectangle','triangle','rond','losange','ovale','hexagone'] : Object.keys(SHAPES);
+  if (level===3 && Math.random()<.4){
+    const id = pick(pool.filter(k => SHAPES[k].sides>0)); const s = SHAPES[id];
+    return {prompt:`Combien de côtés a ${s.name} ?`, kind:'custom', answer:s.sides, show:String(s.sides), render(stage, api){
+      stage.innerHTML = `<div class="custom"><svg class="shapes" viewBox="0 0 300 150">${shapeSvg(id,150,75,55,pick(SHAPE_COLORS),rnd(0,359),'',id)}</svg><div class="opts three" id="side-opts"></div></div>`;
+      const opts = mkOptions(s.sides, [3,4,5,6,8], 3); const box = stage.querySelector('#side-opts');
+      opts.forEach(o => { const b = document.createElement('button'); b.className='opt'; b.textContent = o; b.onclick = () => { b.classList.add(o===s.sides?'ok':'ko'); api.answer(o===s.sides); }; box.appendChild(b); });
+    }};
+  }
+  const target = pick(pool); const others = shuffle(pool.filter(k=>k!==target)).slice(0, 5);
+  const items = shuffle([target, ...others]);
+  return {prompt:`Touche <b>${SHAPES[target].name}</b>`, kind:'custom', answer:target, show:SHAPES[target].name, render(stage, api){
+    const W = 600, H = 300; let svg = `<svg class="shapes" viewBox="0 0 ${W} ${H}">`;
+    svg += `<rect width="${W}" height="${H}" rx="16" fill="rgba(0,0,0,.25)"/>`;
+    items.forEach((id, i) => { const cx = 100 + (i%3)*200 + rnd(-20,20), cy = 80 + Math.floor(i/3)*140 + rnd(-10,10); const rot = level===1 ? 0 : rnd(-40,40);
+      svg += shapeSvg(id, cx, cy, 42, SHAPE_COLORS[i%SHAPE_COLORS.length], rot, 'sh', id); });
+    stage.innerHTML = `<div class="custom">${svg}</svg></div>`;
+    stage.querySelectorAll('.sh').forEach(g => g.addEventListener('click', () => { const ok = g.dataset.id===target; g.style.filter = ok ? 'drop-shadow(0 0 12px #fff)' : 'brightness(.5)'; api.answer(ok); }));
+  }};
+}};
+
+/* ---------- Contenances (Poulpou) : remplir la baignoire ---------- */
+GAMES.bains = { intro:'Poulpou veut un bain à la bonne hauteur. Verse les bons pichets !', gen(level){
+  let jugs, target, label;
+  if (level===1){ jugs = [100,200,500]; target = pick([300,400,600,700,800,900,1000,1200]); }
+  else if (level===2){ jugs = [25,50,100]; target = pick([75,125,150,175,200,225,250,300]); }
+  else { jugs = [10,25,50,100]; target = pick([35,60,85,110,135,160,185,210,260,310]); }
+  const fmt = cl => cl>=100 && cl%100===0 ? (cl/100)+' L' : cl>100 ? Math.floor(cl/100)+' L et '+(cl%100)+' cL' : cl+' cL';
+  label = level===3 ? target+' cL' : fmt(target);
+  const sub = level===1 ? '' : '1 L = 100 cL';
+  return {prompt:`Remplis la baignoire jusqu'à <b>${label}</b>`, sub, kind:'custom', answer:target, show:label, timeMult:2.5, render(stage, api){
+    let cur = 0; const max = Math.max(target*1.25, jugs[jugs.length-1]*1.2);
+    stage.innerHTML = `<div class="custom">
+      <div class="tub"><div class="mark" style="bottom:${target/max*100}%">${label}</div><div class="water" id="water"></div></div>
+      <div class="gauge" id="gauge">0 cL</div>
+      <div class="toolrow" id="jugs"></div>
+      <div class="toolrow"><button class="tool" id="empty">🚿 Vider</button></div></div>`;
+    const water = stage.querySelector('#water'), gauge = stage.querySelector('#gauge');
+    const upd = () => { water.style.height = clamp(cur/max*100,0,100)+'%'; gauge.textContent = level===1 ? fmt(cur) : (cur>=100 ? fmt(cur)+' ('+cur+' cL)' : cur+' cL'); };
+    const box = stage.querySelector('#jugs');
+    jugs.forEach(j => { const b = document.createElement('button'); b.className='tool'; b.textContent = '🫗 '+fmt(j); b.onclick = () => { if (api.done) return; cur += j; SFX.pour(); upd(); if (cur===target){ setTimeout(()=>api.answer(true), 400); } else if (cur>target){ water.style.background='linear-gradient(180deg,#ff9a85,#c9452c)'; setTimeout(()=>api.answer(false, 'Ça déborde ! Il fallait '+label), 500); } }; box.appendChild(b); });
+    stage.querySelector('#empty').onclick = () => { if (api.done) return; cur = 0; upd(); SFX.click(); };
+    upd();
+  }};
+}};
+
+/* ---------- Longueurs (Hugo) : la règle et les sauts ---------- */
+function drawRuler(cv, maxCm, ribbons){
+  const W = 640, H = 170; cv.width = W; cv.height = H; const g = cv.getContext('2d');
+  g.fillStyle = '#1d3a2e'; g.fillRect(0,0,W,H);
+  const x0 = 30, x1 = W-30, y = 120, sc = (x1-x0)/maxCm;
+  g.fillStyle = '#f2d98a'; g.fillRect(x0-10, y-10, x1-x0+20, 50);
+  g.strokeStyle = '#3a2a05'; g.lineWidth = 2; g.font = 'bold 14px Nunito, sans-serif'; g.fillStyle = '#3a2a05'; g.textAlign = 'center';
+  for (let i=0;i<=maxCm;i++){ const x = x0+i*sc; g.beginPath(); g.moveTo(x, y-10); g.lineTo(x, y-10 + (i%5===0?22:(i%1===0?14:8))); g.stroke(); if (i%(maxCm>20?5:1)===0 || i===maxCm) g.fillText(i, x, y+34); }
+  g.fillText('cm', x1+12, y+34);
+  ribbons.forEach((r, k) => { g.fillStyle = r.color; const ry = 30 + k*34; g.fillRect(x0+r.a*sc, ry, (r.b-r.a)*sc, 22); g.strokeStyle='#fff'; g.lineWidth=2; g.strokeRect(x0+r.a*sc, ry, (r.b-r.a)*sc, 22); if (r.label){ g.fillStyle='#fff'; g.font='bold 16px Fredoka, sans-serif'; g.fillText(r.label, x0+(r.a+r.b)/2*sc, ry+17); } });
+}
+const LEN_ITEMS = [['un crayon',15,'cm'],['une porte',2,'m'],['une fourmi',5,'mm'],['un lit',2,'m'],['une gomme',4,'cm'],['un terrain de foot',100,'m'],['Paris à Marseille',800,'km'],['une cuillère',18,'cm'],['une voiture',4,'m'],['un bus',12,'m'],['un livre',25,'cm'],['une coccinelle',6,'mm']];
+GAMES.longueurs = { intro:'Hugo le kangourou mesure tout avec sa règle. Aide-le !', gen(level){
+  const t = pick(level===1 ? ['measure','measure','compare'] : level===2 ? ['measure','compare','unit','unit'] : ['measure','unit','convert','jumps','jumps']);
+  if (t==='measure'){
+    const max = level===1 ? 10 : level===2 ? 20 : 30; const a = level===3 ? rnd(1, max-8) : 0; const len = rnd(2, Math.min(max-a, level===1?10:15)); const b = a+len;
+    return {prompt:`Combien mesure le ruban ?`, kind:'num', answer:len, suffix:'cm', show:len+' cm', render(stage){ const cv = document.createElement('canvas'); cv.className='ruler'; drawRuler(cv, max, [{a,b,color:'#ff8fb1'}]); stage.appendChild(cv); }};
+  }
+  if (t==='compare'){
+    const max = level===1 ? 10 : 20; const la = rnd(2, max-1); let lb = rnd(2, max-1); if (lb===la) lb = la===max-1 ? la-1 : la+1;
+    const colors = ['#ff8fb1','#7cc4ff']; const ans = la>lb ? 'rose' : 'bleu';
+    return {prompt:`Quel ruban est le plus long ?`, kind:'custom', answer:ans, show:'le ruban '+ans, render(stage, api){
+      const cv = document.createElement('canvas'); cv.className='ruler'; drawRuler(cv, max, [{a:0,b:la,color:colors[0]},{a:0,b:lb,color:colors[1]}]); stage.appendChild(cv);
+      const row = document.createElement('div'); row.className='opts'; row.style.marginTop='12px'; row.innerHTML = `<button class="opt" data-v="rose" style="background:#ff8fb1;color:#3a0a1c">Le rose</button><button class="opt" data-v="bleu" style="background:#7cc4ff;color:#0a1c3a">Le bleu</button>`; stage.appendChild(row);
+      row.querySelectorAll('.opt').forEach(b => b.onclick = () => { const ok = b.dataset.v===ans; b.classList.add(ok?'ok':'ko'); api.answer(ok); });
+    }};
+  }
+  if (t==='unit'){
+    const it = pick(LEN_ITEMS); const units = ['mm','cm','m','km'];
+    return {prompt:`${it[0].charAt(0).toUpperCase()+it[0].slice(1)} mesure <b>${it[1]} …</b>`, kind:'qcm', answer:it[2], options:units, show:it[1]+' '+it[2]};
+  }
+  if (t==='convert'){
+    const c = pick([['1 m = … cm',100],['2 m = … cm',200],['1 dm = … cm',10],['1 km = … m',1000],['3 m = … cm',300],['1 cm = … mm',10],['5 m = … cm',500],['1 m = … dm',10]]);
+    return num(c[0].replace('…','<b>?</b>'), c[1]);
+  }
+  const k = rnd(2,5), d = rnd(2,6); const tot = k*d;
+  return {prompt:`Hugo fait <b>${k} sauts</b> de <b>${d} cm</b>. Où arrive-t-il ?`, kind:'num', answer:tot, suffix:'cm', show:tot+' cm', render(stage){ const cv = document.createElement('canvas'); cv.className='ruler'; drawRuler(cv, 30, []); stage.appendChild(cv); }};
+}};
+
+/* ---------- Doubles et moitiés (Pandou) ---------- */
+GAMES.doubles = { intro:'Dans la bibliothèque, Pandou voit tout en double… ou en moitié !', gen(level){
+  if (Math.random()<.5){
+    const n = level===1 ? rnd(1,10) : level===2 ? pick([rnd(1,15),20,25,30,40,50]) : pick([rnd(11,50),rnd(1,30)*2,100]);
+    return num(`Le <b>double</b> de ${n} ?`, n*2, {sub:`${n} + ${n}`});
+  }
+  const n = level===1 ? rnd(1,10)*2 : level===2 ? pick([rnd(1,20)*2,50,100]) : rnd(10,50)*2;
+  return num(`La <b>moitié</b> de ${n} ?`, n/2, {sub:'la moitié = partager en 2 parts égales'});
+}};
+
+/* ---------- Symétrie (Manchou) : compléter le miroir ---------- */
+GAMES.symetrie = { intro:'Les miroirs de Manchou sont cassés. Complète le reflet !', gen(level){
+  const horiz = level===3; const cols = 6, rows = horiz ? 6 : 5; const nOn = level===1 ? 3 : level===2 ? 5 : 6;
+  // cellules "source" dans la moitié gauche (ou haute), reflet attendu dans l'autre moitié
+  const half = horiz ? rows/2 : cols/2; const src = new Set();
+  while (src.size<nOn){ const c = horiz ? rnd(0,cols-1) : rnd(0,half-1), r = horiz ? rnd(0,half-1) : rnd(0,rows-1); src.add(r+','+c); }
+  const mirror = k => { const [r,c] = k.split(',').map(Number); return horiz ? (rows-1-r)+','+c : r+','+(cols-1-c); };
+  const expect = new Set([...src].map(mirror));
+  if (level>=2 && Math.random()<.3){
+    // Variante : la figure est-elle symétrique ? oui / non
+    const ok = Math.random()<.5; const shown = new Set([...src, ...expect]); if (!ok){ const arr = [...expect]; const rm = pick(arr); shown.delete(rm); const [r,c] = rm.split(',').map(Number); shown.add(clamp(r+(horiz?0:1),0,rows-1)+','+clamp(c+(horiz?1:0),0,cols-1)); }
+    return {prompt:`Cette figure est-elle <b>symétrique</b> ?`, kind:'custom', answer:ok, show:ok?'oui':'non', render(stage, api){
+      stage.innerHTML = `<div class="custom"><div class="sym" id="sym"></div><div class="opts" style="width:min(100%,360px)"><button class="opt" data-v="1">Oui</button><button class="opt" data-v="0">Non</button></div></div>`;
+      buildSym(stage.querySelector('#sym'), cols, rows, horiz, shown, null);
+      stage.querySelectorAll('.opt').forEach(b => b.onclick = () => { const v = b.dataset.v==='1'; b.classList.add(v===ok?'ok':'ko'); api.answer(v===ok); });
+    }};
+  }
+  return {prompt:`Complète le <b>reflet</b> dans le miroir`, sub:'Touche les cases, puis Vérifier', kind:'custom', answer:true, show:'le reflet exact', timeMult:3, render(stage, api){
+    stage.innerHTML = `<div class="custom"><div class="sym" id="sym"></div><div class="toolrow"><button class="tool go" id="check">✔ Vérifier</button></div></div>`;
+    const sel = new Set(); const grid = stage.querySelector('#sym');
+    buildSym(grid, cols, rows, horiz, src, (k, el) => { if (sel.has(k)){ sel.delete(k); el.classList.remove('on'); } else { sel.add(k); el.classList.add('on'); } SFX.click(); });
+    stage.querySelector('#check').onclick = () => { if (api.done) return; const ok = sel.size===expect.size && [...expect].every(k => sel.has(k)); if (!ok) expect.forEach(k => { const el = grid.querySelector(`[data-k="${k}"]`); if (el){ el.style.outline='3px solid #8de3c0'; } }); api.answer(ok); };
+  }};
+}};
+function buildSym(grid, cols, rows, horiz, on, onTap){
+  grid.style.gridTemplateColumns = `repeat(${cols + (horiz?0:1)}, 40px)`; grid.innerHTML = '';
+  for (let r=0;r<rows + (horiz?1:0);r++){
+    for (let c=0;c<cols + (horiz?0:1);c++){
+      const el = document.createElement('div'); el.className = 'c';
+      if (!horiz && c===cols/2){ el.classList.add('axis','ax-v'); grid.appendChild(el); continue; }
+      if (horiz && r===rows/2){ el.classList.add('axis','ax-h'); grid.appendChild(el); continue; }
+      const rr = horiz && r>rows/2 ? r-1 : r, cc = !horiz && c>cols/2 ? c-1 : c; const k = rr+','+cc;
+      el.dataset.k = k; if (on.has(k)) el.classList.add('on');
+      const isRight = horiz ? rr>=rows/2 : cc>=cols/2;
+      if (onTap && isRight){ el.classList.add('right'); el.onclick = () => onTap(k, el); } else el.classList.add('left');
+      grid.appendChild(el);
+    }
+  }
+}
+
+/* ---------- Compléments (Rose) ---------- */
+GAMES.complements = { intro:'Rose compte ses coussins. Combien en manque-t-il ?', gen(level){
+  let a, T;
+  if (level===1){ T = pick([10,10,20]); a = T===10 ? rnd(0,9) : rnd(10,19); return qcm(`${a} + <b>?</b> = ${T}`, T-a, [T-a+1,T-a-1,T-a+2,T-a+10,a]); }
+  if (level===2){ T = pick([20,30,30]); a = rnd(T-19, T-1); return num(`${a} + <b>?</b> = ${T}`, T-a); }
+  a = rnd(11,98); while (a%10===0) a = rnd(11,98); T = Math.ceil(a/10)*10; return num(`${a} + <b>?</b> = ${T}`, T-a, {sub:'la dizaine juste au-dessus'});
+}};
+
+/* ---------- Monnaie (Orange) : rendre la monnaie ---------- */
+const SHOP_ITEMS = ['🧸','🍎','🎈','📚','🍦','🧁','🎀','🖍️','🪁','🍓','🎲','🧩','🍭','🎺','🪀','🍪'];
+GAMES.monnaie = { intro:'Dans la boutique, Orange rend la monnaie. Donne les bonnes pièces !', gen(level){
+  let price, paid, coins;
+  if (level===1){ price = rnd(1,9)*100; paid = 1000; coins = [100,200,500]; }
+  else if (level===2){ price = rnd(2,19)*100; paid = 2000; coins = [100,200,500,1000]; }
+  else { price = pick([rnd(1,19)*100, rnd(1,19)*100+50, rnd(2,49)*100]); paid = price<2000 ? 2000 : 5000; coins = [50,100,200,500,1000,2000]; }
+  const change = paid - price; const item = pick(SHOP_ITEMS);
+  return {prompt:`Ça coûte <b>${fmtEuro(price)}</b>. On te donne <b>${fmtEuro(paid)}</b>. Rends la monnaie !`, kind:'custom', answer:change, show:fmtEuro(change), timeMult:2.5, render(stage, api){
+    let tray = []; stage.innerHTML = `<div class="shop"><div class="item">${item}</div><div class="price">${fmtEuro(price)}</div>
+      <div class="coins" id="coins"></div><div class="tray" id="tray"></div><div class="gauge" id="sum">Rendu : 0 €</div>
+      <div class="toolrow"><button class="tool" id="undo">↩︎ Reprendre</button><button class="tool go" id="give">🤝 Donner</button></div></div>`;
+    const cls = v => v===50 ? 'c50' : v<500 ? 'c'+(v/100) : 'b'+(v/100); const lab = v => v===50 ? '50 c' : (v/100)+' €';
+    const trayEl = stage.querySelector('#tray'), sumEl = stage.querySelector('#sum');
+    const upd = () => { trayEl.innerHTML = tray.map(v => `<span class="coin ${cls(v)}">${lab(v)}</span>`).join(''); sumEl.textContent = 'Rendu : ' + fmtEuro(tray.reduce((s,v)=>s+v,0)); };
+    const box = stage.querySelector('#coins');
+    coins.forEach(v => { const b = document.createElement('button'); b.className = 'coin '+cls(v); b.textContent = lab(v); b.onclick = () => { if (api.done) return; tray.push(v); SFX.coin(); upd(); }; box.appendChild(b); });
+    stage.querySelector('#undo').onclick = () => { tray.pop(); upd(); SFX.click(); };
+    stage.querySelector('#give').onclick = () => { if (api.done) return; const s = tray.reduce((a,v)=>a+v,0); api.answer(s===change, s===change ? '' : 'Tu as rendu '+fmtEuro(s)+', il fallait '+fmtEuro(change)); };
+  }};
+}};
+
+/* ---------- Heures, jours et durées (Peso) ---------- */
+function drawClock(cv, h, m, size=200){
+  cv.width = size; cv.height = size; const g = cv.getContext('2d'), c = size/2, r = size/2-6;
+  g.clearRect(0,0,size,size); g.fillStyle = '#fff7e0'; g.beginPath(); g.arc(c,c,r,0,Math.PI*2); g.fill(); g.lineWidth = 6; g.strokeStyle = '#7a5a1a'; g.stroke();
+  g.fillStyle = '#3a2a05'; g.font = `bold ${size*.11}px Fredoka, sans-serif`; g.textAlign='center'; g.textBaseline='middle';
+  for (let i=1;i<=12;i++){ const a = i*Math.PI/6; g.fillText(i, c+Math.sin(a)*r*.78, c-Math.cos(a)*r*.78); }
+  for (let i=0;i<60;i++){ const a = i*Math.PI/30; g.beginPath(); g.moveTo(c+Math.sin(a)*r*.92, c-Math.cos(a)*r*.92); g.lineTo(c+Math.sin(a)*r*(i%5?.96:.99), c-Math.cos(a)*r*(i%5?.96:.99)); g.lineWidth = i%5?1:3; g.strokeStyle='#3a2a05'; g.stroke(); }
+  const ha = ((h%12)+m/60)*Math.PI/6, ma = m*Math.PI/30;
+  g.lineCap='round'; g.strokeStyle='#3a2a05'; g.lineWidth = 7; g.beginPath(); g.moveTo(c,c); g.lineTo(c+Math.sin(ha)*r*.5, c-Math.cos(ha)*r*.5); g.stroke();
+  g.strokeStyle='#e0557f'; g.lineWidth = 4; g.beginPath(); g.moveTo(c,c); g.lineTo(c+Math.sin(ma)*r*.75, c-Math.cos(ma)*r*.75); g.stroke();
+  g.fillStyle='#3a2a05'; g.beginPath(); g.arc(c,c,5,0,Math.PI*2); g.fill();
+}
+const fmtTime = (h,m) => m===0 ? `${h} h` : `${h} h ${String(m).padStart(2,'0')}`;
+const DAYS = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+const MONTHS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+GAMES.horloge = { intro:"Peso règle l'horloge de la tour. Quelle heure est-il ?", gen(level){
+  const mins = level===1 ? [0,30] : level===2 ? [0,15,30,45] : [0,5,10,15,20,25,30,35,40,45,50,55];
+  const t = pick(level===1 ? ['read','read','pick','days'] : level===2 ? ['read','pick','days','months','dur'] : ['read','pick','dur','dur','units','months']);
+  const randT = () => [rnd(1,12), pick(mins)];
+  if (t==='read'){
+    const [h,m] = randT(); const cand = [[h,(m+30)%60],[(h%12)+1,m],[h===1?12:h-1,m],[h,(m+15)%60]].map(x=>fmtTime(x[0],x[1]));
+    return {prompt:`Quelle heure est-il ?`, kind:'qcm', answer:fmtTime(h,m), options:mkOptionsStr(fmtTime(h,m), cand), show:fmtTime(h,m), render(stage){ const d = document.createElement('div'); d.className='clocks'; const cv = document.createElement('canvas'); cv.className='single'; drawClock(cv,h,m,240); d.appendChild(cv); stage.appendChild(d); }};
+  }
+  if (t==='pick'){
+    const [h,m] = randT(); const alts = [[h,(m+30)%60],[(h%12)+1,m],[h===1?12:h-1,(m+30)%60]]; const items = shuffle([[h,m], ...alts.slice(0,2)]);
+    return {prompt:`Touche l'horloge qui montre <b>${fmtTime(h,m)}</b>`, kind:'custom', answer:fmtTime(h,m), show:fmtTime(h,m), render(stage, api){
+      const d = document.createElement('div'); d.className='clocks'; items.forEach(([hh,mm]) => { const cv = document.createElement('canvas'); drawClock(cv,hh,mm,180); cv.onclick = () => { const ok = hh===h && mm===m; cv.style.outline = ok ? '5px solid #8de3c0' : '5px solid #ff7a5c'; api.answer(ok); }; d.appendChild(cv); }); stage.appendChild(d);
+    }};
+  }
+  if (t==='days'){
+    const i = rnd(0,6); const after = Math.random()<.6; const ans = DAYS[(i + (after?1:6))%7];
+    return {prompt:`Quel jour vient <b>${after?'après':'avant'}</b> ${DAYS[i]} ?`, kind:'qcm', answer:ans, options:mkOptionsStr(ans, shuffle(DAYS.filter(d=>d!==ans))), show:ans};
+  }
+  if (t==='months'){
+    const i = rnd(0,11); const after = Math.random()<.6; const ans = MONTHS[(i + (after?1:11))%12];
+    return {prompt:`Quel mois vient <b>${after?'après':'avant'}</b> ${MONTHS[i]} ?`, kind:'qcm', answer:ans, options:mkOptionsStr(ans, shuffle(MONTHS.filter(d=>d!==ans))), show:ans};
+  }
+  if (t==='units'){
+    const c = pick([['Combien de jours dans une semaine ?',7],['Combien de mois dans une année ?',12],['Combien de minutes dans une heure ?',60],["Combien d'heures dans une journée ?",24],['Combien de jours dans le mois de janvier ?',31],['Combien de secondes dans une minute ?',60]]);
+    return qcm(c[0], c[1], [7,12,24,30,31,60,10,100]);
+  }
+  const h = rnd(1,9), d = rnd(1, 12-h); const half = level===3 && Math.random()<.4;
+  if (half) return qcm(`Il est ${h} h. Le goûter dure <b>${d} h 30</b>. Il finit à ?`, fmtTime(h+d,30), [fmtTime(h+d,0),fmtTime(h+d+1,30),fmtTime(h+d+1,0)], {options:mkOptionsStr(fmtTime(h+d,30), [fmtTime(h+d,0),fmtTime(h+d+1,30),fmtTime(h+d+1,0)]), show:fmtTime(h+d,30)});
+  return qcm(`Il est ${h} h. Dans <b>${d} heure${d>1?'s':''}</b>, il sera ?`, fmtTime(h+d,0), [fmtTime(h+d+1,0),fmtTime(h+d-1,0),fmtTime(h+d,30)], {options:mkOptionsStr(fmtTime(h+d,0), [fmtTime(h+d+1,0),fmtTime(Math.max(1,h+d-1),0),fmtTime(h+d,30)]), show:fmtTime(h+d,0)});
+}};
+function mkOptionsStr(answer, cand, n=4){ const set = new Set([answer]); for (const c of cand){ if (set.size>=n) break; set.add(c); } return shuffle([...set]); }
+
+/* ---------- Tables (Sose puis Pengouins) ---------- */
+function tableQ(tables, inverted){
+  const a = pick(tables), b = rnd(1,10); const ans = a*b;
+  const cand = [a*(b+1), a*(b-1), (a+1)*b, (a-1)*b, a+b, ans+2, ans-2];
+  if (inverted && b>1) return qcm(`<b>?</b> × ${a} = ${ans}`, b, [b+1,b-1,b+2,a,ans-a]);
+  return Math.random()<.5 ? qcm(`${a} × ${b} = <b>?</b>`, ans, cand) : qcm(`${b} × ${a} = <b>?</b>`, ans, cand);
+}
+GAMES.tables1 = { intro:'Sose accroche les bannières. Trouve vite le bon résultat !', gen(level){ return tableQ(level===1 ? [2,10] : level===2 ? [2,3,5,10] : [2,3,4,5,10], false); } };
+GAMES.tables2 = { intro:'Dans la salle du trône, toutes les tables se mélangent. Courage !', gen(level){ return tableQ(level===1 ? [2,3,4,5,10] : level===2 ? [2,3,4,5,6,7,8,9,10] : [6,7,8,9,4,3], level===3 && Math.random()<.4); } };
+
+/* ---------- Soustractions (Lamantou) : bulles ---------- */
+GAMES.soustraction = { intro:"Dans l'aquarium, les bulles portent des nombres. Touche la bonne !", gen(level){
+  let a, b; if (level===1){ a = rnd(3,10); b = rnd(1,a); } else if (level===2){ a = rnd(10,20); b = rnd(1,9); } else { a = rnd(20,99); b = rnd(2,9); }
+  const ans = a-b; const opts = mkOptions(ans, [ans+1,ans-1,ans+2,ans-2,ans+10,a+b], 4);
+  return {prompt:`${a} − ${b} = <b>?</b>`, kind:'custom', answer:ans, show:String(ans), render(stage, api){
+    stage.innerHTML = `<div class="aqua" id="aqua"></div>`; const aq = stage.querySelector('#aqua');
+    opts.forEach((o, i) => { const b = document.createElement('button'); b.className='bubble'; b.textContent = o; b.style.left = (6 + i*23 + rnd(0,6)) + '%'; b.style.top = (20 + rnd(0,45)) + '%'; b.style.animationDelay = (-i*.9)+'s'; b.onclick = () => { if (api.done) return; const ok = o===ans; if (ok){ b.style.transform='scale(1.4)'; b.style.opacity='0'; SFX.bubble(); } else b.classList.add('ko'); api.answer(ok); }; aq.appendChild(b); });
+    for (let i=0;i<10;i++){ const s = document.createElement('i'); s.style.cssText = `position:absolute;left:${rnd(0,100)}%;top:${rnd(0,100)}%;width:${rnd(4,10)}px;height:${rnd(4,10)}px;border-radius:50%;background:rgba(255,255,255,.25);animation:float ${rnd(3,6)}s ease-in-out infinite`; aq.appendChild(s); }
+  }};
+}};
+
+/* ---------- Additions jusqu'à 100 (Chioune) ---------- */
+GAMES.addition = { intro:'Chioune enterre ses os et les compte. Aide-le à additionner !', gen(level){
+  let a, b, c = 0;
+  if (level===1){ a = rnd(10,88); while (a%10===9) a = rnd(10,88); b = rnd(1, 9-(a%10)); }
+  else if (level===2){ a = rnd(11,89); b = rnd(1,9); while ((a%10)+b<10) { a = rnd(11,89); b = rnd(1,9); } }
+  else { a = rnd(20,90); b = rnd(2,9); c = Math.random()<.5 ? rnd(2,9) : 0; }
+  return num(c ? `${a} + ${b} + ${c} = <b>?</b>` : `${a} + ${b} = <b>?</b>`, a+b+c);
+}};
+
+/* ---------- Arrondi à la dizaine (Pegs) : la ligne des nombres ---------- */
+GAMES.arrondi = { intro:"À l'observatoire, Pegs range les nombres près de la dizaine la plus proche.", gen(level){
+  const base = level===3 ? pick([0,100]) : 0; let n = base + rnd(1,99); if (level===1) while (n%10===5 || n%10===0) n = base + rnd(1,99); if (level>=2) while (n%10===0) n = base + rnd(1,99);
+  const ans = Math.round(n/10)*10;
+  return {prompt:`Arrondis <b>${n}</b> à la dizaine la plus proche`, sub: level>=2 ? 'à 5, on arrondit au-dessus' : '', kind:'custom', answer:ans, show:String(ans), render(stage, api){
+    const lo = base, hi = base+100; const nl = document.createElement('div'); nl.className='numline'; nl.innerHTML = `<div class="ln"></div><div class="cursor" style="left:${4 + (n-lo)/(hi-lo)*92}%">${n}</div>`;
+    for (let v=lo; v<=hi; v+=10){ const tk = document.createElement('div'); tk.className='tk'; tk.style.left = (4 + (v-lo)/(hi-lo)*92)+'%'; const b = document.createElement('button'); b.textContent = v; b.onclick = () => { if (api.done) return; const ok = v===ans; b.style.background = ok ? '#8de3c0' : '#c9452c'; api.answer(ok); }; tk.appendChild(b); nl.appendChild(tk); }
+    const wrap = document.createElement('div'); wrap.className='custom'; wrap.appendChild(nl); stage.appendChild(wrap);
+  }};
+}};
+
+/* ---------- Compléments à 50 et 100 (Fanfan) ---------- */
+GAMES.complements100 = { intro:'Fanfan remplit le coffre au trésor. Combien manque-t-il ?', gen(level){
+  let a, T;
+  if (level===1){ T = 50; a = pick([rnd(1,4)*10, rnd(1,9)*5]); }
+  else if (level===2){ T = pick([50,100]); a = T===100 ? rnd(1,9)*10 : rnd(1,49); }
+  else { T = 100; a = rnd(11,99); while (a%10===0) a = rnd(11,99); }
+  return num(`${a} + <b>?</b> = ${T}`, T-a, {sub: level===3 ? "d'abord la dizaine, puis le reste" : ''});
+}};
+
+/* ---------- Additions éclair (Minion) ---------- */
+GAMES.rapides = { intro:'À la forge, Minion frappe vite. Réponds en un éclair !', gen(level){
+  if (level===3 && Math.random()<.5){ const a = rnd(1,9), b = rnd(1,9), c = rnd(1,9); return qcm(`${a} + ${b} + ${c}`, a+b+c, [a+b+c+1,a+b+c-1,a+b+c+2,a+b], {n:3}); }
+  const max = level===1 ? 10 : 18; let a = rnd(1,9), b = rnd(1,9); while (a+b>max){ a = rnd(1,9); b = rnd(1,9); }
+  return qcm(`${a} + ${b}`, a+b, [a+b+1,a+b-1,a+b+2,a+b-2,a*b], {n:3});
+}};
+
+/* ---------- Boss (Vachou) : mélange de tout le château ---------- */
+GAMES.boss = { intro:'Vachou est enfermée au sommet. Toutes les énigmes du château, en trois vagues !', gen(level, i, n){
+  const phase = i < n/3 ? 0 : i < 2*n/3 ? 1 : 2;
+  const pool = phase===0 ? ['formes','doubles','complements','longueurs','bains'] : phase===1 ? ['monnaie','horloge','tables1','soustraction','symetrie','arrondi'] : ['addition','complements100','tables2','rapides','tables2'];
+  const g = pick(pool); const q = GAMES[g].gen(Math.min(3, level+1)); q.from = g; return q;
+}};
+</script>

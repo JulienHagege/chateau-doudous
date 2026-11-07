@@ -1,0 +1,118 @@
+<canvas id="stars" aria-hidden="true"></canvas>
+<div id="app">
+
+<!-- ===== Accueil ===== -->
+<section id="home" class="screen">
+  <div class="hero">
+    <div class="castle-art"><img id="castle-img" alt="Le grand château la nuit" class="px"><div class="parade" id="parade"></div></div>
+    <h1>Le Château des Doudous</h1>
+    <div class="tag" id="home-tag">Les doudous se sont perdus dans le château</div>
+    <div class="hud">
+      <span class="chip bille"><i class="bille-ico"></i><span id="h-billes" class="tabular">0</span><span class="lab">billes</span></span>
+      <span class="chip star">⭐ <span id="h-stars" class="tabular">0</span><span class="lab">étoiles</span></span>
+      <span class="chip heart">❤️ <span id="h-hearts" class="tabular">5</span><span class="lab">cœurs</span></span>
+      <span class="chip">🧸 <span id="h-freed" class="tabular">0</span><span class="lab">/ 16 délivrés</span></span>
+    </div>
+    <div class="level">
+      <div class="row"><span>Rang : <b id="h-rank">Apprentie exploratrice</b></span><span id="h-next"></span></div>
+      <div class="bar"><i id="h-rankbar"></i></div>
+    </div>
+    <div class="level">
+      <div class="row"><span>Prochain cœur</span><span id="h-starnext">0 / 4 étoiles</span></div>
+      <div class="bar star"><i id="h-starbar"></i></div>
+    </div>
+    <div class="actions">
+      <button class="btn big" id="btn-enter">🏰 Entrer dans le château</button>
+      <button class="btn rose" id="btn-album">🧸 Album des doudous</button>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card"><h2 id="story-title">L'histoire</h2><p class="story" id="story">Pendant la nuit, tous tes doudous se sont perdus dans le grand château. Explore les pièces, résous les énigmes et délivre-les un par un. Vachou t'attend tout en haut de la tour !</p></div>
+    <div class="card"><h2>Réglages</h2>
+      <div class="toggles">
+        <button class="toggle" id="tg-sound" aria-pressed="true">🔔 Bruitages</button>
+        <button class="toggle" id="tg-music" aria-pressed="true">🎵 Musique</button>
+      </div>
+      <details class="parents"><summary>Espace parents</summary>
+        <div class="prow"><span class="sync" id="sync-chip">☁️ Sauvegarde locale</span></div>
+        <div class="prow">
+          <button class="btn ghost" id="btn-rename">Changer le prénom</button>
+          <button class="btn ghost" id="btn-storm-test">Tester l'orage</button>
+          <button class="btn ghost" id="btn-unlock">Tout débloquer</button>
+          <button class="btn ghost danger" id="btn-reset">Tout effacer</button>
+        </div>
+        <p id="lasterr" class="sync"></p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Album ===== -->
+<section id="album" class="screen" hidden>
+  <div class="topbar"><h2>🧸 Album des doudous</h2><button class="btn ghost" id="btn-album-back">← Retour</button></div>
+  <div class="album" id="album-grid"></div>
+</section>
+
+<!-- ===== Carte ===== -->
+<section id="mapscreen" class="screen" hidden>
+  <div class="topbar">
+    <h2 id="map-title">Rez-de-chaussée</h2>
+    <div class="floors" id="floors"></div>
+    <button class="btn ghost" id="btn-map-back">← Accueil</button>
+  </div>
+  <div class="mapwrap"><canvas id="map"></canvas></div>
+  <div class="maphint" id="maphint">Touche une porte pour entrer.</div>
+  <div class="legend"><span>✨ salle à explorer</span><span>🧸 doudou délivré</span><span>🌫️ brouillard</span></div>
+</section>
+
+<!-- ===== Salle ===== -->
+<section id="room" class="screen room" hidden>
+  <div class="roomhead">
+    <div class="cage" id="cage"><img id="cage-img" class="px" alt=""></div>
+    <div class="meta"><h2 id="room-name"></h2><p id="room-skill"></p></div>
+    <div class="hearts" id="hearts"></div>
+  </div>
+  <div class="progress" id="progress"></div>
+  <div class="timer" id="timer" hidden><i id="timer-bar"></i></div>
+  <div class="stage" id="stage"></div>
+  <div class="roomfoot">
+    <span class="gain"><i class="bille-ico"></i> <span id="room-billes" class="tabular">0</span> billes</span>
+    <button class="btn ghost" id="btn-quit">Quitter la salle</button>
+  </div>
+</section>
+
+<!-- ===== Résultat ===== -->
+<section id="result" class="screen" hidden>
+  <div class="result">
+    <img id="res-img" class="big px" alt="">
+    <h2 id="res-title"></h2>
+    <p id="res-text" class="story"></p>
+    <div class="rewards" id="res-rewards"></div>
+    <div class="actions">
+      <button class="btn big" id="btn-res-map">🗺️ Retour à la carte</button>
+      <button class="btn ghost" id="btn-res-again">Rejouer cette salle</button>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<!-- ===== Orage ===== -->
+<div id="storm" hidden>
+  <div class="flash" id="storm-flash"></div>
+  <div class="stitle" id="storm-title">⛈️ L'orage approche…</div>
+  <canvas id="storm-cv"></canvas>
+  <div class="sq" id="storm-q"></div>
+  <div class="opts" id="storm-opts"></div>
+  <div class="sinfo"><span id="storm-score">🎃 0 / 6</span><span id="storm-hearts"></span></div>
+</div>
+
+<!-- ===== Modale prénom ===== -->
+<div class="modal" id="modal-name" hidden>
+  <div class="box">
+    <h2>Bienvenue au château</h2>
+    <p id="modal-msg">Comment t'appelles-tu ?</p>
+    <form id="modal-form"><input id="inp-name" maxlength="20" autocomplete="off" placeholder="Ton prénom"><button class="btn" type="submit">C'est parti !</button></form>
+  </div>
+</div>
+<div class="confetti" id="confetti" hidden></div>
