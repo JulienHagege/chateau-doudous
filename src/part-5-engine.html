@@ -295,7 +295,7 @@ mapCv.addEventListener('click', e => {
 });
 // À l'entrée d'une salle : choisir le niveau (ceux déjà réussis se rejouent, le suivant est à débloquer)
 const LEVEL_NAMES = ['Découverte','Apprenti','Confirmé','Expert','Champion'];
-function levelStars(lv){ if (!lv || lv.best===null) return 0; return lv.best===0 ? 3 : lv.best<=2 ? 2 : 1; }
+function levelStars(lv){ if (!lv || !lv.n) return 0; if (lv.best===null) return 1; return lv.best===0 ? 3 : lv.best<=2 ? 2 : 1; }
 let levelsRoom = null;
 function enterRoom(room){
   levelsRoom = room; const d = DD[room.dd]; const rs = roomState(room.id); const top = Math.min(MAX_LEVEL, rs.level||1);
@@ -303,8 +303,8 @@ function enterRoom(room){
   $('#lv-intro').textContent = fr(GAMES[room.id].intro);
   const cards = []; for (let l=1; l<=MAX_LEVEL; l++){ const lv = (rs.lv||{})[l]; const st = levelStars(lv); const cls = l===top ? 'cur' : l<top ? 'done' : 'locked';
     const stars = '⭐'.repeat(st) + '<i>⭐</i>'.repeat(3-st);
-    const info = cls==='locked' ? '🔒 Réussis le niveau ' + (l-1) : lv && lv.n ? (lv.best===0 ? 'Sans faute !' : lv.best + ' erreur' + (lv.best>1?'s':'') + ' au mieux') + ' · joué ' + lv.n + ' fois' : (l===top && top>1 ? 'Nouveau niveau à découvrir' : 'Pas encore joué');
-    const go = cls==='cur' ? '<span class="go">' + (lv && lv.n ? 'Réessayer' : 'À débloquer') + ' ▶</span>' : cls==='done' ? '<span class="go">Rejouer ▶</span>' : '';
+    const info = cls==='locked' ? '🔒 Réussis le niveau ' + (l-1) : lv && lv.n ? (lv.best===null ? 'Réussi' : lv.best===0 ? 'Sans faute !' : lv.best + ' erreur' + (lv.best>1?'s':'') + ' au mieux') + ' · joué ' + lv.n + ' fois' : (l===top && top>1 ? 'Nouveau niveau à découvrir' : 'Pas encore joué');
+    const go = cls==='cur' ? '<span class="go">' + (lv && lv.n ? 'Rejouer' : 'À débloquer') + ' ▶</span>' : cls==='done' ? '<span class="go">Rejouer ▶</span>' : '';
     cards.push(`<button class="lvcard ${cls}" data-l="${l}" ${cls==='locked' ? 'disabled' : ''}><span class="lab">${LEVEL_NAMES[l-1]}</span><b>Niveau ${l}</b><span class="stars">${stars}</span><small>${info}</small>${go}</button>`); }
   $('#lvlcards').innerHTML = cards.join('');
   $$('#lvlcards .lvcard:not(.locked)').forEach(b => { b.onclick = () => { SFX.click(); const l = +b.dataset.l; show('room'); toast(l<top ? `Niveau ${l} : on révise !` : GAMES[room.id].intro, 3000); startRoom(room, l); }; });

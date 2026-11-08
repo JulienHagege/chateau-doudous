@@ -122,12 +122,24 @@ function loadPlayers(){ const p = lsGet(PKEY); if (p && Array.isArray(p.list)) P
   if (!P.list.length){ const old = lsGet(KEY); if (old && old.name){ addPlayer('legacy', old.name, old.emblem, old); P.current = 'legacy'; savePlayers(); } } }
 function load(){ loadPlayers(); if (P.current && selectPlayer(P.current)) return; P.current = null; S = DEFAULT(); }
 // Anciennes sauvegardes : found = salle terminée, level = prochain niveau à jouer (sans plafond)
+// 2026-11-08 : les statistiques par niveau (rs.lv) n'existaient pas avant l'écran de choix du niveau ; on les reconstitue depuis done / perfect / best.
+// Chaque niveau sous le niveau débloqué a été réussi une fois ; les victoires en plus vont au niveau le plus haut ; les sans-faute sont attribués aux niveaux
+// les plus bas ; quand le nombre d'erreurs d'un niveau est inconnu, best reste null (affiché « Réussi », une étoile).
+function fillLevelStats(rs){
+  if (rs.lv || !(rs.done>0) || !(rs.level>1)) return;
+  const top = Math.min(MAX_LEVEL, rs.level), lv = {}; for (let l=1; l<top; l++) lv[l] = {n:1, best:null, perfect:0};
+  const extra = rs.done - (top-1); if (extra>0){ const l = top===MAX_LEVEL ? top : top-1; lv[l] = lv[l] || {n:0, best:null, perfect:0}; lv[l].n += extra; }
+  const order = Object.keys(lv).map(Number).sort((a,b) => a-b); let p = Math.min(rs.perfect||0, rs.done);
+  order.forEach(l => { const k = Math.min(p, lv[l].n); if (k>0){ lv[l].perfect = k; lv[l].best = 0; p -= k; } });
+  const unknown = order.filter(l => lv[l].n > lv[l].perfect);
+  if (unknown.length===1 && lv[unknown[0]].n===1 && lv[unknown[0]].perfect===0 && rs.best>0) lv[unknown[0]].best = rs.best; // une seule partie non parfaite : son score est le meilleur score connu
+  rs.lv = lv; }
 function migrate(){
   // 2026-11-08 : la Salle du trésor (compléments à 100) devient la Salle de jeux (dés) ; on garde l'avancement de la salle
   if (S.rooms.complements100 && !S.rooms.des){ S.rooms.des = S.rooms.complements100; delete S.rooms.complements100; } if (S.skills && S.skills.complements100 && !S.skills.des){ S.skills.des = S.skills.complements100; delete S.skills.complements100; }
   // 2026-11-08 : un bug (bonus de rapidité sans chrono) a pu mettre NaN, devenu null, dans les compteurs ; on les remet à un nombre
   repairCounters(S);
-  for (const id in S.rooms){ const rs = S.rooms[id]; if (rs.found==null) rs.found = rs.done>0; if (rs.level==null) rs.level = Math.min(3, (rs.done||0)+1); rs.level = Math.min(MAX_LEVEL, rs.level); } }
+  for (const id in S.rooms){ const rs = S.rooms[id]; if (rs.found==null) rs.found = rs.done>0; if (rs.level==null) rs.level = Math.min(3, (rs.done||0)+1); rs.level = Math.min(MAX_LEVEL, rs.level); fillLevelStats(rs); } }
 function save(){ if (!P.current) return; S.updated = Date.now(); writeProfile(P.current, S); cloudSave(); }
 function logErr(e, where){ try{ S.lastErr = { t:new Date().toISOString(), where:where||'', msg:String(e && (e.stack||e.message||e)).slice(0,400), ua:navigator.userAgent.slice(0,80) }; save(); const el = $('#lasterr'); if (el) el.textContent = 'Dernière erreur : ' + S.lastErr.msg; }catch(_){} }
 window.addEventListener('error', e => logErr(e.error || e.message, 'window'));
