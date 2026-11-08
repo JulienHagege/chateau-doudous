@@ -1486,7 +1486,7 @@ function nextQuestion(){
   if (!run || screen!=='room') return; // la salle a été quittée pendant le délai après la réponse
   if (run.i >= run.n){ return endRoom(true); }
   const room = ROOM[run.room];
-  if (run.stormAt!=null && run.i>=run.stormAt && !run.redo){ run.stormAt = null; clearInterval(timerIv); S.sinceStorm = 0; save(); return startStorm(() => { if (run && screen==='room'){ MUSIC.play(roomTrack(room)); nextQuestion(); } }, false, room.floor); }
+  if (run.stormAt!=null && run.i>=run.stormAt && !run.redo){ run.stormAt = null; clearInterval(timerIv); S.sinceStorm = 0; save(); return startStorm(heartsLeft => { if (run && screen==='room'){ run.hearts = heartsLeft; renderHearts(); if (run.hearts<=0) return endRoom(false); MUSIC.play(roomTrack(room)); nextQuestion(); } }, false, room.floor); }
   let q = run.retry.length && Math.random()<.5 && run.i>run.retry[0].at+1 ? run.retry.shift().q : null;
   if (!q){
     // jamais la même épreuve que les trois précédentes (Julien a eu trois fois la baignoire à 9 L)
@@ -1771,9 +1771,9 @@ function stormWarning(k){ setTimeout(() => { if (!run || screen!=='room' || stor
 function stormTables(){ const done = TABLE_ORDER.filter(tableMastered); return done.length>=2 ? done : activeTables().slice(0,2); }
 function startStorm(after, test, floor){
   if (floor==null){ const cur = currentRoom(); floor = cur ? cur.floor : 2; }
-  storm = { after, test, floor, n:stormParams().n, i:0, hits:0, misses:0, hearts:3, phase:'intro', q:null, done:false, bolts:[], parts:[], drops:[], shake:0, lurk:[], nextBolt:0 };
+  storm = { after, test, floor, n:stormParams().n, i:0, hits:0, misses:0, hearts:(run && screen==='room') ? run.hearts : maxHearts(), maxHearts:maxHearts(), phase:'intro', q:null, done:false, bolts:[], parts:[], drops:[], shake:0, lurk:[], nextBolt:0 };
   const el = $('#storm'); el.hidden = false; $('#storm-opts').innerHTML = ''; $('#storm-q').textContent = ''; $('#storm-title').textContent = '⛈️ Un orage approche…';
-  $('#storm-score').textContent = '🎃 0 / ' + storm.n; $('#storm-hearts').textContent = '❤️❤️❤️';
+  $('#storm-score').textContent = '🎃 0 / ' + storm.n; $('#storm-hearts').textContent = '❤️'.repeat(storm.hearts) + '🖤'.repeat(Math.max(0, storm.maxHearts-storm.hearts));
   $('#app').classList.add('dim'); MUSIC.stop();
   const cv = $('#storm-cv'); stormResize(); storm.gy = cv.height*.72;
   for (let i=0;i<220;i++) storm.drops.push({x:Math.random(), y:Math.random(), v:.6+Math.random()*.9, l:8+Math.random()*14});
@@ -1814,7 +1814,7 @@ function stormHit(ok){
     setTimeout(() => { if (!storm) return; for (let i=0;i<70;i++){ const a = Math.random()*Math.PI*2, v = 2+Math.random()*10; storm.parts.push({x, y, vx:Math.cos(a)*v, vy:Math.sin(a)*v-3, s:4+Math.random()*sz*.12, c:pick(['#ff8c00','#ffb347','#ffe066','#c45500','#5a8f29']), t:Date.now(), life:700+Math.random()*600}); } storm.shake = Math.max(storm.shake, 12); }, 180);
   } else {
     storm.misses++; storm.hearts--; SFX.boom(); flash(.6); storm.shake = 26; storm.redAt = Date.now(); storm.knock = Date.now(); addBilles(-10, 'storm miss');
-    $('#storm-hearts').textContent = '❤️'.repeat(storm.hearts) + '🖤'.repeat(3-storm.hearts); $('#storm-q').innerHTML = `${q.a} × ${q.b} = <span style="color:#8de3c0">${q.ans}</span>`;
+    $('#storm-hearts').textContent = '❤️'.repeat(Math.max(0, storm.hearts)) + '🖤'.repeat(Math.max(0, storm.maxHearts-storm.hearts)); $('#storm-q').innerHTML = `${q.a} × ${q.b} = <span style="color:#8de3c0">${q.ans}</span>`;
   }
   setTimeout(() => { if (!storm) return; if (storm.hearts<=0) endStorm(); else launchPumpkin(); }, ok ? 650 : 1400);
 }
@@ -1880,8 +1880,8 @@ function endStorm(){
   $('#storm-opts').innerHTML = ''; $('#storm-title').textContent = won ? '🌙 La lumière revient' : '🌙 Le calme revient';
   storm.q = null; storm.phase = 'end'; if (won){ SFX.freed(); for (let i=0;i<120;i++){ const cv = $('#storm-cv'); storm.parts.push({x:Math.random()*cv.width, y:cv.height*.5, vx:(Math.random()-.5)*8, vy:-4-Math.random()*8, s:4+Math.random()*8, c:pick(['#ffd166','#ff8fb1','#8de3c0','#7cc4ff','#fff']), t:Date.now(), life:2000}); } } else SFX.fail();
   save();
-  const after = storm.after;
-  setTimeout(() => { cancelAnimationFrame(storm && storm.loop); $('#storm').hidden = true; $('#app').classList.remove('dim'); storm = null; MUSIC.stop(); maybeCelebrate(() => { if (after) after(); else renderHome(); }); }, 2800);
+  const after = storm.after, heartsLeft = storm.hearts;
+  setTimeout(() => { cancelAnimationFrame(storm && storm.loop); $('#storm').hidden = true; $('#app').classList.remove('dim'); storm = null; MUSIC.stop(); maybeCelebrate(() => { if (after) after(heartsLeft); else renderHome(); }); }, 2800);
 }
 
 /* =========================================================
