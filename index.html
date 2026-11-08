@@ -693,7 +693,7 @@ function migrate(){
   // 2026-11-08 : la Salle du trésor (compléments à 100) devient la Salle de jeux (dés) ; on garde l'avancement de la salle
   if (S.rooms.complements100 && !S.rooms.des){ S.rooms.des = S.rooms.complements100; delete S.rooms.complements100; } if (S.skills && S.skills.complements100 && !S.skills.des){ S.skills.des = S.skills.complements100; delete S.skills.complements100; }
   // 2026-11-08 : un bug (bonus de rapidité sans chrono) a pu mettre NaN, devenu null, dans les compteurs ; on les remet à un nombre
-  for (const k of ['billes','stars','storms','stormWins','sinceStorm','cycle']){ if (typeof S[k]!=='number' || !Number.isFinite(S[k])) S[k] = 0; }
+  for (const k of ['billes','stars','storms','stormWins','sinceStorm','cycle']){ if (typeof S[k]!=='number' || !Number.isFinite(S[k])){ S[k] = 0; if (k==='billes') S.repaired = true; } } // repaired : la synchro reprendra les billes du nuage si elles sont plus élevées
   for (const id in S.rooms){ const rs = S.rooms[id]; if (rs.found==null) rs.found = rs.done>0; if (rs.level==null) rs.level = Math.min(3, (rs.done||0)+1); rs.level = Math.min(MAX_LEVEL, rs.level); } }
 function save(){ if (!P.current) return; S.updated = Date.now(); writeProfile(P.current, S); cloudSave(); }
 function logErr(e, where){ try{ S.lastErr = { t:new Date().toISOString(), where:where||'', msg:String(e && (e.stack||e.message||e)).slice(0,400), ua:navigator.userAgent.slice(0,80) }; save(); const el = $('#lasterr'); if (el) el.textContent = 'Dernière erreur : ' + S.lastErr.msg; }catch(_){} }
@@ -1998,6 +1998,8 @@ async function mergeProfile(id, remote){
   const local = playerState(id);
   if (!local){ addPlayer(id, remote.name||'Joueur', remote.emblem, remote); return true; }
   if (winner(local, remote)==='remote'){ if ((remote.updated||0)!==(local.updated||0) || prog(remote)!==prog(local)){ if (id===P.current) adoptRemote(remote); else writeProfile(id, Object.assign(DEFAULT(), remote)); return true; } return false; }
+  // le local gagne ; si ses billes avaient été réparées (NaN), on reprend le compte du nuage quand il est plus élevé
+  if (local.repaired && typeof remote.billes==='number' && remote.billes > (local.billes||0)){ local.billes = remote.billes; delete local.repaired; if (id===P.current){ S.billes = local.billes; delete S.repaired; if (screen==='home') renderHome(); } writeProfile(id, id===P.current ? S : local); }
   await pushProfile(id); return false;
 }
 async function cloudPull(){

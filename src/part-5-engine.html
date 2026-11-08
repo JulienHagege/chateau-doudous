@@ -603,6 +603,8 @@ async function mergeProfile(id, remote){
   const local = playerState(id);
   if (!local){ addPlayer(id, remote.name||'Joueur', remote.emblem, remote); return true; }
   if (winner(local, remote)==='remote'){ if ((remote.updated||0)!==(local.updated||0) || prog(remote)!==prog(local)){ if (id===P.current) adoptRemote(remote); else writeProfile(id, Object.assign(DEFAULT(), remote)); return true; } return false; }
+  // le local gagne ; si ses billes avaient été réparées (NaN), on reprend le compte du nuage quand il est plus élevé
+  if (local.repaired && typeof remote.billes==='number' && remote.billes > (local.billes||0)){ local.billes = remote.billes; delete local.repaired; if (id===P.current){ S.billes = local.billes; delete S.repaired; if (screen==='home') renderHome(); } writeProfile(id, id===P.current ? S : local); }
   await pushProfile(id); return false;
 }
 async function cloudPull(){
