@@ -109,7 +109,9 @@ const lsGet = k => { try{ const raw = localStorage.getItem(k); return raw ? JSON
 const lsSet = (k, v) => { try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} };
 const summarize = st => ({ name:st.name||'', emblem:st.emblem||'vachou', updated:st.updated||0, billes:st.billes||0, cycle:st.cycle||0, freed:Object.values(st.rooms||{}).filter(r => r.found).length });
 function savePlayers(){ lsSet(PKEY, P); }
-function playerState(id){ const st = lsGet(pkey(id)); return st ? Object.assign(DEFAULT(), st) : null; }
+function playerState(id){ const st = lsGet(pkey(id)); return st ? repairCounters(Object.assign(DEFAULT(), st)) : null; }
+// Un bug (bonus de rapidité sans chrono, 2026-11-08) a pu mettre NaN, devenu null, dans les compteurs : on remet un nombre et on marque `repaired`, la synchro reprendra alors les billes du nuage si elles sont plus élevées
+function repairCounters(st){ for (const k of ['billes','stars','storms','stormWins','sinceStorm','cycle']){ if (typeof st[k]!=='number' || !Number.isFinite(st[k])){ st[k] = 0; if (k==='billes') st.repaired = true; } } return st; }
 function writeProfile(id, st){ lsSet(pkey(id), st); const e = P.list.find(p => p.id===id); const sum = Object.assign({id}, summarize(st)); if (e) Object.assign(e, sum); else P.list.push(sum); savePlayers(); }
 function addPlayer(id, name, emblem, state){ const st = Object.assign(DEFAULT(), state||{}); st.name = name; st.emblem = emblem || st.emblem || 'vachou'; if (!st.updated) st.updated = Date.now(); writeProfile(id, st); return st; }
 function newPlayerId(){ return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
@@ -124,7 +126,7 @@ function migrate(){
   // 2026-11-08 : la Salle du trésor (compléments à 100) devient la Salle de jeux (dés) ; on garde l'avancement de la salle
   if (S.rooms.complements100 && !S.rooms.des){ S.rooms.des = S.rooms.complements100; delete S.rooms.complements100; } if (S.skills && S.skills.complements100 && !S.skills.des){ S.skills.des = S.skills.complements100; delete S.skills.complements100; }
   // 2026-11-08 : un bug (bonus de rapidité sans chrono) a pu mettre NaN, devenu null, dans les compteurs ; on les remet à un nombre
-  for (const k of ['billes','stars','storms','stormWins','sinceStorm','cycle']){ if (typeof S[k]!=='number' || !Number.isFinite(S[k])){ S[k] = 0; if (k==='billes') S.repaired = true; } } // repaired : la synchro reprendra les billes du nuage si elles sont plus élevées
+  repairCounters(S);
   for (const id in S.rooms){ const rs = S.rooms[id]; if (rs.found==null) rs.found = rs.done>0; if (rs.level==null) rs.level = Math.min(3, (rs.done||0)+1); rs.level = Math.min(MAX_LEVEL, rs.level); } }
 function save(){ if (!P.current) return; S.updated = Date.now(); writeProfile(P.current, S); cloudSave(); }
 function logErr(e, where){ try{ S.lastErr = { t:new Date().toISOString(), where:where||'', msg:String(e && (e.stack||e.message||e)).slice(0,400), ua:navigator.userAgent.slice(0,80) }; save(); const el = $('#lasterr'); if (el) el.textContent = 'Dernière erreur : ' + S.lastErr.msg; }catch(_){} }

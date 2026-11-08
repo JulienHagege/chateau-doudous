@@ -600,7 +600,7 @@ function winner(local, remote){
 async function pushProfile(id){ if (!DBCOL) return; const st = id===P.current ? S : playerState(id); if (!st) return; await DBCOL.doc(id).set({state:st, updated:st.updated||Date.now(), v:2}); }
 // Fusionne un joueur distant avec sa version locale ; renvoie true si le local a changé
 async function mergeProfile(id, remote){
-  const local = playerState(id);
+  const local = id===P.current ? S : playerState(id);
   if (!local){ addPlayer(id, remote.name||'Joueur', remote.emblem, remote); return true; }
   if (winner(local, remote)==='remote'){ if ((remote.updated||0)!==(local.updated||0) || prog(remote)!==prog(local)){ if (id===P.current) adoptRemote(remote); else writeProfile(id, Object.assign(DEFAULT(), remote)); return true; } return false; }
   // le local gagne ; si ses billes avaient été réparées (NaN), on reprend le compte du nuage quand il est plus élevé
