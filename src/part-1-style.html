@@ -362,5 +362,24 @@ body:has(#storm:not([hidden])) .fab{display:none}
 .pausescene .zz{position:absolute; left:40px; bottom:110px; color:#fff; font-family:var(--font-display); font-size:22px; font-weight:700; opacity:0; animation:zz 2.7s ease-in-out infinite; text-shadow:0 0 8px rgba(255,255,255,.6)}
 .pausescene .zz.z2{animation-delay:.9s; font-size:28px} .pausescene .zz.z3{animation-delay:1.8s; font-size:34px}
 @keyframes zz{0%{opacity:0; transform:translate(0,0)} 25%{opacity:1} 100%{opacity:0; transform:translate(34px,-70px)}}
+/* ---------- Choix du niveau à l'entrée d'une salle ---------- */
+.levels{display:flex; flex-direction:column; gap:12px}
+.lvlintro{text-align:center; color:#fff; font-size:17px; font-weight:700; margin:0; text-wrap:balance}
+.lvlcards{display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:10px}
+.lvcard{display:flex; flex-direction:column; align-items:center; gap:4px; padding:14px 10px 12px; border-radius:18px; background:linear-gradient(180deg,var(--panel2),var(--panel)); border:3px solid var(--line); box-shadow:var(--shadow); color:var(--fg); font:inherit; cursor:pointer; transition:transform .12s, border-color .12s; min-width:0; text-align:center}
+.lvcard:hover, .lvcard:focus-visible{transform:translateY(-3px); border-color:var(--acc); outline:none}
+.lvcard b{font-family:var(--font-display); font-size:22px; color:var(--gold)}
+.lvcard .lab{font-size:13px; font-weight:800; color:var(--muted); letter-spacing:.06em; text-transform:uppercase}
+.lvcard .stars{font-size:22px; letter-spacing:2px; min-height:28px}
+.lvcard .stars i{font-style:normal; opacity:.22}
+.lvcard small{font-size:13px; color:var(--muted); font-weight:700; line-height:1.3}
+.lvcard.cur{border-color:var(--gold); box-shadow:0 0 0 3px rgba(255,209,102,.25), var(--shadow)}
+.lvcard.cur b{color:#fff}
+.lvcard.cur .go{background:linear-gradient(180deg,#ffe08a,var(--gold2)); color:#3a2a05; border-radius:999px; padding:3px 12px; font-weight:900; font-size:13px; margin-top:4px}
+.lvcard.done .go{background:rgba(141,227,192,.2); color:var(--mint); border-radius:999px; padding:3px 12px; font-weight:900; font-size:13px; margin-top:4px}
+.lvcard.locked{opacity:.5; cursor:not-allowed; filter:grayscale(.6)}
+.lvcard.locked:hover{transform:none; border-color:var(--line)}
+.lvlhint{text-align:center; color:var(--muted); font-size:14px; font-weight:700; margin:0; background:var(--panel); border-radius:12px; padding:8px 14px}
+.lvlhint.ok{color:var(--mint)} .lvlhint.learning{color:var(--gold)}
 #warn-flash{position:fixed; inset:0; background:#dfe8ff; opacity:0; pointer-events:none; z-index:14}
 </style>

@@ -86,7 +86,12 @@
     const hv = GAMES.doubles.gen(1); let tries = 0; let qh = hv; while (!/moitié/.test(qh.prompt) && tries++<50) qh = GAMES.doubles.gen(1); const sth = document.createElement('div'); qh.render(sth, {}); log('moitié : étagères', sth.querySelectorAll('svg.shelf').length, 'ligne', sth.querySelectorAll('line').length);
     // 3. écran salle réel : une question de chaque type rendue dans #stage
     window.setTimeout = _st;
-    enterRoom(ROOM.formes); log('enterRoom OK, run =', !!run, 'stage html', $('#stage').innerHTML.length);
+    window.setTimeout = (f, ms, ...a) => { if (ms>=600){ f(...a); return 0; } return _st(f, ms, ...a); };
+    S.rooms.formes = {done:2, best:1, perfect:1, found:true, level:3, lv:{1:{n:2,best:0,perfect:1},2:{n:1,best:2,perfect:0}}}; enterRoom(ROOM.formes); log('écran niveaux', screen, 'cartes', document.querySelectorAll('#lvlcards .lvcard').length, 'débloquées', document.querySelectorAll('#lvlcards .lvcard:not(.locked)').length, 'courante', $('#lvlcards .lvcard.cur b').textContent, 'étoiles N1', $('#lvlcards .lvcard[data-l="1"] .stars').textContent.replace(/⭐/g,'*'), 'hint', $('#lv-hint').textContent.slice(0,20));
+    $('#lvlcards .lvcard[data-l="1"]').click(); log('rejouer N1 : run.level', run && run.level, 'écran', screen); let g5 = 0; while (run && g5++<40) submit(true); log('après N1 rejoué : niveau débloqué reste', S.rooms.formes.level, 'lv1', JSON.stringify(S.rooms.formes.lv[1]));
+    enterRoom(ROOM.formes); $('#lvlcards .lvcard.cur').click(); log('niveau courant joué', run && run.level); g5 = 0; while (run && g5++<40) submit(true); log('après N3 réussi : débloqué', S.rooms.formes.level, 'lv3', JSON.stringify(S.rooms.formes.lv[3]));
+    window.setTimeout = _st;
+    enterRoom(ROOM.formes); $('#lvlcards .lvcard.cur').click(); log('enterRoom OK, run =', !!run, 'stage html', $('#stage').innerHTML.length);
   }catch(e){ log('ERREUR', e.stack||e.message); }
   window.setTimeout = _st;
 })();

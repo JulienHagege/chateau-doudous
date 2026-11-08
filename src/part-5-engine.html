@@ -3,8 +3,8 @@
    MOTEUR DE SALLE : enchaîne les épreuves, chrono, cœurs, billes, étoiles
    ========================================================= */
 let run = null, timerIv = null, lastRoom = null;
-function startRoom(room){
-  const rs = roomState(room.id); const level = room.rev ? 1 : Math.min(MAX_LEVEL, rs.level || 1);
+function startRoom(room, wanted){
+  const rs = roomState(room.id); const top = Math.min(MAX_LEVEL, rs.level || 1); const level = room.rev ? 1 : clamp(wanted || top, 1, top); // on peut rejouer un niveau déjà débloqué
   // 5 niveaux de contenu par salle ; le chrono se resserre un peu à chaque niveau
   run = { room:room.id, level, gen:level, tfactor:Math.pow(.92, level-1), i:0, n:room.n, errors:0, hearts:maxHearts(), billes:0, results:[], asked:0, retry:[], q:null, answered:false, t0:0 };
   lastRoom = room.rev ? lastRoom : room;
@@ -117,7 +117,8 @@ function endRoom(won){
   const room = ROOM[run.room], d = room.rev ? {name:'Révision', desc:'', id:'hero'} : DD[room.dd], rs = roomState(room.id);
   const rewards = [];
   if (won){
-    const first = !rs.found; rs.done++; if (!room.rev){ rs.found = true; rs.level = Math.min(MAX_LEVEL, (rs.level||1) + 1); } const bonus = room.boss ? 300 : 50; run.billes += addBilles(bonus, 'endRoom'); rewards.push(`<span class="rw" style="color:var(--bille)">${run.billes>=0?'+':''}${run.billes} billes</span>`);
+    const first = !rs.found; rs.done++; if (!room.rev){ rs.found = true; if (run.level >= (rs.level||1)) rs.level = Math.min(MAX_LEVEL, run.level + 1); // rejouer un niveau plus bas ne change pas le niveau débloqué
+      rs.lv = rs.lv || {}; const lv = rs.lv[run.level] || (rs.lv[run.level] = {n:0, best:null, perfect:0}); lv.n++; if (lv.best===null || run.errors<lv.best) lv.best = run.errors; if (run.errors===0) lv.perfect++; } const bonus = room.boss ? 300 : 50; run.billes += addBilles(bonus, 'endRoom'); rewards.push(`<span class="rw" style="color:var(--bille)">${run.billes>=0?'+':''}${run.billes} billes</span>`);
     if (run.errors===0){ const st = room.boss ? 3 : 1; addStars(st, 'endRoom'); rs.perfect++; rewards.push(`<span class="rw" style="color:var(--star)">⭐ ${st===1?'Une étoile : sans faute !':'Trois étoiles : sans faute !'}</span>`); }
     if (rs.best===null || run.errors<rs.best) rs.best = run.errors;
     S.sinceStorm = (S.sinceStorm||0) + 1;
@@ -292,11 +293,26 @@ mapCv.addEventListener('click', e => {
   if (!roomUnlocked(room)){ SFX.ko(); toast(room.boss ? 'Retrouve tous les autres doudous avant de monter voir Vachou !' : 'Cet étage n\'est pas encore ouvert.'); return; }
   enterRoom(room);
 });
+// À l'entrée d'une salle : choisir le niveau (ceux déjà réussis se rejouent, le suivant est à débloquer)
+const LEVEL_NAMES = ['Découverte','Apprenti','Confirmé','Expert','Champion'];
+function levelStars(lv){ if (!lv || lv.best===null) return 0; return lv.best===0 ? 3 : lv.best<=2 ? 2 : 1; }
+let levelsRoom = null;
 function enterRoom(room){
-  const d = DD[room.dd]; const rs = roomState(room.id); const level = clamp(rs.done+1,1,3);
-  toast(`${GAMES[room.id].intro}`, 3200);
-  startRoom(room);
+  levelsRoom = room; const d = DD[room.dd]; const rs = roomState(room.id); const top = Math.min(MAX_LEVEL, rs.level||1);
+  $('#lv-img').src = IMG[d.id]; $('#lv-cage').classList.toggle('free', !!rs.found || rs.done>0); $('#lv-name').textContent = room.name; $('#lv-skill').textContent = room.skill + ' · ' + (rs.done>0 ? d.name + (rs.found ? ' est avec toi' : ' se cache encore') : d.name + ' se cache ici');
+  $('#lv-intro').textContent = fr(GAMES[room.id].intro);
+  const cards = []; for (let l=1; l<=MAX_LEVEL; l++){ const lv = (rs.lv||{})[l]; const st = levelStars(lv); const cls = l===top ? 'cur' : l<top ? 'done' : 'locked';
+    const stars = '⭐'.repeat(st) + '<i>⭐</i>'.repeat(3-st);
+    const info = cls==='locked' ? '🔒 Réussis le niveau ' + (l-1) : lv && lv.n ? (lv.best===0 ? 'Sans faute !' : lv.best + ' erreur' + (lv.best>1?'s':'') + ' au mieux') + ' · joué ' + lv.n + ' fois' : (l===top && top>1 ? 'Nouveau niveau à découvrir' : 'Pas encore joué');
+    const go = cls==='cur' ? '<span class="go">' + (lv && lv.n ? 'Réessayer' : 'À débloquer') + ' ▶</span>' : cls==='done' ? '<span class="go">Rejouer ▶</span>' : '';
+    cards.push(`<button class="lvcard ${cls}" data-l="${l}" ${cls==='locked' ? 'disabled' : ''}><span class="lab">${LEVEL_NAMES[l-1]}</span><b>Niveau ${l}</b><span class="stars">${stars}</span><small>${info}</small>${go}</button>`); }
+  $('#lvlcards').innerHTML = cards.join('');
+  $$('#lvlcards .lvcard:not(.locked)').forEach(b => { b.onclick = () => { SFX.click(); const l = +b.dataset.l; show('room'); toast(l<top ? `Niveau ${l} : on révise !` : GAMES[room.id].intro, 3000); startRoom(room, l); }; });
+  const ss = room.boss ? 'new' : skillStatus(room.id); const hint = $('#lv-hint'); hint.className = 'lvlhint ' + ss;
+  hint.textContent = fr(ss==='ok' ? '✅ Notion acquise ! Rejoue un niveau pour le plaisir, ou vise le suivant.' : ss==='learning' ? '📚 Notion en cours : rejouer un niveau déjà réussi, c\'est une très bonne façon de s\'entraîner.' : room.boss ? 'Toutes les énigmes du château, mélangées.' : '✨ Première visite : commence par le niveau 1.');
+  show('levels'); MUSIC.play(roomTrack(room));
 }
+$('#btn-levels-back').onclick = () => { SFX.click(); const room = levelsRoom; levelsRoom = null; if (room && !room.rev) openMap(room.floor, room); else { renderHome(); show('home'); } };
 
 /* =========================================================
    ORAGE : les éclairs se rapprochent, la lumière s'éteint, les citrouilles attaquent (multiplications rapides)

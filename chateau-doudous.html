@@ -362,6 +362,25 @@ body:has(#storm:not([hidden])) .fab{display:none}
 .pausescene .zz{position:absolute; left:40px; bottom:110px; color:#fff; font-family:var(--font-display); font-size:22px; font-weight:700; opacity:0; animation:zz 2.7s ease-in-out infinite; text-shadow:0 0 8px rgba(255,255,255,.6)}
 .pausescene .zz.z2{animation-delay:.9s; font-size:28px} .pausescene .zz.z3{animation-delay:1.8s; font-size:34px}
 @keyframes zz{0%{opacity:0; transform:translate(0,0)} 25%{opacity:1} 100%{opacity:0; transform:translate(34px,-70px)}}
+/* ---------- Choix du niveau à l'entrée d'une salle ---------- */
+.levels{display:flex; flex-direction:column; gap:12px}
+.lvlintro{text-align:center; color:#fff; font-size:17px; font-weight:700; margin:0; text-wrap:balance}
+.lvlcards{display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:10px}
+.lvcard{display:flex; flex-direction:column; align-items:center; gap:4px; padding:14px 10px 12px; border-radius:18px; background:linear-gradient(180deg,var(--panel2),var(--panel)); border:3px solid var(--line); box-shadow:var(--shadow); color:var(--fg); font:inherit; cursor:pointer; transition:transform .12s, border-color .12s; min-width:0; text-align:center}
+.lvcard:hover, .lvcard:focus-visible{transform:translateY(-3px); border-color:var(--acc); outline:none}
+.lvcard b{font-family:var(--font-display); font-size:22px; color:var(--gold)}
+.lvcard .lab{font-size:13px; font-weight:800; color:var(--muted); letter-spacing:.06em; text-transform:uppercase}
+.lvcard .stars{font-size:22px; letter-spacing:2px; min-height:28px}
+.lvcard .stars i{font-style:normal; opacity:.22}
+.lvcard small{font-size:13px; color:var(--muted); font-weight:700; line-height:1.3}
+.lvcard.cur{border-color:var(--gold); box-shadow:0 0 0 3px rgba(255,209,102,.25), var(--shadow)}
+.lvcard.cur b{color:#fff}
+.lvcard.cur .go{background:linear-gradient(180deg,#ffe08a,var(--gold2)); color:#3a2a05; border-radius:999px; padding:3px 12px; font-weight:900; font-size:13px; margin-top:4px}
+.lvcard.done .go{background:rgba(141,227,192,.2); color:var(--mint); border-radius:999px; padding:3px 12px; font-weight:900; font-size:13px; margin-top:4px}
+.lvcard.locked{opacity:.5; cursor:not-allowed; filter:grayscale(.6)}
+.lvcard.locked:hover{transform:none; border-color:var(--line)}
+.lvlhint{text-align:center; color:var(--muted); font-size:14px; font-weight:700; margin:0; background:var(--panel); border-radius:12px; padding:8px 14px}
+.lvlhint.ok{color:var(--mint)} .lvlhint.learning{color:var(--gold)}
 #warn-flash{position:fixed; inset:0; background:#dfe8ff; opacity:0; pointer-events:none; z-index:14}
 </style>
 <style>
@@ -564,6 +583,18 @@ body:has(#storm:not([hidden])) .fab{display:none}
     <span class="gain"><i class="bille-ico"></i> <span id="room-billes" class="tabular">0</span> billes</span>
     <button class="btn ghost" id="btn-quit">Quitter la salle</button>
   </div>
+</section>
+
+<!-- ===== Choix du niveau (à l'entrée d'une salle) ===== -->
+<section id="levels" class="screen levels" hidden>
+  <div class="roomhead">
+    <div class="hide" id="lv-cage"><img id="lv-img" class="px" alt=""></div>
+    <div class="meta"><h2 id="lv-name"></h2><p id="lv-skill"></p></div>
+  </div>
+  <p class="lvlintro" id="lv-intro"></p>
+  <div class="lvlcards" id="lvlcards"></div>
+  <p class="lvlhint" id="lv-hint"></p>
+  <div class="actions"><button class="btn ghost" id="btn-levels-back">🗺️ Retour à la carte</button></div>
 </section>
 
 <!-- ===== Résultat ===== -->
@@ -943,7 +974,7 @@ const MUSIC = {
 
 /* ---------- UI utilitaires ---------- */
 let screen = 'home';
-function show(id){ ['home','players','pause','intro','cycle','carnet','album','mapscreen','room','result'].forEach(s => { $('#'+s).hidden = (s!==id); }); screen = id; window.scrollTo(0,0); }
+function show(id){ ['home','players','pause','levels','intro','cycle','carnet','album','mapscreen','room','result'].forEach(s => { $('#'+s).hidden = (s!==id); }); screen = id; window.scrollTo(0,0); }
 let toastT = null;
 function toast(msg, ms=2600){ let t = $('.toast'); if (!t){ t = document.createElement('div'); t.className='toast'; document.body.appendChild(t); } t.textContent = fr(msg); t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms); }
 function sparkle(el, txt='✨'){ try{ const r = el.getBoundingClientRect(); for (let i=0;i<5;i++){ const s = document.createElement('span'); s.className='sparkle'; s.textContent = txt; s.style.left = (r.left + Math.random()*r.width) + 'px'; s.style.top = (r.top + r.height/2) + 'px'; s.style.position='fixed'; s.style.zIndex = 40; document.body.appendChild(s); setTimeout(()=>s.remove(), 900); } }catch(e){} }
@@ -1461,8 +1492,8 @@ GAMES.revision = { intro:'On revoit ce qui a posé problème.', gen(level, i, n)
    MOTEUR DE SALLE : enchaîne les épreuves, chrono, cœurs, billes, étoiles
    ========================================================= */
 let run = null, timerIv = null, lastRoom = null;
-function startRoom(room){
-  const rs = roomState(room.id); const level = room.rev ? 1 : Math.min(MAX_LEVEL, rs.level || 1);
+function startRoom(room, wanted){
+  const rs = roomState(room.id); const top = Math.min(MAX_LEVEL, rs.level || 1); const level = room.rev ? 1 : clamp(wanted || top, 1, top); // on peut rejouer un niveau déjà débloqué
   // 5 niveaux de contenu par salle ; le chrono se resserre un peu à chaque niveau
   run = { room:room.id, level, gen:level, tfactor:Math.pow(.92, level-1), i:0, n:room.n, errors:0, hearts:maxHearts(), billes:0, results:[], asked:0, retry:[], q:null, answered:false, t0:0 };
   lastRoom = room.rev ? lastRoom : room;
@@ -1575,7 +1606,8 @@ function endRoom(won){
   const room = ROOM[run.room], d = room.rev ? {name:'Révision', desc:'', id:'hero'} : DD[room.dd], rs = roomState(room.id);
   const rewards = [];
   if (won){
-    const first = !rs.found; rs.done++; if (!room.rev){ rs.found = true; rs.level = Math.min(MAX_LEVEL, (rs.level||1) + 1); } const bonus = room.boss ? 300 : 50; run.billes += addBilles(bonus, 'endRoom'); rewards.push(`<span class="rw" style="color:var(--bille)">${run.billes>=0?'+':''}${run.billes} billes</span>`);
+    const first = !rs.found; rs.done++; if (!room.rev){ rs.found = true; if (run.level >= (rs.level||1)) rs.level = Math.min(MAX_LEVEL, run.level + 1); // rejouer un niveau plus bas ne change pas le niveau débloqué
+      rs.lv = rs.lv || {}; const lv = rs.lv[run.level] || (rs.lv[run.level] = {n:0, best:null, perfect:0}); lv.n++; if (lv.best===null || run.errors<lv.best) lv.best = run.errors; if (run.errors===0) lv.perfect++; } const bonus = room.boss ? 300 : 50; run.billes += addBilles(bonus, 'endRoom'); rewards.push(`<span class="rw" style="color:var(--bille)">${run.billes>=0?'+':''}${run.billes} billes</span>`);
     if (run.errors===0){ const st = room.boss ? 3 : 1; addStars(st, 'endRoom'); rs.perfect++; rewards.push(`<span class="rw" style="color:var(--star)">⭐ ${st===1?'Une étoile : sans faute !':'Trois étoiles : sans faute !'}</span>`); }
     if (rs.best===null || run.errors<rs.best) rs.best = run.errors;
     S.sinceStorm = (S.sinceStorm||0) + 1;
@@ -1750,11 +1782,26 @@ mapCv.addEventListener('click', e => {
   if (!roomUnlocked(room)){ SFX.ko(); toast(room.boss ? 'Retrouve tous les autres doudous avant de monter voir Vachou !' : 'Cet étage n\'est pas encore ouvert.'); return; }
   enterRoom(room);
 });
+// À l'entrée d'une salle : choisir le niveau (ceux déjà réussis se rejouent, le suivant est à débloquer)
+const LEVEL_NAMES = ['Découverte','Apprenti','Confirmé','Expert','Champion'];
+function levelStars(lv){ if (!lv || lv.best===null) return 0; return lv.best===0 ? 3 : lv.best<=2 ? 2 : 1; }
+let levelsRoom = null;
 function enterRoom(room){
-  const d = DD[room.dd]; const rs = roomState(room.id); const level = clamp(rs.done+1,1,3);
-  toast(`${GAMES[room.id].intro}`, 3200);
-  startRoom(room);
+  levelsRoom = room; const d = DD[room.dd]; const rs = roomState(room.id); const top = Math.min(MAX_LEVEL, rs.level||1);
+  $('#lv-img').src = IMG[d.id]; $('#lv-cage').classList.toggle('free', !!rs.found || rs.done>0); $('#lv-name').textContent = room.name; $('#lv-skill').textContent = room.skill + ' · ' + (rs.done>0 ? d.name + (rs.found ? ' est avec toi' : ' se cache encore') : d.name + ' se cache ici');
+  $('#lv-intro').textContent = fr(GAMES[room.id].intro);
+  const cards = []; for (let l=1; l<=MAX_LEVEL; l++){ const lv = (rs.lv||{})[l]; const st = levelStars(lv); const cls = l===top ? 'cur' : l<top ? 'done' : 'locked';
+    const stars = '⭐'.repeat(st) + '<i>⭐</i>'.repeat(3-st);
+    const info = cls==='locked' ? '🔒 Réussis le niveau ' + (l-1) : lv && lv.n ? (lv.best===0 ? 'Sans faute !' : lv.best + ' erreur' + (lv.best>1?'s':'') + ' au mieux') + ' · joué ' + lv.n + ' fois' : (l===top && top>1 ? 'Nouveau niveau à découvrir' : 'Pas encore joué');
+    const go = cls==='cur' ? '<span class="go">' + (lv && lv.n ? 'Réessayer' : 'À débloquer') + ' ▶</span>' : cls==='done' ? '<span class="go">Rejouer ▶</span>' : '';
+    cards.push(`<button class="lvcard ${cls}" data-l="${l}" ${cls==='locked' ? 'disabled' : ''}><span class="lab">${LEVEL_NAMES[l-1]}</span><b>Niveau ${l}</b><span class="stars">${stars}</span><small>${info}</small>${go}</button>`); }
+  $('#lvlcards').innerHTML = cards.join('');
+  $$('#lvlcards .lvcard:not(.locked)').forEach(b => { b.onclick = () => { SFX.click(); const l = +b.dataset.l; show('room'); toast(l<top ? `Niveau ${l} : on révise !` : GAMES[room.id].intro, 3000); startRoom(room, l); }; });
+  const ss = room.boss ? 'new' : skillStatus(room.id); const hint = $('#lv-hint'); hint.className = 'lvlhint ' + ss;
+  hint.textContent = fr(ss==='ok' ? '✅ Notion acquise ! Rejoue un niveau pour le plaisir, ou vise le suivant.' : ss==='learning' ? '📚 Notion en cours : rejouer un niveau déjà réussi, c\'est une très bonne façon de s\'entraîner.' : room.boss ? 'Toutes les énigmes du château, mélangées.' : '✨ Première visite : commence par le niveau 1.');
+  show('levels'); MUSIC.play(roomTrack(room));
 }
+$('#btn-levels-back').onclick = () => { SFX.click(); const room = levelsRoom; levelsRoom = null; if (room && !room.rev) openMap(room.floor, room); else { renderHome(); show('home'); } };
 
 /* =========================================================
    ORAGE : les éclairs se rapprochent, la lumière s'éteint, les citrouilles attaquent (multiplications rapides)
