@@ -138,11 +138,13 @@ function hopAnim(cv, maxCm, ribbons, from, to, hops, flag, onEnd, labels){
 }
 function cmFromClick(cv, maxCm, e){ const r = cv.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width * 640; return Math.round((x - RUL.x0) / ((RUL.x1-RUL.x0)/maxCm)); }
 const LEN_ITEMS = [['un crayon',15,'cm'],['une porte',2,'m'],['une fourmi',5,'mm'],['un lit',2,'m'],['une gomme',4,'cm'],['un terrain de foot',100,'m'],['Paris à Marseille',800,'km'],['une cuillère',18,'cm'],['une voiture',4,'m'],['un bus',12,'m'],['un livre',25,'cm'],['une coccinelle',6,'mm'],['la tour Eiffel',300,'m'],['un grain de riz',6,'mm'],['une piscine',25,'m']];
+// Départ d'Hugo : au plus deux départs à zéro par salle, sinon il part d'un nombre (même au niveau 1, sinon « 0 + 5 » revient sans arrêt)
+function hugoStart(maxFrom){ const r = (typeof run!=='undefined' && run) ? run : null; const zeroOk = !r || (r.zeros||0) < 2; if (zeroOk && Math.random()<.35){ if (r) r.zeros = (r.zeros||0)+1; return 0; } return rnd(1, Math.max(1, maxFrom)); }
 GAMES.longueurs = { intro:'Hugo le kangourou saute sur la grande règle. Mesure ses bonds !', gen(level){
   const t = pick(L(level, [['measure','compare','jump','catch','catch'], ['measure','unit','jump','catch','catch'], ['measure','unit','convert','catch','jump','catch'], ['measure','convert','convert2','catch','jump'], ['convert2','convert2','catch','jump','unit','measure']]));
   const max = L(level, [10,20,30,50,100]);
   if (t==='measure'){
-    const a = level>=3 ? rnd(1, Math.floor(max*.6)) : 0; const len = rnd(2, Math.min(max-a, L(level,[10,15,15,25,40]))); const b = a+len;
+    const a = level>=3 ? rnd(1, Math.floor(max*.6)) : hugoStart(Math.floor(max*.5)); const len = rnd(2, Math.min(max-a, L(level,[10,15,15,25,40]))); const b = a+len;
     return {prompt:`Combien mesure le ruban d'Hugo ?`, kind:'num', answer:len, suffix:'cm', show:len+' cm', explain:`Le ruban va de ${a} à ${b} : ${b} − ${a} = ${len} cm. Compte les traits entre le début et la fin.`, render(stage){ const cv = document.createElement('canvas'); cv.className='ruler'; drawRuler(cv, max, [{a,b,color:'#ff8fb1'}]); stage.appendChild(cv); }};
   }
   if (t==='compare'){
@@ -163,10 +165,10 @@ GAMES.longueurs = { intro:'Hugo le kangourou saute sur la grande règle. Mesure 
     return num(txt.replace('…','<b>?</b>'), ans, {sub:'1 m = 100 cm · 1 km = 1000 m · 1 cm = 10 mm', explain:`${txt.replace('…', ans)} : on change les grandes unités, puis on ajoute les petites.`});
   }
   if (t==='jump'){
-    const from = level>=3 ? rnd(1, Math.floor(max*.4)) : 0; const d = rnd(2, Math.min(L(level,[9,9,12,20,30]), max-from)); const to = from+d;
+    const from = level>=3 ? rnd(1, Math.floor(max*.4)) : hugoStart(Math.floor(max*.4)); const d = rnd(2, Math.min(L(level,[9,9,12,20,30]), max-from)); const to = from+d;
     return {prompt:`Regarde bien… Hugo a sauté de <b>combien de cm</b> ?`, sub:'Touche Hugo pour revoir le saut', kind:'num', answer:d, suffix:'cm', show:d+' cm', explain:`Hugo est parti de ${from} et arrivé à ${to} : ${to} − ${from} = ${d} cm.`, render(stage){ const cv = document.createElement('canvas'); cv.className='ruler'; stage.appendChild(cv); const labels = level>=3; const play = () => hopAnim(cv, max, [], from, to, 1, null, () => drawRuler(cv, max, [], {pos:to, start:from, land:to, labels}), labels); drawRuler(cv, max, [], {pos:from, start:from, labels}); setTimeout(play, 600); cv.onclick = play; }};
   }
-  const hops = L(level, [1, rnd(2,3), rnd(2,4), rnd(3,5), rnd(3,6)]); let d = rnd(2, L(level,[8,7,7,10,15])); const from = level>=3 ? rnd(0, Math.floor(max*.2)) : 0; while (from + hops*d > max) d--; const to = from + hops*d;
+  const hops = L(level, [1, rnd(2,3), rnd(2,4), rnd(3,5), rnd(3,6)]); let d = rnd(2, L(level,[8,7,7,10,15])); const from = hugoStart(Math.floor(max*(level>=3 ? .2 : .3))); while (d>1 && from + hops*d > max) d--; const to = from + hops*d;
   const txt = hops===1 ? `Hugo part de <b>${from}</b> et saute de <b>${d} cm</b>.` : `Hugo part de <b>${from}</b> et fait <b>${hops} sauts</b> de <b>${d} cm</b>.`;
   return {story:`${txt} Touche la règle là où il va atterrir !`, prompt: hops===1 ? `${from} + ${d} = <b>?</b>` : `${from} + ${hops} × ${d} = <b>?</b>`, kind:'custom', answer:to, show:to+' cm', explain:`${hops} saut${hops>1?'s':''} de ${d} cm = ${Array(hops).fill(d).join(' + ')} = ${hops*d} cm${from ? `, et ${from} + ${hops*d} = ${to}` : ''}.`, timeMult:1.5, render(stage, api){
     const cv = document.createElement('canvas'); cv.className='ruler'; stage.appendChild(cv); drawRuler(cv, max, [], {pos:from, start:from, labels:true});
@@ -179,13 +181,16 @@ GAMES.longueurs = { intro:'Hugo le kangourou saute sur la grande règle. Mesure 
 const BOOK_COLORS = ['#ff8fb1','#ffd166','#8de3c0','#7cc4ff','#c9b6ff','#ffb347','#ff7a5c','#9ef0ff'];
 // Une étagère : n livres (paquets de 10 = gros livre marqué 10, puis les unités), ou vide avec un « ? »
 function shelfSvg(n, label, opts={}){
-  const W = 300, H = 92; const tens = Math.floor(n/10), ones = n%10; let x = 10; let items = '';
+  const W = 300, H = 92; const tens = Math.floor(n/10), ones = n%10; let x = 10, endX = 10; let items = '';
   const showTens = n>20 || opts.tens; let i = 0;
   if (n===0 || opts.empty){ items = `<text x="${W/2}" y="58" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="30" font-weight="700" fill="#ffd166">?</text>`; }
-  else if (showTens){ for (let k=0;k<tens;k++){ items += `<g class="bk" style="animation-delay:${(i++*.04).toFixed(2)}s"><rect x="${x}" y="22" width="22" height="50" rx="3" fill="${BOOK_COLORS[k%8]}" stroke="#2a1f05" stroke-width="2"/><text x="${x+11}" y="52" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="13" font-weight="700" fill="#2a1f05">10</text></g>`; x += 26; }
-    for (let k=0;k<ones;k++){ items += `<g class="bk" style="animation-delay:${(i++*.04).toFixed(2)}s"><rect x="${x}" y="${34 + (k%2)*4}" width="9" height="${38 - (k%2)*4}" rx="2" fill="${BOOK_COLORS[(k+3)%8]}" stroke="#2a1f05" stroke-width="1.5"/></g>`; x += 11; } }
-  else { const w = n>12 ? 12 : 16, gap = n>12 ? 14 : 18; for (let k=0;k<n;k++){ items += `<g class="bk" style="animation-delay:${(i++*.05).toFixed(2)}s"><rect x="${x}" y="${30 + (k%3)*4}" width="${w}" height="${42 - (k%3)*4}" rx="2" fill="${BOOK_COLORS[k%8]}" stroke="#2a1f05" stroke-width="2"/><rect x="${x+2}" y="${36 + (k%3)*4}" width="${w-4}" height="3" fill="rgba(255,255,255,.5)"/></g>`; x += gap; } }
-  return `<svg viewBox="0 0 ${W} ${H}" class="shelf"><rect x="4" y="74" width="${W-8}" height="10" rx="3" fill="#8a5a2a" stroke="#3a2410" stroke-width="2"/><rect x="4" y="84" width="${W-8}" height="4" fill="#5a3a1a"/>${items}<text x="${W/2}" y="16" text-anchor="middle" font-family="Nunito, sans-serif" font-size="13" font-weight="800" fill="#fff">${label}</text></svg>`;
+  else if (showTens){ for (let k=0;k<tens;k++){ items += `<g class="bk" style="animation-delay:${(i++*.04).toFixed(2)}s"><rect x="${x}" y="22" width="22" height="50" rx="3" fill="${BOOK_COLORS[k%8]}" stroke="#2a1f05" stroke-width="2"/><text x="${x+11}" y="52" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="13" font-weight="700" fill="#2a1f05">10</text></g>`; endX = x+22; x += 26; }
+    for (let k=0;k<ones;k++){ items += `<g class="bk" style="animation-delay:${(i++*.04).toFixed(2)}s"><rect x="${x}" y="${34 + (k%2)*4}" width="9" height="${38 - (k%2)*4}" rx="2" fill="${BOOK_COLORS[(k+3)%8]}" stroke="#2a1f05" stroke-width="1.5"/></g>`; endX = x+9; x += 11; } }
+  else { const w = n>12 ? 12 : 16, gap = n>12 ? 14 : 18; for (let k=0;k<n;k++){ items += `<g class="bk" style="animation-delay:${(i++*.05).toFixed(2)}s"><rect x="${x}" y="${30 + (k%3)*4}" width="${w}" height="${42 - (k%3)*4}" rx="2" fill="${BOOK_COLORS[k%8]}" stroke="#2a1f05" stroke-width="2"/><rect x="${x+2}" y="${36 + (k%3)*4}" width="${w-4}" height="3" fill="rgba(255,255,255,.5)"/></g>`; endX = x+w; x += gap; } }
+  let split = '';
+  if (opts.split && n>0){ const mid = (10+endX)/2, half = (endX-10)/2; const lab = half>=70 ? 'la moitié ?' : '?';
+    split = `<line x1="${mid}" y1="20" x2="${mid}" y2="90" stroke="#ffd166" stroke-width="3" stroke-dasharray="6 5" stroke-linecap="round"/><text x="${(10+mid)/2}" y="16" text-anchor="middle" font-family="Nunito, sans-serif" font-size="13" font-weight="800" fill="#ffd166">${lab}</text><text x="${(mid+endX)/2}" y="16" text-anchor="middle" font-family="Nunito, sans-serif" font-size="13" font-weight="800" fill="#ffd166">${lab}</text>`; label = ''; }
+  return `<svg viewBox="0 0 ${W} ${H}" class="shelf"><rect x="4" y="74" width="${W-8}" height="10" rx="3" fill="#8a5a2a" stroke="#3a2410" stroke-width="2"/><rect x="4" y="84" width="${W-8}" height="4" fill="#5a3a1a"/>${items}${split}<text x="${W/2}" y="16" text-anchor="middle" font-family="Nunito, sans-serif" font-size="13" font-weight="800" fill="#fff">${label}</text></svg>`;
 }
 function booksScene(stage, shelves){ const d = document.createElement('div'); d.className = 'library'; d.innerHTML = shelves.map(([n, label, opts]) => shelfSvg(n, label, opts)).join(''); stage.appendChild(d); }
 GAMES.doubles = { intro:'Dans la bibliothèque, Pandou voit tout en double… ou en moitié !', gen(level){
@@ -199,7 +204,7 @@ GAMES.doubles = { intro:'Dans la bibliothèque, Pandou voit tout en double… ou
     return num(`Pandou a ${n} ${what} et son jumeau autant. Le <b>double</b> de ${n} ?`, n*2, {sub:`${n} + ${n}`, explain:`Le double de ${n}, c'est ${n} + ${n} = ${n*2}.`, render(st){ booksScene(st, [[n,`Pandou : ${n}`],[n,`son jumeau : ${n}`]]); }});
   }
   const n = L(level, [rnd(1,10)*2, pick([rnd(1,20)*2,50,100]), rnd(10,50)*2, rnd(25,100)*2, rnd(50,250)*2]);
-  return num(`Pandou partage ${n} ${what} en deux piles égales. La <b>moitié</b> de ${n} ?`, n/2, {sub:'la moitié = partager en 2 paniers égaux', explain:`La moitié de ${n} : ${n/2} + ${n/2} = ${n}, donc ${n/2}.`, render(st){ booksScene(st, [[n, `${n} ${what} à partager`, {tens:n>20}], [0,'panier de Pandou',{empty:true}], [0,'panier du jumeau',{empty:true}]]); }});
+  return num(`Pandou partage ${n} ${what} en deux piles égales. La <b>moitié</b> de ${n} ?`, n/2, {sub:'la moitié = couper en 2 parts égales', explain:`La moitié de ${n} : ${n/2} + ${n/2} = ${n}, donc ${n/2}.`, render(st){ const d = document.createElement('p'); d.className = 'sync'; d.style.cssText = 'text-align:center; margin:0 0 4px; color:var(--gold)'; d.textContent = fr(`${n} ${what} sur l'étagère : la ligne les sépare en deux parts égales.`); st.appendChild(d); booksScene(st, [[n, '', {tens:n>20, split:true}]]); }});
 }};
 
 /* ---------- Symétrie (Manchou, la Salle des miroirs) ---------- */

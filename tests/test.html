@@ -55,6 +55,15 @@
     heroMove(0,-1); log('vers la porte : hero', JSON.stringify(hero), 'busy', heroBusy);
     if (run){ clearInterval(timerIv); run=null; } hero.floor=-1; openMap(0); heroMove(1,0); heroMove(1,0); heroMove(0,1); log('couloir', JSON.stringify(hero));
     for (const k in MUSIC_TRACKS){ const E = MUSIC.events(MUSIC_TRACKS[k]); if (!E.ev.length) log('MUSIQUE vide', k); } log('musiques', Object.keys(MUSIC_TRACKS).length); toggleMusic(); log('musique coupée', S.music, $('#fab-music').textContent, MUSIC.timer); toggleMusic(); log('musique remise', S.music, $('#fab-music').textContent);
+    // joueurs : création, bascule, isolation des parties, suppression, migration de l'ancienne sauvegarde
+    localStorage.clear(); P = {list:[], current:null}; addPlayer('t1','Alice','vachou'); choosePlayer('t1'); S.billes = 10; save(); addPlayer('t2','Bob','crabou'); choosePlayer('t2'); S.billes = 50; roomState('formes').found = true; save();
+    log('joueurs', P.list.length, 'courant', P.current, 'Bob billes', S.billes); choosePlayer('t1'); log('retour Alice billes', S.billes, 'formes', !!S.rooms.formes, 'index', JSON.stringify(P.list.map(p=>[p.name,p.billes,p.freed])));
+    renderPlayers(); log('cartes joueurs', document.querySelectorAll('#plist .pcard').length, 'formulaire caché', $('#pform').hidden, 'who', $('#who-name').textContent);
+    removePlayer('t2'); log('après suppression', P.list.length, 'état Bob effacé', playerState('t2')===null);
+    localStorage.clear(); localStorage.setItem(KEY, JSON.stringify({name:'Meryl', billes:321, rooms:{formes:{done:1,found:true,level:2}}, tot:{r:40,w:3}})); P = {list:[], current:null}; load(); log('migration v1 → joueur', P.current, S.name, S.billes, 'freed', freedCount(), 'liste', JSON.stringify(P.list.map(p=>[p.id,p.name,p.billes])));
+    log('gagnant', winner({updated:1, tot:{r:5,w:0}}, {updated:2, tot:{r:9,w:0}}), winner({updated:5, tot:{r:9,w:0}}, {updated:9, tot:{r:5,w:0}}), winner({updated:5, tot:{r:9,w:0}, resetAt:8}, {updated:7, tot:{r:9,w:0}}));
+    let zeros = 0, tot2 = 0; for (let i=0;i<200;i++){ run = {room:'longueurs'}; for (let k=0;k<12;k++){ const q = GAMES.longueurs.gen(1); if (/^0 \+/.test(q.prompt.replace(/<[^>]+>/g,''))) zeros++; tot2++; } } run = null; log('galerie L1 : départs à zéro', zeros, 'sur', tot2, 'questions (max 2 par salle de 12)');
+    const hv = GAMES.doubles.gen(1); let tries = 0; let qh = hv; while (!/moitié/.test(qh.prompt) && tries++<50) qh = GAMES.doubles.gen(1); const sth = document.createElement('div'); qh.render(sth, {}); log('moitié : étagères', sth.querySelectorAll('svg.shelf').length, 'ligne', sth.querySelectorAll('line').length);
     // 3. écran salle réel : une question de chaque type rendue dans #stage
     window.setTimeout = _st;
     enterRoom(ROOM.formes); log('enterRoom OK, run =', !!run, 'stage html', $('#stage').innerHTML.length);

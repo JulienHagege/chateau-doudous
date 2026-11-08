@@ -12,7 +12,7 @@ Jeu de maths pour Meryl, la fille de Julien (6 ans, CP, forte en maths), créé 
 
 Compte PixelLab (Tier 1) : 8 jobs simultanés max, pas de `create_room`. Style des doudous ancré sur Vachou (objet pro flash 64 px, `style_image` = son URL), décors 192x128 ancrés sur l'image du château (`source_image_id 14e9cd70-b492-5cf9-af08-1e45374bbd0c`). Sprites de l'héroïne : personnage v3 48 px, id `ba857aa5-5808-41a9-9ad4-23ab9b9ee8bc` (sud, nord, est, ouest dans `img/hero*.png`).
 
-Sauvegarde : localStorage `chateau-doudous-v1` sur chaque appareil + document db `data/users/<id>/save` sur le compte claude.ai de Julien (lisible avec ArtifactData, champ `state.lastErr` pour diagnostiquer un bug à distance). Fusion : le plus grand nombre de réponses jouées gagne.
+Sauvegarde (depuis le 2026-11-08, plusieurs joueurs) : écran « Qui joue ? » au lancement ; chaque joueur a sa partie complète. Local : index `chateau-doudous-players` (`{list:[{id,name,emblem,updated,billes,freed,cycle}], current}`) + un état par joueur `chateau-doudous-p-<id>`. Db claude.ai : un document par joueur `data/users/<uid>/profiles/<pid>` (`{state, updated, v:2}`), lisible avec ArtifactData (champ `state.lastErr` pour diagnostiquer un bug à distance). L'ancienne sauvegarde unique (`chateau-doudous-v1` et `data/users/<uid>/save`) est migrée en joueur d'identifiant `legacy` au premier lancement ; le document `save` reste en place mais n'est plus lu dès que la collection `profiles` existe. Fusion par joueur : remise à zéro explicite, sinon le plus grand nombre de réponses jouées, sinon le plus récent. Tous les joueurs d'un même compte claude.ai (iPad et Mac de Julien) voient la même liste ; une autre famille invitée sur l'artifact a sa propre liste.
 
 ## Les trois canaux de publication (à mettre à jour ensemble)
 
@@ -31,6 +31,11 @@ Sauvegarde : localStorage `chateau-doudous-v1` sur chaque appareil + document db
 - `part-3-core` : `DOUDOUS` (16, du plus précieux au moins précieux), `FLOORS` (chrono 0 / 25 / 12 / 18 s), `ROOMS` (ordre d'exploration, `rect` et `door` en tuiles, `n` épreuves), état `S`, rangs, son (`SFX`, `MUSIC` séquenceur Web Audio, une boucle par étage + orage).
 - `part-4-games` : `GAMES[id].gen(level)` renvoie une question `{prompt, kind:'qcm'|'num'|'custom', options?, answer, render?, show, timeMult?}`. Niveau 1 à la première visite, 2 puis 3 aux rejouées.
 - `part-5-engine` : moteur de salle (`startRoom`, `submit`, `endRoom`), carte (`drawMap`, brouillard = salles non débloquées), orage (`startStorm`), accueil, synchro db (`data/users/<id>/save`, fusion par nombre de réponses jouées comme Hyrule), démarrage.
+
+## Joueurs (2026-11-08)
+- Écran `#players` : cartes triées par dernière partie (emblème, prénom, rang, billes, doudous retrouvés, exploration en cours), bouton « Nouveau joueur » (prénom + choix d'un doudou emblème). Accueil : ligne « emblème + prénom + Changer de joueur ». Espace parents : « Supprimer ce joueur » (double touche), « Tout effacer » garde prénom et emblème.
+- Code : `P`, `loadPlayers/selectPlayer/addPlayer/removePlayer/writeProfile/summarize` (part-3), `renderPlayers/choosePlayer` et synchro `DBCOL/LEGACY/bindCloud/mergeProfile/pushProfile/cloudPull/winner` (part-5). `save()` ne fait rien tant qu'aucun joueur n'est choisi.
+- Confidentialité : Julien veut le jeu privé. L'artifact est le canal privé (partage par compte claude.ai) ; GitHub Pages reste public tant qu'il ne demande pas de le couper.
 
 ## Règles de jeu (validées par Julien le 2026-11-07)
 
@@ -64,3 +69,4 @@ Sauvegarde : localStorage `chateau-doudous-v1` sur chaque appareil + document db
 - Affichage des épreuves : `q.story` (phrase, petite) + `q.prompt` (calcul, très gros, classe `.prompt.calc`) ; `splitPrompt` découpe automatiquement « Phrase. 5 + ? = 10 » (demande de Julien : pas besoin de lire la phrase pour répondre).
 - Typo FR : `fr()` pose l'espace insécable avant ! ? : dans les textes affichés.
 - Style : jamais de tiret cadratin, phrases courtes et simples (elle lit bien mais débute), typo FR.
+- 2026-11-08 : Bibliothèque, la moitié = une seule étagère avec une ligne pointillée dorée qui la coupe en deux parts égales (plus de paniers vides). Galerie des sauts : au plus deux départs à zéro par salle (`hugoStart`, compteur `run.zeros`), même au niveau 1 Hugo part d'un nombre.

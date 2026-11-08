@@ -432,6 +432,7 @@ function renderHome(){
   const cyc = S.cycle ? ` · ${S.cycle+1}e exploration` : '';
   $('#home-tag').textContent = fr(S.name ? (freedCount()===ROOMS.length ? `${S.name} a sauvé tous les doudous !` : freedCount() ? `${S.name}, ${ROOMS.length-freedCount()} doudous attendent encore${cyc}` : S.cycle ? `${S.name}, les doudous sont repartis se cacher${cyc}` : `${S.name}, les doudous se sont perdus dans le château`) : 'Les doudous se sont perdus dans le château');
   $('#btn-enter').textContent = freedCount() ? '🏰 Continuer l\'exploration' : '🏰 Entrer dans le château';
+  $('#who-img').src = IMG[S.emblem] || IMG.vachou; $('#who-name').textContent = S.name; $('#btn-switch').hidden = P.list.length<1;
   const par = $('#parade'); par.innerHTML = ROOMS.filter(r => isDone(r.id)).map(r => `<img src="${IMG[r.dd]}" alt="${DD[r.dd].name}" class="px">`).join('');
   $('#tg-sound').setAttribute('aria-pressed', !!S.sound); $('#tg-music').setAttribute('aria-pressed', !!S.music); $('#fab-music').setAttribute('aria-pressed', !!S.music); $('#fab-music').textContent = S.music ? '🎵' : '🔇';
   $('#lasterr').textContent = S.lastErr ? 'Dernière erreur : ' + S.lastErr.msg : ''; $('#btn-clearerr').hidden = !S.lastErr;
@@ -489,11 +490,32 @@ $('#tg-sound').onclick = () => { S.sound = !S.sound; save(); renderHome(); if (S
 function toggleMusic(){ S.music = !S.music; save(); const cur = MUSIC.cur; if (!S.music) MUSIC.stop(); else { MUSIC.cur = null; MUSIC.play(cur || 'home'); } $('#fab-music').setAttribute('aria-pressed', !!S.music); $('#fab-music').textContent = S.music ? '🎵' : '🔇'; $('#tg-music').setAttribute('aria-pressed', !!S.music); SFX.click(); }
 $('#tg-music').onclick = toggleMusic;
 $('#fab-music').onclick = toggleMusic;
+/* ---------- Joueurs : écran « Qui joue ? » ---------- */
+let emblemSel = 'vachou';
+function renderPlayers(){
+  $('#players-castle').src = IMG.castle;
+  const list = P.list.slice().sort((a,b) => (b.updated||0)-(a.updated||0));
+  $('#plist').innerHTML = list.map(p => { const r = rank(p.billes||0).cur[1]; return `<button class="pcard" data-id="${esc(p.id)}"><img src="${IMG[p.emblem]||IMG.vachou}" alt="" class="px"><b>${esc(p.name)}</b><small>${r}<br>${p.billes||0} billes · ${p.freed||0} / ${ROOMS.length} doudous${p.cycle ? ` · ${p.cycle+1}e exploration` : ''}</small><span class="go">Jouer ▶</span></button>`; }).join('');
+  $$('#plist .pcard').forEach(b => { b.onclick = () => { SFX.click(); choosePlayer(b.dataset.id); }; });
+  $('#players-tag').textContent = list.length ? 'Choisis ton joueur ou crée-en un nouveau' : 'Crée ton premier joueur pour entrer dans le château';
+  $('#pform').hidden = list.length>0 && !pformOpen; if (!$('#pform').hidden) renderEmblems();
+  $('#btn-newplayer').hidden = !$('#pform').hidden;
+}
+let pformOpen = false;
+function renderEmblems(){ $('#emblems').innerHTML = DOUDOUS.map(d => `<img src="${IMG[d.id]}" alt="${d.name}" title="${d.name}" data-id="${d.id}" class="px${d.id===emblemSel?' sel':''}">`).join(''); $$('#emblems img').forEach(im => { im.onclick = () => { emblemSel = im.dataset.id; SFX.click(); renderEmblems(); }; }); }
+function choosePlayer(id){ if (!selectPlayer(id)) return; bindCloud(); cloudSave(); renderHome(); show('home'); MUSIC.play('home'); toast(fr(`Bonjour ${S.name} ! Les doudous t'attendent.`)); }
+$('#btn-newplayer').onclick = () => { SFX.click(); pformOpen = true; emblemSel = pick(DOUDOUS).id; renderPlayers(); $('#inp-pname').value = ''; $('#inp-pname').focus(); };
+$('#btn-pcancel').onclick = () => { SFX.click(); pformOpen = false; renderPlayers(); };
+$('#pform').onsubmit = e => { e.preventDefault(); const v = $('#inp-pname').value.trim(); if (!v) return; pformOpen = false; const id = newPlayerId(); addPlayer(id, v, emblemSel); SFX.star(); choosePlayer(id); };
+$('#btn-switch').onclick = () => { SFX.click(); cloudFlush(); pformOpen = false; renderPlayers(); show('players'); };
+let delArmed = false;
+$('#btn-delplayer').onclick = () => { if (!delArmed){ delArmed = true; $('#btn-delplayer').textContent = 'Sûr ? Touche encore'; setTimeout(() => { delArmed = false; $('#btn-delplayer').textContent = 'Supprimer ce joueur'; }, 4000); return; }
+  const id = P.current, name = S.name; delArmed = false; $('#btn-delplayer').textContent = 'Supprimer ce joueur'; clearTimeout(cloudTimer); cloudDirty = false; removePlayer(id); if (DBCOL){ DBCOL.doc(id).delete().catch(e => console.warn('suppression', e)); } DBREF = null; S = DEFAULT(); toast(`Le joueur ${name} a été supprimé`); renderPlayers(); show('players'); };
 $('#btn-rename').onclick = () => { $('#modal-name').hidden = false; $('#modal-msg').textContent = 'Comment t\'appelles-tu ?'; $('#modal-form').hidden = false; $('#inp-name').value = S.name; $('#inp-name').focus(); };
 $('#btn-storm-test').onclick = () => { startStorm(null, true); };
 $('#btn-unlock').onclick = () => { S.unlockAll = !S.unlockAll; save(); toast(S.unlockAll ? 'Toutes les salles sont ouvertes (mode test)' : 'Retour au parcours normal'); };
 let resetArmed = false;
-$('#btn-reset').onclick = () => { if (!resetArmed){ resetArmed = true; $('#btn-reset').textContent = 'Sûr ? Touche encore'; setTimeout(() => { resetArmed = false; $('#btn-reset').textContent = 'Tout effacer'; }, 4000); return; } const name = S.name; S = DEFAULT(); S.name = name; S.resetAt = Date.now(); save(); renderHome(); toast('Progression effacée'); resetArmed = false; $('#btn-reset').textContent = 'Tout effacer'; };
+$('#btn-reset').onclick = () => { if (!resetArmed){ resetArmed = true; $('#btn-reset').textContent = 'Sûr ? Touche encore'; setTimeout(() => { resetArmed = false; $('#btn-reset').textContent = 'Tout effacer'; }, 4000); return; } const name = S.name, emblem = S.emblem; S = DEFAULT(); S.name = name; S.emblem = emblem; S.resetAt = Date.now(); save(); renderHome(); toast('Progression effacée'); resetArmed = false; $('#btn-reset').textContent = 'Tout effacer'; };
 $('#modal-form').onsubmit = e => { e.preventDefault(); const v = $('#inp-name').value.trim(); if (!v) return; S.name = v; save(); $('#modal-name').hidden = true; renderHome(); toast(`Bienvenue, ${v} ! Les doudous comptent sur toi.`); SFX.star(); };
 
 /* =========================================================
@@ -558,36 +580,52 @@ function renderCarnet(){
 /* =========================================================
    SYNCHRO entre appareils (db claude.ai) : fusion par progression, jamais par date seule
    ========================================================= */
-let DBREF = null, cloudTimer = null, cloudWriting = false, cloudDirty = false;
+let DBCOL = null, LEGACY = null, DBREF = null, cloudTimer = null, cloudWriting = false, cloudDirty = false;
 function setSync(state, text){ const c = $('#sync-chip'); if (!c) return; c.textContent = text; c.style.color = state==='ok' ? 'var(--mint)' : state==='err' ? 'var(--danger)' : 'var(--muted)'; }
-function adoptRemote(remote){ const name = S.name; S = Object.assign(DEFAULT(), remote); if (!S.name) S.name = name; try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} if (S.name) $('#modal-name').hidden = true; if (screen==='home') renderHome(); }
+function bindCloud(){ DBREF = (DBCOL && P.current) ? DBCOL.doc(P.current) : null; }
+function adoptRemote(remote){ S = Object.assign(DEFAULT(), remote); migrate(); writeProfile(P.current, S); if (screen==='home') renderHome(); }
 const prog = x => ((x.tot&&x.tot.r)||0) + ((x.tot&&x.tot.w)||0);
+// Qui gagne entre deux versions d'un même joueur : une remise à zéro explicite, sinon la plus avancée, sinon la plus récente
+function winner(local, remote){
+  const remoteReset = (remote.resetAt||0) > (local.updated||0), localReset = (local.resetAt||0) > (remote.updated||0);
+  if (remoteReset && !localReset) return 'remote'; if (localReset && !remoteReset) return 'local';
+  if (prog(remote)!==prog(local)) return prog(remote)>prog(local) ? 'remote' : 'local';
+  return (remote.updated||0)>=(local.updated||0) ? 'remote' : 'local';
+}
+async function pushProfile(id){ if (!DBCOL) return; const st = id===P.current ? S : playerState(id); if (!st) return; await DBCOL.doc(id).set({state:st, updated:st.updated||Date.now(), v:2}); }
+// Fusionne un joueur distant avec sa version locale ; renvoie true si le local a changé
+async function mergeProfile(id, remote){
+  const local = playerState(id);
+  if (!local){ addPlayer(id, remote.name||'Joueur', remote.emblem, remote); return true; }
+  if (winner(local, remote)==='remote'){ if ((remote.updated||0)!==(local.updated||0) || prog(remote)!==prog(local)){ if (id===P.current) adoptRemote(remote); else writeProfile(id, Object.assign(DEFAULT(), remote)); return true; } return false; }
+  await pushProfile(id); return false;
+}
 async function cloudPull(){
-  if (!DBREF) return; const snap = await DBREF.get();
-  if (snap.exists){ const remote = snap.data().state; if (remote){
-    const remoteReset = (remote.resetAt||0) > (S.updated||0), localReset = (S.resetAt||0) > (remote.updated||0); let winner;
-    if (remoteReset && !localReset) winner = 'remote'; else if (localReset && !remoteReset) winner = 'local';
-    else if (prog(remote)!==prog(S)) winner = prog(remote)>prog(S) ? 'remote' : 'local'; else winner = (remote.updated||0)>=(S.updated||0) ? 'remote' : 'local';
-    if (winner==='remote'){ if ((remote.updated||0)!==(S.updated||0) || prog(remote)!==prog(S)){ adoptRemote(remote); return 'pulled'; } return 'same'; }
-    cloudDirty = true; await cloudFlush(); return 'pushed'; } }
-  cloudDirty = true; await cloudFlush(); return 'created';
+  if (!DBCOL) return false; const snap = await DBCOL.get(); const seen = new Set(); let changed = false;
+  for (const d of snap.docs){ const data = d.data(); const remote = data && data.state; if (!remote) continue; seen.add(d.id); if (await mergeProfile(d.id, remote)) changed = true; }
+  if (snap.empty && LEGACY){ // ancienne sauvegarde unique sur le compte : elle devient le joueur « legacy » (ou rejoint le joueur du même prénom)
+    const ls = await LEGACY.get(); const data = ls.exists && ls.data(); const remote = data && data.state;
+    if (remote && remote.name){ const match = P.list.find(p => p.id==='legacy') || P.list.find(p => (p.name||'').toLowerCase()===remote.name.toLowerCase()); const id = match ? match.id : 'legacy'; seen.add(id); if (await mergeProfile(id, remote)) changed = true; } }
+  for (const p of P.list.slice()){ if (!seen.has(p.id)) await pushProfile(p.id); }
+  if (changed && screen==='players') renderPlayers();
+  return changed;
 }
 async function cloudFlush(){
-  if (!DBREF || cloudWriting || !cloudDirty) return; cloudWriting = true; cloudDirty = false;
-  try{ await DBREF.set({state:S, updated:S.updated||Date.now(), v:1}); setSync('ok', '☁️ Synchronisé'); }
-  catch(e){ if (e && (e.code==='invalid_argument' || e.code==='not_granted' || e.code==='revoked' || e.code==='quota_exceeded')){ DBREF = null; cloudDirty = false; setSync('off', '☁️ Sauvegarde locale'); } else { cloudDirty = true; setSync('err', '☁️ Synchro en attente'); } }
+  if (!DBREF || cloudWriting || !cloudDirty) return; cloudWriting = true; cloudDirty = false; const ref = DBREF, st = S;
+  try{ await ref.set({state:st, updated:st.updated||Date.now(), v:2}); setSync('ok', '☁️ Synchronisé'); }
+  catch(e){ if (e && (e.code==='invalid_argument' || e.code==='not_granted' || e.code==='revoked' || e.code==='quota_exceeded')){ DBCOL = null; DBREF = null; cloudDirty = false; setSync('off', '☁️ Sauvegarde locale'); } else { cloudDirty = true; setSync('err', '☁️ Synchro en attente'); } }
   finally{ cloudWriting = false; if (cloudDirty) setTimeout(cloudFlush, 2500); }
 }
 function cloudSave(){ if (!DBREF) return; cloudDirty = true; clearTimeout(cloudTimer); cloudTimer = setTimeout(cloudFlush, 1500); }
 async function initCloud(){
-  if (!window.claude || typeof window.claude.use!=='function'){ settleModal(); return; }
-  try{ const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]); if (!db || !user){ settleModal(); return; }
-    const id = await user.id(); if (!id){ settleModal(); return; } DBREF = db.doc('data/users/'+id+'/save');
-    const r = await cloudPull(); setSync('ok', '☁️ Synchronisé'); if (r==='pulled') toast('☁️ Progression récupérée depuis ton autre appareil'); }
+  if (!window.claude || typeof window.claude.use!=='function'){ settleBoot(); return; }
+  try{ const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]); if (!db || !user){ settleBoot(); return; }
+    const id = await user.id(); if (!id){ settleBoot(); return; } DBCOL = db.collection('data/users/'+id+'/profiles'); LEGACY = db.doc('data/users/'+id+'/save'); bindCloud();
+    const changed = await cloudPull(); setSync('ok', '☁️ Synchronisé'); if (changed) toast('☁️ Joueurs récupérés depuis ton compte'); }
   catch(e){ console.warn('synchro', e); setSync('err', '☁️ Synchro indisponible'); }
-  finally{ settleModal(); }
+  finally{ settleBoot(); }
 }
-document.addEventListener('visibilitychange', () => { if (document.hidden){ cloudFlush(); } else if (DBREF && !run && !storm){ cloudPull().catch(()=>{}); } });
+document.addEventListener('visibilitychange', () => { if (document.hidden){ cloudFlush(); } else if (DBCOL && !run && !storm){ cloudPull().catch(()=>{}); } });
 addEventListener('pagehide', () => { cloudFlush(); });
 
 /* =========================================================
@@ -596,10 +634,10 @@ addEventListener('pagehide', () => { cloudFlush(); });
 function drawStars(){ const cv = $('#stars'); const g = cv.getContext('2d'); const W = cv.width = innerWidth, H = cv.height = innerHeight; g.clearRect(0,0,W,H); for (let i=0;i<120;i++){ g.fillStyle = `rgba(255,240,200,${.2+Math.random()*.6})`; const s = Math.random()<.15 ? 3 : 2; g.fillRect(Math.random()*W, Math.random()*H, s, s); } }
 addEventListener('resize', drawStars); drawStars();
 load(); loadSprites();
-function boot(){ renderHome(); show('home'); if (!S.name){ $('#modal-name').hidden = false; $('#modal-msg').textContent = 'Recherche d\'une sauvegarde sur ton compte…'; $('#modal-form').hidden = true; } }
+function boot(){ if (P.current && S.name){ renderHome(); show('home'); } else { renderPlayers(); show('players'); $('#players-sync').textContent = 'Recherche des joueurs sur ton compte…'; } }
 let cloudSettled = false;
-function settleModal(){ if (cloudSettled) return; cloudSettled = true; if (S.name){ $('#modal-name').hidden = true; return; } $('#modal-msg').textContent = 'Comment t\'appelles-tu ?'; $('#modal-form').hidden = false; $('#inp-name').focus(); }
-setTimeout(settleModal, 8000);
+function settleBoot(){ if (cloudSettled) return; cloudSettled = true; $('#players-sync').textContent = ''; if (screen==='players') renderPlayers(); }
+setTimeout(settleBoot, 8000);
 (window.claude && window.claude.hot && window.claude.hot.ready) ? window.claude.hot.ready(boot) : boot();
 initCloud();
 document.addEventListener('pointerdown', function first(){ if (S.music && screen==='home') MUSIC.play('home'); document.removeEventListener('pointerdown', first); }, {once:true});

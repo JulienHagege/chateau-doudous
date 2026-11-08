@@ -8,6 +8,7 @@
     <div class="castle-art"><img id="castle-img" alt="Le grand château la nuit" class="px"><div class="parade" id="parade"></div></div>
     <h1>Le Château des Doudous</h1>
     <div class="tag" id="home-tag">Les doudous se sont perdus dans le château</div>
+    <div class="who"><img id="who-img" alt="" class="px"><b id="who-name"></b><button class="btn ghost" id="btn-switch">👤 Changer de joueur</button></div>
     <div class="hud">
       <span class="chip bille"><i class="bille-ico"></i><span id="h-billes" class="tabular">0</span><span class="lab">billes</span></span>
       <span class="chip star">⭐ <span id="h-stars" class="tabular">0</span><span class="lab">étoiles</span></span>
@@ -43,12 +44,32 @@
           <button class="btn ghost" id="btn-storm-test">Tester l'orage</button>
           <button class="btn ghost" id="btn-unlock">Tout débloquer</button>
           <button class="btn ghost danger" id="btn-reset">Tout effacer</button>
+          <button class="btn ghost danger" id="btn-delplayer">Supprimer ce joueur</button>
         </div>
         <p id="lasterr" class="sync"></p>
         <button class="btn ghost" id="btn-clearerr" hidden>Effacer l'erreur</button>
       </details>
     </div>
   </div>
+</section>
+
+<!-- ===== Joueurs : choisir ou créer son joueur ===== -->
+<section id="players" class="screen" hidden>
+  <div class="hero">
+    <div class="castle-art"><img id="players-castle" alt="Le grand château la nuit" class="px"></div>
+    <h1>Qui joue ?</h1>
+    <div class="tag" id="players-tag">Choisis ton joueur ou crée-en un nouveau</div>
+  </div>
+  <div class="plist" id="plist"></div>
+  <div class="actions"><button class="btn big" id="btn-newplayer">➕ Nouveau joueur</button></div>
+  <form class="card pform" id="pform" hidden>
+    <h2>Nouveau joueur</h2>
+    <input id="inp-pname" maxlength="20" autocomplete="off" placeholder="Ton prénom">
+    <p>Choisis ton doudou préféré comme emblème</p>
+    <div class="emblems" id="emblems"></div>
+    <div class="actions"><button class="btn" type="submit">C'est parti !</button><button class="btn ghost" type="button" id="btn-pcancel">Annuler</button></div>
+  </form>
+  <p class="sync" id="players-sync" style="text-align:center"></p>
 </section>
 
 <!-- ===== Intro ===== -->

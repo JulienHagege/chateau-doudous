@@ -3,7 +3,9 @@
    LE CHÂTEAU DES DOUDOUS : jeu de maths (CP fort, vers CE1/CE2)
    Un seul fichier. Sections : données, état et sauvegarde, son, mini-jeux, moteur de salle, carte, orage, accueil, démarrage.
    ========================================================= */
-const KEY = 'chateau-doudous-v1';
+const KEY = 'chateau-doudous-v1';            // ancienne sauvegarde à joueur unique (migrée au premier lancement)
+const PKEY = 'chateau-doudous-players';      // index des joueurs : {list:[{id,name,emblem,updated,billes,freed,cycle}], current}
+const pkey = id => 'chateau-doudous-p-' + id; // état complet d'un joueur
 const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 const IMG = /*IMG*/;
@@ -99,15 +101,30 @@ function weakRooms(){ return ROOMS.filter(r => !r.boss && skillStatus(r.id)==='l
 function checkTables(){ const now = TABLE_ORDER.filter(tableMastered); const fresh = now.filter(n => !(S.tablesDone||[]).includes(n)); if (fresh.length){ S.tablesDone = now; S.celebrateQueue = [...(S.celebrateQueue||[]), ...fresh]; } }
 
 /* ---------- État ---------- */
-const DEFAULT = () => ({ name:'', billes:0, stars:0, sound:true, music:true, rooms:{}, tot:{r:0,w:0}, storms:0, stormWins:0, sinceStorm:0, unlockAll:false, cycle:0 });
+const DEFAULT = () => ({ name:'', emblem:'vachou', billes:0, stars:0, sound:true, music:true, rooms:{}, tot:{r:0,w:0}, storms:0, stormWins:0, sinceStorm:0, unlockAll:false, cycle:0 });
 let S = DEFAULT();
-function load(){ try{ const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(DEFAULT(), JSON.parse(raw)); }catch(e){} migrate(); }
+/* ---------- Joueurs : plusieurs parties indépendantes sur le même appareil et le même compte ---------- */
+let P = {list:[], current:null};
+const lsGet = k => { try{ const raw = localStorage.getItem(k); return raw ? JSON.parse(raw) : null; }catch(e){ return null; } };
+const lsSet = (k, v) => { try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} };
+const summarize = st => ({ name:st.name||'', emblem:st.emblem||'vachou', updated:st.updated||0, billes:st.billes||0, cycle:st.cycle||0, freed:Object.values(st.rooms||{}).filter(r => r.found).length });
+function savePlayers(){ lsSet(PKEY, P); }
+function playerState(id){ const st = lsGet(pkey(id)); return st ? Object.assign(DEFAULT(), st) : null; }
+function writeProfile(id, st){ lsSet(pkey(id), st); const e = P.list.find(p => p.id===id); const sum = Object.assign({id}, summarize(st)); if (e) Object.assign(e, sum); else P.list.push(sum); savePlayers(); }
+function addPlayer(id, name, emblem, state){ const st = Object.assign(DEFAULT(), state||{}); st.name = name; st.emblem = emblem || st.emblem || 'vachou'; if (!st.updated) st.updated = Date.now(); writeProfile(id, st); return st; }
+function newPlayerId(){ return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function removePlayer(id){ P.list = P.list.filter(p => p.id!==id); if (P.current===id) P.current = null; savePlayers(); try{ localStorage.removeItem(pkey(id)); }catch(e){} }
+function selectPlayer(id){ const st = playerState(id); if (!st) return false; P.current = id; savePlayers(); S = st; migrate(); return true; }
+function loadPlayers(){ const p = lsGet(PKEY); if (p && Array.isArray(p.list)) P = Object.assign({list:[], current:null}, p);
+  // Migration 2026-11-08 : l'ancienne sauvegarde unique devient le joueur « legacy » (même identifiant sur tous les appareils, pour que la synchro le reconnaisse)
+  if (!P.list.length){ const old = lsGet(KEY); if (old && old.name){ addPlayer('legacy', old.name, old.emblem, old); P.current = 'legacy'; savePlayers(); } } }
+function load(){ loadPlayers(); if (P.current && selectPlayer(P.current)) return; P.current = null; S = DEFAULT(); }
 // Anciennes sauvegardes : found = salle terminée, level = prochain niveau à jouer (sans plafond)
 function migrate(){
   // 2026-11-08 : la Salle du trésor (compléments à 100) devient la Salle de jeux (dés) ; on garde l'avancement de la salle
   if (S.rooms.complements100 && !S.rooms.des){ S.rooms.des = S.rooms.complements100; delete S.rooms.complements100; } if (S.skills && S.skills.complements100 && !S.skills.des){ S.skills.des = S.skills.complements100; delete S.skills.complements100; }
   for (const id in S.rooms){ const rs = S.rooms[id]; if (rs.found==null) rs.found = rs.done>0; if (rs.level==null) rs.level = Math.min(3, (rs.done||0)+1); rs.level = Math.min(MAX_LEVEL, rs.level); } }
-function save(){ S.updated = Date.now(); try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} cloudSave(); }
+function save(){ if (!P.current) return; S.updated = Date.now(); writeProfile(P.current, S); cloudSave(); }
 function logErr(e, where){ try{ S.lastErr = { t:new Date().toISOString(), where:where||'', msg:String(e && (e.stack||e.message||e)).slice(0,400), ua:navigator.userAgent.slice(0,80) }; save(); const el = $('#lasterr'); if (el) el.textContent = 'Dernière erreur : ' + S.lastErr.msg; }catch(_){} }
 window.addEventListener('error', e => logErr(e.error || e.message, 'window'));
 window.addEventListener('unhandledrejection', e => logErr(e.reason, 'promise'));
@@ -301,7 +318,7 @@ const MUSIC = {
 
 /* ---------- UI utilitaires ---------- */
 let screen = 'home';
-function show(id){ ['home','intro','cycle','carnet','album','mapscreen','room','result'].forEach(s => { $('#'+s).hidden = (s!==id); }); screen = id; window.scrollTo(0,0); }
+function show(id){ ['home','players','intro','cycle','carnet','album','mapscreen','room','result'].forEach(s => { $('#'+s).hidden = (s!==id); }); screen = id; window.scrollTo(0,0); }
 let toastT = null;
 function toast(msg, ms=2600){ let t = $('.toast'); if (!t){ t = document.createElement('div'); t.className='toast'; document.body.appendChild(t); } t.textContent = fr(msg); t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms); }
 function sparkle(el, txt='✨'){ try{ const r = el.getBoundingClientRect(); for (let i=0;i<5;i++){ const s = document.createElement('span'); s.className='sparkle'; s.textContent = txt; s.style.left = (r.left + Math.random()*r.width) + 'px'; s.style.top = (r.top + r.height/2) + 'px'; s.style.position='fixed'; s.style.zIndex = 40; document.body.appendChild(s); setTimeout(()=>s.remove(), 900); } }catch(e){} }
