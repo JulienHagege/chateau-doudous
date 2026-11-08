@@ -145,7 +145,7 @@ details.parents summary{cursor:pointer; font-weight:800; color:var(--muted)}
 /* ---------- Salle (mini-jeu) ---------- */
 .room{--acc:var(--gold); --room-bg:#2a2560}
 .roomhead{display:grid; grid-template-columns:64px minmax(0,1fr) auto auto; align-items:center; gap:10px; margin-bottom:8px}
-@media (max-width:640px){.roomhead{grid-template-columns:64px minmax(0,1fr) auto} .roomhead .hearts{grid-column:1 / -1; justify-content:center}}
+@media (max-width:640px){.roomhead{grid-template-columns:56px minmax(0,1fr) auto} .roomhead .hearts{grid-column:1 / -1; justify-content:center} .roomhead .meta p{display:none} .roomhead .hide, .roomhead .hide img{width:56px; height:56px}}
 .roomhead .hide{position:relative; width:64px; height:64px; flex:none}
 .roomhead .hide img{width:64px; height:64px; object-fit:contain; filter:brightness(0) opacity(.5); transition:filter .8s}
 .roomhead .hide::after{content:"?"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-size:30px; color:var(--gold); pointer-events:none}
@@ -168,12 +168,12 @@ details.parents summary{cursor:pointer; font-weight:800; color:var(--muted)}
 .timer{height:10px; border-radius:999px; background:rgba(255,255,255,.1); overflow:hidden; margin-bottom:10px}
 .timer i{display:block; height:100%; width:100%; background:linear-gradient(90deg,var(--mint2),var(--mint)); border-radius:999px; transition:width .25s linear}
 .timer i.low{background:linear-gradient(90deg,#c9452c,var(--danger))}
-.stage{position:relative; border-radius:18px; border:3px solid var(--acc); background:var(--room-bg); box-shadow:var(--shadow); padding:16px; min-height:360px; overflow:hidden; isolation:isolate}
+.stage{position:relative; border-radius:18px; border:3px solid var(--acc); background:var(--room-bg); box-shadow:var(--shadow); padding:16px; min-height:360px; clip-path:inset(0 round 15px); isolation:isolate}
 /* fond pixel art de la salle, voilé pour garder les énoncés lisibles */
 .stage::before{content:""; position:absolute; inset:0; z-index:-1; background:var(--room-img) center/cover no-repeat; image-rendering:pixelated; opacity:.55}
 .stage::after{content:""; position:absolute; inset:0; z-index:-1; background:linear-gradient(180deg, rgba(10,8,25,.55), rgba(10,8,25,.35) 40%, rgba(10,8,25,.7))}
 .stage > *{position:relative}
-.redo{text-align:center; font-weight:900; color:#3a2a05; background:linear-gradient(180deg,#ffe08a,var(--gold2)); border-radius:12px; padding:8px 14px; margin-top:12px; font-size:17px}
+.redo{position:sticky; bottom:calc(8px + env(safe-area-inset-bottom,0px)); z-index:3; text-align:center; font-weight:900; color:#3a2a05; background:linear-gradient(180deg,#ffe08a,var(--gold2)); border-radius:12px; padding:8px 14px; margin-top:12px; font-size:17px}
 .redo b{font-family:var(--font-display); font-size:20px}
 .redo small{display:block; font-size:15px; font-weight:700; margin-top:4px; color:#4a3608}
 .pairdots{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:8px}
@@ -205,7 +205,7 @@ details.parents summary{cursor:pointer; font-weight:800; color:var(--muted)}
 .entry{display:flex; justify-content:center; align-items:center; gap:10px; font-family:var(--font-display); font-size:46px; font-weight:700; min-height:64px; color:#fff; text-shadow:0 2px 0 rgba(0,0,0,.5)}
 .entry .val{min-width:120px; text-align:center; background:rgba(10,8,25,.7); border-radius:12px; padding:2px 16px; border-bottom:4px solid var(--acc)}
 .entry .val:empty::before{content:"?"; color:rgba(255,255,255,.3)}
-.feedback{position:absolute; left:0; right:0; bottom:0; padding:12px 16px; text-align:center; font-family:var(--font-display); font-size:22px; background:rgba(0,0,0,.55); backdrop-filter:blur(4px); color:#fff; animation:enter .2s ease}
+.feedback{position:sticky; bottom:calc(8px + env(safe-area-inset-bottom,0px)); z-index:3; margin:12px -16px -16px; border-radius:0 0 14px 14px; padding:12px 16px; text-align:center; font-family:var(--font-display); font-size:22px; background:rgba(0,0,0,.55); backdrop-filter:blur(4px); color:#fff; animation:enter .2s ease}
 .feedback.ok{color:var(--mint)} .feedback.ko{color:#ffb3a3}
 .feedback small{display:block; font-family:var(--font-body); font-size:15px; color:var(--muted)}
 .roomfoot{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap}
@@ -326,4 +326,41 @@ canvas.ruler{width:100%; max-width:640px; height:auto; display:block; border-rad
 .fab[aria-pressed="false"]{opacity:.6; filter:grayscale(1)}
 body:has(#storm:not([hidden])) .fab{display:none}
 .toast{position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); background:var(--panel2); border:1px solid var(--gold); color:#fff; padding:10px 18px; border-radius:999px; font-weight:800; z-index:30; box-shadow:var(--shadow); animation:enter .3s ease; max-width:92vw; text-align:center}
+/* ---------- Taille selon l'appareil : plus grand sur un écran d'ordinateur, plus compact quand l'écran est bas (iPad paysage, iPhone) ---------- */
+@media (min-width:1100px) and (min-height:720px){ #app, .modal .box{zoom:1.2} }
+@media (min-width:1500px) and (min-height:900px){ #app, .modal .box{zoom:1.4} }
+@media (max-height:900px){
+  .stage{min-height:0; padding:12px} .prompt{margin:0 0 8px; padding:6px 12px} .prompt.calc{font-size:clamp(32px,7vw,50px)}
+  .story-line{font-size:clamp(13px,2.6vw,16px); padding:4px 10px; margin-bottom:6px} .sub{font-size:14px; margin:-4px 0 8px}
+  .pad{grid-template-columns:repeat(3,66px); gap:6px} .pad button{height:54px; font-size:28px} .entry{min-height:54px; font-size:40px}
+  .roomhead{margin-bottom:4px} .progress{margin:4px 0 6px} .opt{padding:12px 10px} .roomfoot{margin-top:6px; padding-left:54px} #app{padding-bottom:16px}
+  .feedback{padding:8px 14px; font-size:19px} .feedback small{font-size:13px}
+}
+@media (max-height:720px){ .sub, .roomhead .meta p, .story-line{display:none} }
+
+/* ---------- Grenier : le signe < ou > apparaît entre les deux nombres une fois la réponse donnée ---------- */
+.cmp{display:flex; justify-content:center; align-items:center; gap:16px; flex-wrap:wrap; font-family:var(--font-display); font-size:clamp(34px,7vw,56px); font-weight:700; color:#fff; background:rgba(10,8,25,.6); border-radius:14px; padding:4px 16px; margin:0 0 12px; animation:enter .3s ease; text-shadow:0 2px 0 rgba(0,0,0,.5)}
+.cmp .sym{color:var(--gold); font-size:1.25em; text-shadow:0 0 16px var(--gold), 0 2px 0 rgba(0,0,0,.6); animation:pop .4s ease}
+.cmp small{flex-basis:100%; font-family:var(--font-body); font-size:14px; color:var(--muted); font-weight:800; margin-top:-4px}
+@keyframes pop{0%{transform:scale(.4)} 70%{transform:scale(1.2)} 100%{transform:scale(1)}}
+
+/* ---------- Bains : pichets dessinés, qui se penchent quand on verse ---------- */
+.jug{display:inline-flex; flex-direction:column; align-items:center; gap:2px; background:none; border:0; padding:4px 6px; cursor:pointer; color:#fff; font-family:var(--font-display); font-size:17px; font-weight:700; text-shadow:0 2px 0 rgba(0,0,0,.6)}
+.jug svg{width:68px; height:68px; filter:drop-shadow(0 4px 6px rgba(0,0,0,.5)); transform-origin:20% 90%; transition:transform .15s}
+.jug:active svg{transform:scale(.94)}
+.jug.pouring svg{animation:pourtilt .6s ease}
+@keyframes pourtilt{0%{transform:rotate(0)} 35%{transform:rotate(-42deg) translate(-4px,-8px)} 75%{transform:rotate(-42deg) translate(-4px,-8px)} 100%{transform:rotate(0)}}
+.jug b{background:rgba(10,8,25,.6); border-radius:8px; padding:1px 8px}
+.tool[disabled]{opacity:.45; cursor:not-allowed}
+
+/* ---------- Pause : la petite fille dort ---------- */
+.pausescene .moon{display:none}
+.pausescene .bed{position:absolute; left:50%; bottom:16px; width:200px; height:96px; margin-left:-100px; background:linear-gradient(180deg,#7a5aa0,#4a3270); border-radius:16px 16px 8px 8px; border:3px solid #2a1a40; box-shadow:0 8px 20px rgba(0,0,0,.5)}
+.pausescene .bed::before{content:""; position:absolute; left:14px; top:12px; width:60px; height:34px; border-radius:12px; background:#f4ead2}
+.pausescene .sleep{position:absolute; left:2px; bottom:-4px; width:104px; height:104px; object-fit:contain; transform:rotate(-90deg); filter:drop-shadow(0 0 10px rgba(255,200,120,.5))}
+.pausescene .blanket{position:absolute; left:78px; right:8px; bottom:8px; height:56px; border-radius:10px; background:linear-gradient(180deg,#ff8fb1,#c9527a); border:2px solid #7a2a4a}
+.pausescene .zz{position:absolute; left:40px; bottom:110px; color:#fff; font-family:var(--font-display); font-size:22px; font-weight:700; opacity:0; animation:zz 2.7s ease-in-out infinite; text-shadow:0 0 8px rgba(255,255,255,.6)}
+.pausescene .zz.z2{animation-delay:.9s; font-size:28px} .pausescene .zz.z3{animation-delay:1.8s; font-size:34px}
+@keyframes zz{0%{opacity:0; transform:translate(0,0)} 25%{opacity:1} 100%{opacity:0; transform:translate(34px,-70px)}}
+#warn-flash{position:fixed; inset:0; background:#dfe8ff; opacity:0; pointer-events:none; z-index:14}
 </style>

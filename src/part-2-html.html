@@ -72,6 +72,16 @@
   <p class="sync" id="players-sync" style="text-align:center"></p>
 </section>
 
+<!-- ===== Pause après 30 minutes de jeu (seulement depuis la vue du château) ===== -->
+<section id="pause" class="screen" hidden>
+  <div class="intro">
+    <div class="scene pausescene"><img class="bg px" id="pause-castle" alt="" style="filter:brightness(.35)"><div class="night"></div><div class="moon">🌙</div>
+      <div class="bed"><img id="pause-hero" class="px sleep" alt=""><div class="blanket"></div><span class="zz">z</span><span class="zz z2">z</span><span class="zz z3">z</span></div></div>
+    <p class="text">Tu joues depuis 30 minutes. Les doudous font une sieste… et toi aussi, une petite pause ! Bois un verre d'eau, étire-toi, regarde par la fenêtre.</p>
+    <div class="actions"><button class="btn big" id="btn-pause-ok" disabled>Repos… 60 s</button></div>
+  </div>
+</section>
+
 <!-- ===== Intro ===== -->
 <section id="intro" class="screen" hidden>
   <div class="intro">
@@ -190,3 +200,4 @@
   </div>
 </div>
 <div class="confetti" id="confetti" hidden></div>
+<div id="warn-flash" aria-hidden="true"></div>

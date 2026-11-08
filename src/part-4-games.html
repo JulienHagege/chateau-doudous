@@ -102,7 +102,10 @@ GAMES.bains = { intro:'Poulpou veut un bain à la bonne hauteur. Verse les bons 
     const water = stage.querySelector('#water'), gauge = stage.querySelector('#gauge');
     const upd = () => { water.style.height = clamp(cur/max*100,0,100)+'%'; gauge.textContent = level===1 ? fmt(cur) : (cur>=100 ? fmt(cur)+' ('+cur+' cL)' : cur+' cL'); };
     const box = stage.querySelector('#jugs');
-    jugs.forEach(j => { const b = document.createElement('button'); b.className='tool'; b.textContent = '🫗 '+fmt(j); b.onclick = () => { if (api.done) return; cur += j; SFX.pour(); upd(); if (cur===target){ setTimeout(()=>api.answer(true), 400); } else if (cur>target){ water.style.background='linear-gradient(180deg,#ff9a85,#c9452c)'; setTimeout(()=>api.answer(false, 'Ça déborde ! Il fallait '+label), 500); } }; box.appendChild(b); });
+    const big = jugs[jugs.length-1];
+    jugs.forEach(j => { const b = document.createElement('button'); b.className='jug'; const fh = 8 + Math.round(30*j/big); const cp = 'jc'+j;
+      b.innerHTML = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><clipPath id="${cp}"><path d="M14 14h36l-4 40H18z"/></clipPath></defs><path d="M14 14h36l-4 40H18z" fill="#f4ead2" stroke="#6b5a3a" stroke-width="3"/><rect x="10" y="${54-fh}" width="44" height="${fh}" fill="#5fb8f0" clip-path="url(#${cp})"/><rect x="10" y="${54-fh}" width="44" height="3" fill="rgba(255,255,255,.6)" clip-path="url(#${cp})"/><path d="M50 18q14 8 0 24" fill="none" stroke="#6b5a3a" stroke-width="3"/><path d="M14 14l-7-5 3 11z" fill="#f4ead2" stroke="#6b5a3a" stroke-width="2"/></svg><b>${fmt(j)}</b>`;
+      b.onclick = () => { if (api.done) return; b.classList.remove('pouring'); void b.offsetWidth; b.classList.add('pouring'); cur += j; SFX.pour(); upd(); if (cur===target){ setTimeout(()=>api.answer(true), 400); } else if (cur>target){ water.style.background='linear-gradient(180deg,#ff9a85,#c9452c)'; setTimeout(()=>api.answer(false, 'Ça déborde ! Il fallait '+label), 500); } }; box.appendChild(b); });
     stage.querySelector('#empty').onclick = () => { if (api.done) return; cur = 0; upd(); SFX.click(); };
     upd();
   }};
@@ -125,7 +128,7 @@ function drawRuler(cv, maxCm, ribbons, kanga){
     g.fillStyle = color; g.beginPath(); g.moveTo(mx, y-8); g.lineTo(mx-7, y-20); g.lineTo(mx+7, y-20); g.closePath(); g.fill();
     if (label!=null){ g.font = 'bold 15px Fredoka, Nunito, sans-serif'; const tw = g.measureText(label).width + 12; g.fillStyle = color; g.fillRect(mx-tw/2, yTop-22, tw, 20); g.fillStyle = '#1a1030'; g.textAlign='center'; g.fillText(label, mx, yTop-7); } };
   if (kanga){ const sp = SPR.hugo; const kx = x0 + kanga.pos*sc, ky = y-12 - (kanga.h||0);
-    if (kanga.flag!=null){ g.fillStyle='#ff8fb1'; g.fillRect(x0+kanga.flag*sc-2, y-40, 4, 30); g.beginPath(); g.moveTo(x0+kanga.flag*sc+2, y-40); g.lineTo(x0+kanga.flag*sc+22, y-33); g.lineTo(x0+kanga.flag*sc+2, y-26); g.fill(); }
+    if (kanga.flag!=null){ g.fillStyle='#ff8fb1'; g.fillRect(x0+kanga.flag*sc-2, y-40, 4, 30); g.beginPath(); g.moveTo(x0+kanga.flag*sc+2, y-40); g.lineTo(x0+kanga.flag*sc+22, y-33); g.lineTo(x0+kanga.flag*sc+2, y-26); g.fill(); g.font = 'bold 15px Fredoka, Nunito, sans-serif'; g.fillStyle = '#ff8fb1'; g.textAlign = 'center'; g.fillText(kanga.flag+' cm', x0+kanga.flag*sc, y-46); }
     if (kanga.start!=null) marker(kanga.start, '#7cc4ff', kanga.labels ? kanga.start+' cm' : null, 30);
     if (kanga.land!=null) marker(kanga.land, '#ffd166', kanga.labels ? kanga.land+' cm' : null, 30);
     if (sp && sp.complete) g.drawImage(sp, kx-28, ky-56, 56, 56); else { g.fillStyle='#c58a4a'; g.fillRect(kx-10, ky-30, 20, 30); } }
@@ -168,12 +171,17 @@ GAMES.longueurs = { intro:'Hugo le kangourou saute sur la grande règle. Mesure 
     const from = level>=3 ? rnd(1, Math.floor(max*.4)) : hugoStart(Math.floor(max*.4)); const d = rnd(2, Math.min(L(level,[9,9,12,20,30]), max-from)); const to = from+d;
     return {prompt:`Regarde bien… Hugo a sauté de <b>combien de cm</b> ?`, sub:'Touche Hugo pour revoir le saut', kind:'num', answer:d, suffix:'cm', show:d+' cm', explain:`Hugo est parti de ${from} et arrivé à ${to} : ${to} − ${from} = ${d} cm.`, render(stage){ const cv = document.createElement('canvas'); cv.className='ruler'; stage.appendChild(cv); const labels = level>=3; const play = () => hopAnim(cv, max, [], from, to, 1, null, () => drawRuler(cv, max, [], {pos:to, start:from, land:to, labels}), labels); drawRuler(cv, max, [], {pos:from, start:from, labels}); setTimeout(play, 600); cv.onclick = play; }};
   }
-  const hops = L(level, [1, rnd(2,3), rnd(2,4), rnd(3,5), rnd(3,6)]); let d = rnd(2, L(level,[8,7,7,10,15])); const from = hugoStart(Math.floor(max*(level>=3 ? .2 : .3))); while (d>1 && from + hops*d > max) d--; const to = from + hops*d;
-  const txt = hops===1 ? `Hugo part de <b>${from}</b> et saute de <b>${d} cm</b>.` : `Hugo part de <b>${from}</b> et fait <b>${hops} sauts</b> de <b>${d} cm</b>.`;
-  return {story:`${txt} Touche la règle là où il va atterrir !`, prompt: hops===1 ? `${from} + ${d} = <b>?</b>` : `${from} + ${hops} × ${d} = <b>?</b>`, kind:'custom', answer:to, show:to+' cm', explain:`${hops} saut${hops>1?'s':''} de ${d} cm = ${Array(hops).fill(d).join(' + ')} = ${hops*d} cm${from ? `, et ${from} + ${hops*d} = ${to}` : ''}.`, timeMult:1.5, render(stage, api){
+  // niveaux 1 et 2 : un seul saut ; niveau 3 : on découvre « un point de départ et plusieurs petits sauts » (départ 1 à 3, 2 ou 3 sauts de 1 à 3 cm, écrit en additions) ; niveau 4 : sauts moyens ; niveau 5 : le calcul avec ×
+  const hops = L(level, [1, 1, rnd(2,3), rnd(2,3), rnd(3,6)]); let d = L(level, [rnd(2,8), rnd(2,9), rnd(1,3), rnd(2,5), rnd(3,15)]); const from = level===3 ? rnd(1,3) : hugoStart(Math.floor(max*(level>=4 ? .2 : .3))); while (d>1 && from + hops*d > max) d--; const to = from + hops*d;
+  const txt = hops===1 ? `Hugo part de <b>${from}</b> et saute de <b>${d} cm</b>.` : level<=3 ? `Hugo part de <b>${from}</b>. Puis il fait <b>${hops} petits sauts</b> de <b>${d} cm</b>.` : `Hugo part de <b>${from}</b> et fait <b>${hops} sauts</b> de <b>${d} cm</b>.`;
+  return {story:`${txt} Touche la règle là où il va atterrir !`, prompt: hops===1 ? `${from} + ${d} = <b>?</b>` : level<=4 ? `${from} + ${Array(hops).fill(d).join(' + ')} = <b>?</b>` : `${from} + ${hops} × ${d} = <b>?</b>`, kind:'custom', answer:to, show:to+' cm', explain:`${hops} saut${hops>1?'s':''} de ${d} cm = ${Array(hops).fill(d).join(' + ')} = ${hops*d} cm${from ? `, et ${from} + ${hops*d} = ${to}` : ''}.`, timeMult:1.5, render(stage, api){
     const cv = document.createElement('canvas'); cv.className='ruler'; stage.appendChild(cv); drawRuler(cv, max, [], {pos:from, start:from, labels:true});
-    const hint = document.createElement('p'); hint.className='sub'; hint.style.marginTop='6px'; hint.textContent = 'Touche un nombre sur la règle'; stage.appendChild(hint);
-    cv.onclick = e => { if (api.done) return; api.done = true; const cm = clamp(cmFromClick(cv, max, e), 0, max); const ok = cm===to; hint.textContent = ok ? 'Hugo saute… et atterrit pile sur ton drapeau !' : `Tu as touché ${cm} cm, Hugo atterrit à ${to} cm`; hopAnim(cv, max, [], from, to, hops, cm, () => api.answer(ok, ok ? '' : `Hugo est arrivé à ${to} cm, pas à ${cm} cm`), true); };
+    const hint = document.createElement('p'); hint.className='sub'; hint.style.cssText='margin-top:6px; display:block'; hint.textContent = 'Touche la règle pour poser ton drapeau, puis valide'; stage.appendChild(hint);
+    const row = document.createElement('div'); row.className='toolrow'; const okBtn = document.createElement('button'); okBtn.className='tool go'; okBtn.textContent = '✔ Valider'; okBtn.disabled = true; row.appendChild(okBtn); stage.appendChild(row);
+    // on peut toucher plusieurs fois : le drapeau se déplace, le nombre choisi s'affiche, et on valide quand on est sûr
+    let chosen = null;
+    cv.onclick = e => { if (api.done) return; chosen = clamp(cmFromClick(cv, max, e), 0, max); drawRuler(cv, max, [], {pos:from, start:from, labels:true, flag:chosen}); hint.textContent = fr(`Drapeau à ${chosen} cm. Tu peux le déplacer, ou valider !`); okBtn.disabled = false; SFX.click(); };
+    okBtn.onclick = () => { if (api.done || chosen==null) return; api.done = true; okBtn.disabled = true; const cm = chosen; const ok = cm===to; hint.textContent = ok ? 'Hugo saute… et atterrit pile sur ton drapeau !' : `Ton drapeau est à ${cm} cm, Hugo atterrit à ${to} cm`; hopAnim(cv, max, [], from, to, hops, cm, () => api.answer(ok, ok ? '' : `Hugo est arrivé à ${to} cm, pas à ${cm} cm`), true); };
   }};
 }};
 
@@ -446,7 +454,8 @@ GAMES.rangement = { intro:'Dans le grenier, Meryl range les nombres du plus peti
   const maxN = L(level, [99, 99, 999, 999, 9999]); const minN = L(level, [10, 10, 100, 100, 10]);
   const num2 = () => rnd(minN, maxN);
   if (t==='compare'){ let a = num2(), b = num2(); while (b===a) b = num2(); const bigger = Math.random()<.6; const ans = bigger ? Math.max(a,b) : Math.min(a,b);
-    return bigQcm(`Quel nombre est le <b>plus ${bigger?'grand':'petit'}</b> ?`, ans, shuffle([a,b]), {story:'Meryl doit ranger deux boîtes.', explain:explainCompare(a,b), explainHtml:`<div class="lastdigit"><b>${String(Math.min(a,b))[0]}</b>${String(Math.min(a,b)).slice(1)} &lt; <b>${String(Math.max(a,b))[0]}</b>${String(Math.max(a,b)).slice(1)}</div>`, n:2}); }
+    const opts = shuffle([a,b]);
+    return bigQcm(`Quel nombre est le <b>plus ${bigger?'grand':'petit'}</b> ?`, ans, opts, {story:'Meryl doit ranger deux boîtes.', explain:explainCompare(a,b), onAnswer(stage, box){ const el = document.createElement('div'); el.className = 'cmp'; el.innerHTML = `<span>${opts[0]}</span><span class="sym">${opts[0]<opts[1] ? '&lt;' : '&gt;'}</span><span>${opts[1]}</span><small>la pointe du signe montre le plus petit, l'ouverture le plus grand</small>`; box.parentNode.insertBefore(el, box); }, explainHtml:`<div class="lastdigit"><b>${String(Math.min(a,b))[0]}</b>${String(Math.min(a,b)).slice(1)} &lt; <b>${String(Math.max(a,b))[0]}</b>${String(Math.max(a,b)).slice(1)}</div>`, n:2}); }
   if (t==='parity'){ const n = L(level, [rnd(1,20), rnd(10,99), rnd(10,99), rnd(100,999), rnd(100,9999)]); const even = n%2===0;
     const dots = n<=20 ? `<div class="pairdots">${Array.from({length:Math.floor(n/2)},()=>'<i></i><i></i>').map(x=>`<span>${x}</span>`).join('')}${n%2 ? '<span class="odd"><i></i></span>' : ''}</div>` : `<div class="lastdigit">${String(n).slice(0,-1)}<b>${n%10}</b></div>`;
     return bigQcm(`<b>${n}</b> : pair ou impair ?`, even ? 'pair' : 'impair', ['pair','impair'], {story:'Meryl range les nombres pairs à gauche, les impairs à droite.',

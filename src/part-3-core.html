@@ -186,7 +186,7 @@ const SFX = {
   door(){ if(!S.sound) return; tone(196,0,.3,'sawtooth',.08); tone(147,.1,.5,'sawtooth',.06); noise(.3,.15,300); },
   freed(){ if(!S.sound) return; const m=[[784,0,.12],[988,.12,.12],[1175,.24,.12],[1568,.36,.5],[1319,.6,.14],[1568,.72,.8]]; m.forEach(([f,t,d])=>tone(f,t,d,'triangle',.16)); tone(392,.36,1,'sine',.08); tone(2093,.9,.7,'sine',.05); },
   fail(){ if(!S.sound) return; [330,311,294,262].forEach((f,i)=>tone(f,i*.2,.4,'triangle',.12)); },
-  pour(){ if(!S.sound) return; noise(.35,.12,1800); tone(500,0,.2,'sine',.05); tone(700,.1,.2,'sine',.05); },
+  pour(){ if(!S.sound) return; noise(.7,.06,1200); for (let i=0;i<5;i++){ tone(650+Math.random()*900, .04+Math.random()*.45, .07, 'sine', .022); } tone(300,0,.55,'sine',.018); }, // eau qui coule doucement, petites bulles
   coin(){ if(!S.sound) return; tone(2349,0,.05,'square',.06); tone(3136,.05,.15,'square',.06); },
   bubble(){ if(!S.sound) return; tone(600,0,.08,'sine',.1); tone(1200,.05,.12,'sine',.08); },
   dice(){ if(!S.sound) return; for (let i=0;i<7;i++) setTimeout(() => { noise(.05,.25,1800); tone(300+Math.random()*300,0,.04,'square',.05); }, i*110); },
@@ -325,7 +325,7 @@ const MUSIC = {
 
 /* ---------- UI utilitaires ---------- */
 let screen = 'home';
-function show(id){ ['home','players','intro','cycle','carnet','album','mapscreen','room','result'].forEach(s => { $('#'+s).hidden = (s!==id); }); screen = id; window.scrollTo(0,0); }
+function show(id){ ['home','players','pause','intro','cycle','carnet','album','mapscreen','room','result'].forEach(s => { $('#'+s).hidden = (s!==id); }); screen = id; window.scrollTo(0,0); }
 let toastT = null;
 function toast(msg, ms=2600){ let t = $('.toast'); if (!t){ t = document.createElement('div'); t.className='toast'; document.body.appendChild(t); } t.textContent = fr(msg); t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms); }
 function sparkle(el, txt='✨'){ try{ const r = el.getBoundingClientRect(); for (let i=0;i<5;i++){ const s = document.createElement('span'); s.className='sparkle'; s.textContent = txt; s.style.left = (r.left + Math.random()*r.width) + 'px'; s.style.top = (r.top + r.height/2) + 'px'; s.style.position='fixed'; s.style.zIndex = 40; document.body.appendChild(s); setTimeout(()=>s.remove(), 900); } }catch(e){} }

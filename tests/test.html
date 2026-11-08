@@ -18,7 +18,7 @@
       stage.remove();
     } log('OK', r.id, level, JSON.stringify(kinds)); } }
     // 2. moteur : les délais longs deviennent synchrones
-    S.name='Test'; S.unlockAll = true;
+    S.name='Test'; S.unlockAll = true; S.sinceStorm = -1e6; // pas d'orage surprise pendant la boucle des salles
     window.setTimeout = (f, ms, ...a) => { if (ms>=600){ f(...a); return 0; } return _st(f, ms, ...a); };
     for (const r of ROOMS){
       startRoom(r); let guard = 0;
@@ -61,6 +61,20 @@
     S.rooms.tables1 = {done:0,best:null,perfect:0,found:false,level:1}; S.billes = 100; startRoom(ROOM.tables1); log('bannières N1 tlen', run.tlen, 'timer', $('#timer') ? $('#timer').hidden : 'n/a'); submit(true); log('gain N1 : run.billes', run.billes, 'S.billes', S.billes, 'fini', Number.isFinite(S.billes)); if (run){ clearInterval(timerIv); run = null; }
     S.billes = NaN; S.stars = null; migrate(); log('réparation NaN', S.billes, S.stars);
     localStorage.clear(); P = {list:[],current:null}; addPlayer('r1','Rep','vachou',{billes:null, tot:{r:80,w:0}}); choosePlayer('r1'); log('réparé', S.billes, S.repaired); let pushed = 0; DBCOL = {doc(){ return {set(){ pushed++; return Promise.resolve(); }}; }}; mergeProfile('r1', {name:'Rep', billes:976, tot:{r:54,w:0}, updated:1}); log('fusion après réparation : billes', S.billes, 'repaired', S.repaired, 'index', JSON.stringify(P.list[0].billes), 'poussé', pushed); DBCOL = null;
+    // orage pendant une salle : prévu à l'entrée, déclenché après la question stormAt, la salle reprend ensuite
+    S.sinceStorm = 5; log('chance orage', stormChance(), 'après 0/1/2', (S.sinceStorm=0, stormChance()), (S.sinceStorm=1, stormChance()), (S.sinceStorm=2, stormChance()), 'params', JSON.stringify(stormParams()), 'tables', JSON.stringify(stormTables()));
+    S.sinceStorm = 5; roomState('bains').found = true; startRoom(ROOM.formes); run.stormAt = 2; submit(true); log('question 2 : avertissement prévu', run && run.stormAt, 'i', run && run.i); submit(true); log('après 2 réponses : orage actif', !!storm, 'phase', storm && storm.phase, 'run gardé', !!run, 'écran', screen);
+    let sg = 0; while (storm && !storm.done && sg++<20){ stormHit(true); } log('après orage : storm', !!storm, 'écran', screen, 'run', !!run, 'i', run && run.i, 'question affichée', !!(run && run.q && !run.answered), 'sinceStorm', S.sinceStorm); if (run){ clearInterval(timerIv); run = null; } S.sinceStorm = -1e6;
+    // pause après 30 minutes : seulement sur la vue du château
+    startRoom(ROOM.formes); playMs = PAUSE_AFTER; tickPlay(); log('pas de pause en salle', screen); clearInterval(timerIv); run = null; renderHome(); show('home'); playMs = PAUSE_AFTER; tickPlay(); log('pause écran', screen, 'bouton', $('#btn-pause-ok').disabled, $('#btn-pause-ok').textContent); $('#btn-pause-ok').click(); log('après pause', screen);
+    // galerie niveau 3 : additions simples, départ 1 à 3 ; niveau 2 : un seul saut
+    let l3 = [], l2bad = 0; for (let i=0;i<80;i++){ const q = GAMES.longueurs.gen(3); if (q.kind==='custom' && /\+/.test(q.prompt)) l3.push(q.prompt.replace(/<[^>]+>/g,'')); const q2 = GAMES.longueurs.gen(2); if (q2.kind==='custom' && /×|\+.*\+/.test(q2.prompt)) l2bad++; } log('galerie L3 exemples', l3.slice(0,4).join(' | '), 'avec ×', l3.filter(p=>/×/.test(p)).length, 'L2 à plusieurs sauts', l2bad);
+    // galerie : drapeau déplaçable puis bouton Valider
+    { let q = GAMES.longueurs.gen(1); let g3 = 0; while (!(q.kind==='custom' && /atterrir/.test(q.story||'')) && g3++<80) q = GAMES.longueurs.gen(1); const st = document.createElement('div'); document.body.appendChild(st); let answered = null; q.render(st, {done:false, answer(ok){ answered = ok; }}); const btn = st.querySelector('.tool.go'); log('valider désactivé au départ', btn && btn.disabled); const cv = st.querySelector('canvas'); cv.getBoundingClientRect = () => ({left:0, width:640}); cv.onclick({clientX: 100}); cv.onclick({clientX: 300}); log('après deux touches : valider actif', btn && !btn.disabled, 'texte', st.querySelector('.sub').textContent.slice(0,30), 'pas encore répondu', answered===null); st.remove(); }
+    // grenier : le signe apparaît après la réponse
+    { let q = GAMES.rangement.gen(1); let g4 = 0; while (!q.onAnswer && g4++<60) q = GAMES.rangement.gen(1); startRoom(ROOM.rangement); run.q = q; run.answered = false; renderQuestion(q); q.onAnswer($('#stage'), $('#stage .opts')); log('signe affiché', !!$('#stage .cmp'), $('#stage .cmp') && $('#stage .cmp .sym').textContent, 'avant les options', $('#stage .cmp') && $('#stage .cmp').nextElementSibling.classList.contains('opts')); clearInterval(timerIv); run = null; }
+    // bains : pichets dessinés
+    { const q = GAMES.bains.gen(2); const st = document.createElement('div'); q.render(st, {done:false, answer(){}}); log('pichets', st.querySelectorAll('.jug svg').length); }
     // joueurs : création, bascule, isolation des parties, suppression, migration de l'ancienne sauvegarde
     localStorage.clear(); P = {list:[], current:null}; addPlayer('t1','Alice','vachou'); choosePlayer('t1'); S.billes = 10; save(); addPlayer('t2','Bob','crabou'); choosePlayer('t2'); S.billes = 50; roomState('formes').found = true; save();
     log('joueurs', P.list.length, 'courant', P.current, 'Bob billes', S.billes); choosePlayer('t1'); log('retour Alice billes', S.billes, 'formes', !!S.rooms.formes, 'index', JSON.stringify(P.list.map(p=>[p.name,p.billes,p.freed])));

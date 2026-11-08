@@ -8,7 +8,9 @@ function startRoom(room){
   // 5 niveaux de contenu par salle ; le chrono se resserre un peu à chaque niveau
   run = { room:room.id, level, gen:level, tfactor:Math.pow(.92, level-1), i:0, n:room.n, errors:0, hearts:maxHearts(), billes:0, results:[], asked:0, retry:[], q:null, answered:false, t0:0 };
   lastRoom = room.rev ? lastRoom : room;
-  MUSIC.play(MUSIC_TRACKS['room_'+room.id] ? 'room_'+room.id : (room.floor===3 ? 'tower' : 'floor'+room.floor));
+  MUSIC.play(roomTrack(room));
+  // Orage : décidé à l'entrée, il éclate après la question `stormAt` ; les trois questions précédentes grondent (voir stormWarning)
+  if (!room.boss && !room.rev && freedCount()>=1 && Math.random() < stormChance()) run.stormAt = rnd(3, Math.max(3, run.n-2));
   SFX.door();
   show('room'); renderRoomHead(); nextQuestion();
 }
@@ -27,6 +29,7 @@ function nextQuestion(){
   if (!run || screen!=='room') return; // la salle a été quittée pendant le délai après la réponse
   if (run.i >= run.n){ return endRoom(true); }
   const room = ROOM[run.room];
+  if (run.stormAt!=null && run.i>=run.stormAt && !run.redo){ run.stormAt = null; clearInterval(timerIv); S.sinceStorm = 0; save(); return startStorm(() => { if (run && screen==='room'){ MUSIC.play(roomTrack(room)); nextQuestion(); } }, false, room.floor); }
   let q = run.retry.length && Math.random()<.5 && run.i>run.retry[0].at+1 ? run.retry.shift().q : null;
   if (!q){
     // jamais la même épreuve que les trois précédentes (Julien a eu trois fois la baignoire à 9 L)
@@ -35,7 +38,9 @@ function nextQuestion(){
   }
   run.q = q; run.answered = false; renderProgress(); renderQuestion(q);
   const floor = FLOORS[room.floor]; const t = (floor.timer && run.level>1) ? floor.timer * (q.timeMult||1) * run.tfactor : 0; startTimer(t); // jamais de chrono au niveau 1 d'une salle
+  if (run.stormAt!=null){ const left = run.stormAt - run.i; if (left>=1 && left<=3) stormWarning(4-left); }
 }
+const roomTrack = room => MUSIC_TRACKS['room_'+room.id] ? 'room_'+room.id : (room.floor===3 ? 'tower' : 'floor'+room.floor);
 function renderQuestion(q){
   const stage = $('#stage'); stage.innerHTML = ''; const fb = $('#stage .feedback'); if (fb) fb.remove();
   // Le calcul en très gros, l'histoire en petit au-dessus : elle n'a pas besoin de lire la phrase pour répondre
@@ -48,7 +53,7 @@ function renderQuestion(q){
   if (q.render){ const box = document.createElement('div'); box.className='custom'; stage.appendChild(box); q.render(box, api); }
   if (q.kind==='qcm'){
     const box = document.createElement('div'); box.className = 'opts' + (q.options.length===3 ? ' three' : q.options.length===2 ? ' two' : ''); stage.appendChild(box);
-    q.options.forEach(o => { const b = document.createElement('button'); b.className='opt'; b.textContent = o; b.onclick = () => { if (run.answered) return; const ok = String(o)===String(q.answer); b.classList.add(ok?'ok':'ko'); if (!ok) box.querySelectorAll('.opt').forEach(x => { if (String(x.textContent)===String(q.answer)) x.classList.add('ok'); }); submit(ok); }; box.appendChild(b); });
+    q.options.forEach(o => { const b = document.createElement('button'); b.className='opt'; b.textContent = o; b.onclick = () => { if (run.answered) return; const ok = String(o)===String(q.answer); b.classList.add(ok?'ok':'ko'); if (!ok) box.querySelectorAll('.opt').forEach(x => { if (String(x.textContent)===String(q.answer)) x.classList.add('ok'); }); if (q.onAnswer) q.onAnswer(stage, box); submit(ok); }; box.appendChild(b); });
   } else if (q.kind==='num'){
     const entry = document.createElement('div'); entry.className='entry'; entry.innerHTML = `<span class="val" id="val"></span>${q.suffix?'<span>'+q.suffix+'</span>':''}`; stage.appendChild(entry);
     const pad = document.createElement('div'); pad.className='pad'; stage.appendChild(pad); let val = '';
@@ -289,8 +294,6 @@ mapCv.addEventListener('click', e => {
 });
 function enterRoom(room){
   const d = DD[room.dd]; const rs = roomState(room.id); const level = clamp(rs.done+1,1,3);
-  // Orage surprise : jamais sur la première salle, jamais au donjon, environ une salle sur trois une fois lancé
-  if (!room.boss && freedCount()>=1 && (S.sinceStorm||0)>=2 && Math.random()<STORM_BY_FLOOR[room.floor].p){ S.sinceStorm = 0; save(); return startStorm(() => startRoom(room), false, room.floor); }
   toast(`${GAMES[room.id].intro}`, 3200);
   startRoom(room);
 }
@@ -300,17 +303,18 @@ function enterRoom(room){
    ========================================================= */
 let storm = null;
 // L'orage se corse avec les étages : probabilité, nombre de citrouilles, tables, vitesse
-const STORM_BY_FLOOR = [
-  {p:.07, n:4, tables:[2,10],            bmax:5, dur:9500},
-  {p:.11, n:5, tables:[2,3,5,10],        bmax:9, dur:7500},
-  {p:.15, n:6, tables:[2,3,4,5,6,7,8,9,10], bmax:9, dur:6000},
-  {p:.15, n:6, tables:[3,4,6,7,8,9],     bmax:9, dur:5500}
-];
-// Tables de l'orage : parmi celles de l'étage, les tables maîtrisées et les deux en cours d'apprentissage
-function stormTables(){ const pool = STORM_BY_FLOOR[storm.floor].tables; const act = activeTables().filter(t => pool.includes(t)); return act.length ? act : pool.slice(0,2); }
+// Fréquence : jamais sur la toute première salle ; après un orage, 0 % à la salle suivante, puis 35 %, 70 %, 100 % (donc un orage toutes les deux à trois salles)
+function stormChance(){ const s = S.sinceStorm||0; return s<=0 ? 0 : s===1 ? .35 : s===2 ? .7 : 1; }
+// Difficulté : calée sur le niveau moyen des deux salles de tables (solidification des acquis, pas apprentissage)
+function stormLevel(){ return (roomLevel('tables1') + roomLevel('tables2'))/2; }
+function stormParams(){ const l = stormLevel(); return { n: l<2 ? 4 : l<4 ? 5 : 6, bmax: l<2 ? 5 : l<3 ? 7 : 10, dur: Math.round(12000 - (l-1)*1750) }; } // 12 s par citrouille au niveau 1, 5 s au niveau 5
+// Signes avant-coureurs pendant les trois questions qui précèdent : tonnerre de plus en plus fort, éclair de plus en plus lumineux
+function stormWarning(k){ setTimeout(() => { if (!run || screen!=='room' || storm) return; thunder(.15 + k*.25); const f = $('#warn-flash'); f.style.transition = 'none'; f.style.opacity = .1 + k*.14; setTimeout(() => { f.style.transition = 'opacity .8s'; f.style.opacity = 0; }, 70 + k*50); if (k===3) setTimeout(() => { f.style.transition='none'; f.style.opacity = .3; setTimeout(() => { f.style.transition='opacity .6s'; f.style.opacity = 0; }, 60); }, 350); if (k===2) toast('🌩️ Le ciel gronde au loin…', 2200); if (k===3) toast('⛈️ Tu entends le tonnerre ? Un orage approche !', 2600); }, 800); }
+// Tables de l'orage : les tables déjà maîtrisées (au moins deux), sinon les deux premières en cours
+function stormTables(){ const done = TABLE_ORDER.filter(tableMastered); return done.length>=2 ? done : activeTables().slice(0,2); }
 function startStorm(after, test, floor){
   if (floor==null){ const cur = currentRoom(); floor = cur ? cur.floor : 2; }
-  storm = { after, test, floor, n:STORM_BY_FLOOR[floor].n, i:0, hits:0, misses:0, hearts:3, phase:'intro', q:null, done:false, bolts:[], parts:[], drops:[], shake:0, lurk:[], nextBolt:0 };
+  storm = { after, test, floor, n:stormParams().n, i:0, hits:0, misses:0, hearts:3, phase:'intro', q:null, done:false, bolts:[], parts:[], drops:[], shake:0, lurk:[], nextBolt:0 };
   const el = $('#storm'); el.hidden = false; $('#storm-opts').innerHTML = ''; $('#storm-q').textContent = ''; $('#storm-title').textContent = '⛈️ Un orage approche…';
   $('#storm-score').textContent = '🎃 0 / ' + storm.n; $('#storm-hearts').textContent = '❤️❤️❤️';
   $('#app').classList.add('dim'); MUSIC.stop();
@@ -338,9 +342,7 @@ function flash(op){ const f = $('#storm-flash'); f.style.transition='none'; f.st
 function launchPumpkin(){
   if (!storm || storm.done) return;
   if (storm.i >= storm.n) return endStorm();
-  const F = STORM_BY_FLOOR[storm.floor]; const [a, b] = pickFact(stormTables(), F.bmax); const ans = a*b;
-  // Temps pour répondre : calé sur le niveau moyen atteint dans les deux salles de multiplications (niveau 1 : 12 s, niveau 5 : 5 s)
-  const lvl = (roomLevel('tables1') + roomLevel('tables2'))/2; const dur = Math.round(12000 - (lvl-1)*1750);
+  const Pm = stormParams(); const [a, b] = pickFact(stormTables(), Pm.bmax); const ans = a*b; const dur = Pm.dur;
   storm.q = {a,b,ans, born:Date.now(), dur, x:.15+Math.random()*.7, hit:false};
   $('#storm-q').innerHTML = `${a} × ${b} = ?`;
   const box = $('#storm-opts'); box.innerHTML = '';
@@ -647,5 +649,12 @@ function settleBoot(){ if (cloudSettled) return; cloudSettled = true; $('#player
 setTimeout(settleBoot, 8000);
 (window.claude && window.claude.hot && window.claude.hot.ready) ? window.claude.hot.ready(boot) : boot();
 initCloud();
+/* ---------- Pause : après 30 minutes de jeu effectif, un écran de repos, seulement depuis la vue du château (jamais pendant une salle) ---------- */
+const PAUSE_AFTER = 30*60*1000; let playMs = 0, lastTick = Date.now();
+function tickPlay(){ const now = Date.now(); if (!document.hidden) playMs += now - lastTick; lastTick = now; if (playMs>=PAUSE_AFTER && !run && !storm && !intro && (screen==='home' || screen==='mapscreen')) showPause(); }
+setInterval(tickPlay, 4000);
+function showPause(){ playMs = 0; MUSIC.stop(); $('#pause-castle').src = IMG.castle; $('#pause-hero').src = IMG.hero; show('pause'); const b = $('#btn-pause-ok'); let left = 60; b.disabled = true;
+  const tick = () => { if (screen!=='pause') return; if (left<=0){ b.disabled = false; b.textContent = '🏰 C\'est reparti !'; return; } b.textContent = `Repos… ${left} s`; left--; setTimeout(tick, 1000); }; tick(); }
+$('#btn-pause-ok').onclick = () => { if ($('#btn-pause-ok').disabled) return; SFX.click(); playMs = 0; renderHome(); show('home'); MUSIC.play('home'); };
 document.addEventListener('pointerdown', function first(){ if (S.music && screen==='home') MUSIC.play('home'); document.removeEventListener('pointerdown', first); }, {once:true});
 </script>

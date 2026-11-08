@@ -145,7 +145,7 @@ details.parents summary{cursor:pointer; font-weight:800; color:var(--muted)}
 /* ---------- Salle (mini-jeu) ---------- */
 .room{--acc:var(--gold); --room-bg:#2a2560}
 .roomhead{display:grid; grid-template-columns:64px minmax(0,1fr) auto auto; align-items:center; gap:10px; margin-bottom:8px}
-@media (max-width:640px){.roomhead{grid-template-columns:64px minmax(0,1fr) auto} .roomhead .hearts{grid-column:1 / -1; justify-content:center}}
+@media (max-width:640px){.roomhead{grid-template-columns:56px minmax(0,1fr) auto} .roomhead .hearts{grid-column:1 / -1; justify-content:center} .roomhead .meta p{display:none} .roomhead .hide, .roomhead .hide img{width:56px; height:56px}}
 .roomhead .hide{position:relative; width:64px; height:64px; flex:none}
 .roomhead .hide img{width:64px; height:64px; object-fit:contain; filter:brightness(0) opacity(.5); transition:filter .8s}
 .roomhead .hide::after{content:"?"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-size:30px; color:var(--gold); pointer-events:none}
@@ -168,12 +168,12 @@ details.parents summary{cursor:pointer; font-weight:800; color:var(--muted)}
 .timer{height:10px; border-radius:999px; background:rgba(255,255,255,.1); overflow:hidden; margin-bottom:10px}
 .timer i{display:block; height:100%; width:100%; background:linear-gradient(90deg,var(--mint2),var(--mint)); border-radius:999px; transition:width .25s linear}
 .timer i.low{background:linear-gradient(90deg,#c9452c,var(--danger))}
-.stage{position:relative; border-radius:18px; border:3px solid var(--acc); background:var(--room-bg); box-shadow:var(--shadow); padding:16px; min-height:360px; overflow:hidden; isolation:isolate}
+.stage{position:relative; border-radius:18px; border:3px solid var(--acc); background:var(--room-bg); box-shadow:var(--shadow); padding:16px; min-height:360px; clip-path:inset(0 round 15px); isolation:isolate}
 /* fond pixel art de la salle, voilé pour garder les énoncés lisibles */
 .stage::before{content:""; position:absolute; inset:0; z-index:-1; background:var(--room-img) center/cover no-repeat; image-rendering:pixelated; opacity:.55}
 .stage::after{content:""; position:absolute; inset:0; z-index:-1; background:linear-gradient(180deg, rgba(10,8,25,.55), rgba(10,8,25,.35) 40%, rgba(10,8,25,.7))}
 .stage > *{position:relative}
-.redo{text-align:center; font-weight:900; color:#3a2a05; background:linear-gradient(180deg,#ffe08a,var(--gold2)); border-radius:12px; padding:8px 14px; margin-top:12px; font-size:17px}
+.redo{position:sticky; bottom:calc(8px + env(safe-area-inset-bottom,0px)); z-index:3; text-align:center; font-weight:900; color:#3a2a05; background:linear-gradient(180deg,#ffe08a,var(--gold2)); border-radius:12px; padding:8px 14px; margin-top:12px; font-size:17px}
 .redo b{font-family:var(--font-display); font-size:20px}
 .redo small{display:block; font-size:15px; font-weight:700; margin-top:4px; color:#4a3608}
 .pairdots{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:8px}
@@ -205,7 +205,7 @@ details.parents summary{cursor:pointer; font-weight:800; color:var(--muted)}
 .entry{display:flex; justify-content:center; align-items:center; gap:10px; font-family:var(--font-display); font-size:46px; font-weight:700; min-height:64px; color:#fff; text-shadow:0 2px 0 rgba(0,0,0,.5)}
 .entry .val{min-width:120px; text-align:center; background:rgba(10,8,25,.7); border-radius:12px; padding:2px 16px; border-bottom:4px solid var(--acc)}
 .entry .val:empty::before{content:"?"; color:rgba(255,255,255,.3)}
-.feedback{position:absolute; left:0; right:0; bottom:0; padding:12px 16px; text-align:center; font-family:var(--font-display); font-size:22px; background:rgba(0,0,0,.55); backdrop-filter:blur(4px); color:#fff; animation:enter .2s ease}
+.feedback{position:sticky; bottom:calc(8px + env(safe-area-inset-bottom,0px)); z-index:3; margin:12px -16px -16px; border-radius:0 0 14px 14px; padding:12px 16px; text-align:center; font-family:var(--font-display); font-size:22px; background:rgba(0,0,0,.55); backdrop-filter:blur(4px); color:#fff; animation:enter .2s ease}
 .feedback.ok{color:var(--mint)} .feedback.ko{color:#ffb3a3}
 .feedback small{display:block; font-family:var(--font-body); font-size:15px; color:var(--muted)}
 .roomfoot{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap}
@@ -326,6 +326,43 @@ canvas.ruler{width:100%; max-width:640px; height:auto; display:block; border-rad
 .fab[aria-pressed="false"]{opacity:.6; filter:grayscale(1)}
 body:has(#storm:not([hidden])) .fab{display:none}
 .toast{position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); background:var(--panel2); border:1px solid var(--gold); color:#fff; padding:10px 18px; border-radius:999px; font-weight:800; z-index:30; box-shadow:var(--shadow); animation:enter .3s ease; max-width:92vw; text-align:center}
+/* ---------- Taille selon l'appareil : plus grand sur un écran d'ordinateur, plus compact quand l'écran est bas (iPad paysage, iPhone) ---------- */
+@media (min-width:1100px) and (min-height:720px){ #app, .modal .box{zoom:1.2} }
+@media (min-width:1500px) and (min-height:900px){ #app, .modal .box{zoom:1.4} }
+@media (max-height:900px){
+  .stage{min-height:0; padding:12px} .prompt{margin:0 0 8px; padding:6px 12px} .prompt.calc{font-size:clamp(32px,7vw,50px)}
+  .story-line{font-size:clamp(13px,2.6vw,16px); padding:4px 10px; margin-bottom:6px} .sub{font-size:14px; margin:-4px 0 8px}
+  .pad{grid-template-columns:repeat(3,66px); gap:6px} .pad button{height:54px; font-size:28px} .entry{min-height:54px; font-size:40px}
+  .roomhead{margin-bottom:4px} .progress{margin:4px 0 6px} .opt{padding:12px 10px} .roomfoot{margin-top:6px; padding-left:54px} #app{padding-bottom:16px}
+  .feedback{padding:8px 14px; font-size:19px} .feedback small{font-size:13px}
+}
+@media (max-height:720px){ .sub, .roomhead .meta p, .story-line{display:none} }
+
+/* ---------- Grenier : le signe < ou > apparaît entre les deux nombres une fois la réponse donnée ---------- */
+.cmp{display:flex; justify-content:center; align-items:center; gap:16px; flex-wrap:wrap; font-family:var(--font-display); font-size:clamp(34px,7vw,56px); font-weight:700; color:#fff; background:rgba(10,8,25,.6); border-radius:14px; padding:4px 16px; margin:0 0 12px; animation:enter .3s ease; text-shadow:0 2px 0 rgba(0,0,0,.5)}
+.cmp .sym{color:var(--gold); font-size:1.25em; text-shadow:0 0 16px var(--gold), 0 2px 0 rgba(0,0,0,.6); animation:pop .4s ease}
+.cmp small{flex-basis:100%; font-family:var(--font-body); font-size:14px; color:var(--muted); font-weight:800; margin-top:-4px}
+@keyframes pop{0%{transform:scale(.4)} 70%{transform:scale(1.2)} 100%{transform:scale(1)}}
+
+/* ---------- Bains : pichets dessinés, qui se penchent quand on verse ---------- */
+.jug{display:inline-flex; flex-direction:column; align-items:center; gap:2px; background:none; border:0; padding:4px 6px; cursor:pointer; color:#fff; font-family:var(--font-display); font-size:17px; font-weight:700; text-shadow:0 2px 0 rgba(0,0,0,.6)}
+.jug svg{width:68px; height:68px; filter:drop-shadow(0 4px 6px rgba(0,0,0,.5)); transform-origin:20% 90%; transition:transform .15s}
+.jug:active svg{transform:scale(.94)}
+.jug.pouring svg{animation:pourtilt .6s ease}
+@keyframes pourtilt{0%{transform:rotate(0)} 35%{transform:rotate(-42deg) translate(-4px,-8px)} 75%{transform:rotate(-42deg) translate(-4px,-8px)} 100%{transform:rotate(0)}}
+.jug b{background:rgba(10,8,25,.6); border-radius:8px; padding:1px 8px}
+.tool[disabled]{opacity:.45; cursor:not-allowed}
+
+/* ---------- Pause : la petite fille dort ---------- */
+.pausescene .moon{display:none}
+.pausescene .bed{position:absolute; left:50%; bottom:16px; width:200px; height:96px; margin-left:-100px; background:linear-gradient(180deg,#7a5aa0,#4a3270); border-radius:16px 16px 8px 8px; border:3px solid #2a1a40; box-shadow:0 8px 20px rgba(0,0,0,.5)}
+.pausescene .bed::before{content:""; position:absolute; left:14px; top:12px; width:60px; height:34px; border-radius:12px; background:#f4ead2}
+.pausescene .sleep{position:absolute; left:2px; bottom:-4px; width:104px; height:104px; object-fit:contain; transform:rotate(-90deg); filter:drop-shadow(0 0 10px rgba(255,200,120,.5))}
+.pausescene .blanket{position:absolute; left:78px; right:8px; bottom:8px; height:56px; border-radius:10px; background:linear-gradient(180deg,#ff8fb1,#c9527a); border:2px solid #7a2a4a}
+.pausescene .zz{position:absolute; left:40px; bottom:110px; color:#fff; font-family:var(--font-display); font-size:22px; font-weight:700; opacity:0; animation:zz 2.7s ease-in-out infinite; text-shadow:0 0 8px rgba(255,255,255,.6)}
+.pausescene .zz.z2{animation-delay:.9s; font-size:28px} .pausescene .zz.z3{animation-delay:1.8s; font-size:34px}
+@keyframes zz{0%{opacity:0; transform:translate(0,0)} 25%{opacity:1} 100%{opacity:0; transform:translate(34px,-70px)}}
+#warn-flash{position:fixed; inset:0; background:#dfe8ff; opacity:0; pointer-events:none; z-index:14}
 </style>
 <style>
 /* ---------- Orage (événement surprise, plein écran) ---------- */
@@ -450,6 +487,16 @@ body:has(#storm:not([hidden])) .fab{display:none}
   <p class="sync" id="players-sync" style="text-align:center"></p>
 </section>
 
+<!-- ===== Pause après 30 minutes de jeu (seulement depuis la vue du château) ===== -->
+<section id="pause" class="screen" hidden>
+  <div class="intro">
+    <div class="scene pausescene"><img class="bg px" id="pause-castle" alt="" style="filter:brightness(.35)"><div class="night"></div><div class="moon">🌙</div>
+      <div class="bed"><img id="pause-hero" class="px sleep" alt=""><div class="blanket"></div><span class="zz">z</span><span class="zz z2">z</span><span class="zz z3">z</span></div></div>
+    <p class="text">Tu joues depuis 30 minutes. Les doudous font une sieste… et toi aussi, une petite pause ! Bois un verre d'eau, étire-toi, regarde par la fenêtre.</p>
+    <div class="actions"><button class="btn big" id="btn-pause-ok" disabled>Repos… 60 s</button></div>
+  </div>
+</section>
+
 <!-- ===== Intro ===== -->
 <section id="intro" class="screen" hidden>
   <div class="intro">
@@ -568,6 +615,7 @@ body:has(#storm:not([hidden])) .fab{display:none}
   </div>
 </div>
 <div class="confetti" id="confetti" hidden></div>
+<div id="warn-flash" aria-hidden="true"></div>
 <script>
 /* =========================================================
    LE CHÂTEAU DES DOUDOUS : jeu de maths (CP fort, vers CE1/CE2)
@@ -756,7 +804,7 @@ const SFX = {
   door(){ if(!S.sound) return; tone(196,0,.3,'sawtooth',.08); tone(147,.1,.5,'sawtooth',.06); noise(.3,.15,300); },
   freed(){ if(!S.sound) return; const m=[[784,0,.12],[988,.12,.12],[1175,.24,.12],[1568,.36,.5],[1319,.6,.14],[1568,.72,.8]]; m.forEach(([f,t,d])=>tone(f,t,d,'triangle',.16)); tone(392,.36,1,'sine',.08); tone(2093,.9,.7,'sine',.05); },
   fail(){ if(!S.sound) return; [330,311,294,262].forEach((f,i)=>tone(f,i*.2,.4,'triangle',.12)); },
-  pour(){ if(!S.sound) return; noise(.35,.12,1800); tone(500,0,.2,'sine',.05); tone(700,.1,.2,'sine',.05); },
+  pour(){ if(!S.sound) return; noise(.7,.06,1200); for (let i=0;i<5;i++){ tone(650+Math.random()*900, .04+Math.random()*.45, .07, 'sine', .022); } tone(300,0,.55,'sine',.018); }, // eau qui coule doucement, petites bulles
   coin(){ if(!S.sound) return; tone(2349,0,.05,'square',.06); tone(3136,.05,.15,'square',.06); },
   bubble(){ if(!S.sound) return; tone(600,0,.08,'sine',.1); tone(1200,.05,.12,'sine',.08); },
   dice(){ if(!S.sound) return; for (let i=0;i<7;i++) setTimeout(() => { noise(.05,.25,1800); tone(300+Math.random()*300,0,.04,'square',.05); }, i*110); },
@@ -895,7 +943,7 @@ const MUSIC = {
 
 /* ---------- UI utilitaires ---------- */
 let screen = 'home';
-function show(id){ ['home','players','intro','cycle','carnet','album','mapscreen','room','result'].forEach(s => { $('#'+s).hidden = (s!==id); }); screen = id; window.scrollTo(0,0); }
+function show(id){ ['home','players','pause','intro','cycle','carnet','album','mapscreen','room','result'].forEach(s => { $('#'+s).hidden = (s!==id); }); screen = id; window.scrollTo(0,0); }
 let toastT = null;
 function toast(msg, ms=2600){ let t = $('.toast'); if (!t){ t = document.createElement('div'); t.className='toast'; document.body.appendChild(t); } t.textContent = fr(msg); t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms); }
 function sparkle(el, txt='✨'){ try{ const r = el.getBoundingClientRect(); for (let i=0;i<5;i++){ const s = document.createElement('span'); s.className='sparkle'; s.textContent = txt; s.style.left = (r.left + Math.random()*r.width) + 'px'; s.style.top = (r.top + r.height/2) + 'px'; s.style.position='fixed'; s.style.zIndex = 40; document.body.appendChild(s); setTimeout(()=>s.remove(), 900); } }catch(e){} }
@@ -1011,7 +1059,10 @@ GAMES.bains = { intro:'Poulpou veut un bain à la bonne hauteur. Verse les bons 
     const water = stage.querySelector('#water'), gauge = stage.querySelector('#gauge');
     const upd = () => { water.style.height = clamp(cur/max*100,0,100)+'%'; gauge.textContent = level===1 ? fmt(cur) : (cur>=100 ? fmt(cur)+' ('+cur+' cL)' : cur+' cL'); };
     const box = stage.querySelector('#jugs');
-    jugs.forEach(j => { const b = document.createElement('button'); b.className='tool'; b.textContent = '🫗 '+fmt(j); b.onclick = () => { if (api.done) return; cur += j; SFX.pour(); upd(); if (cur===target){ setTimeout(()=>api.answer(true), 400); } else if (cur>target){ water.style.background='linear-gradient(180deg,#ff9a85,#c9452c)'; setTimeout(()=>api.answer(false, 'Ça déborde ! Il fallait '+label), 500); } }; box.appendChild(b); });
+    const big = jugs[jugs.length-1];
+    jugs.forEach(j => { const b = document.createElement('button'); b.className='jug'; const fh = 8 + Math.round(30*j/big); const cp = 'jc'+j;
+      b.innerHTML = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><clipPath id="${cp}"><path d="M14 14h36l-4 40H18z"/></clipPath></defs><path d="M14 14h36l-4 40H18z" fill="#f4ead2" stroke="#6b5a3a" stroke-width="3"/><rect x="10" y="${54-fh}" width="44" height="${fh}" fill="#5fb8f0" clip-path="url(#${cp})"/><rect x="10" y="${54-fh}" width="44" height="3" fill="rgba(255,255,255,.6)" clip-path="url(#${cp})"/><path d="M50 18q14 8 0 24" fill="none" stroke="#6b5a3a" stroke-width="3"/><path d="M14 14l-7-5 3 11z" fill="#f4ead2" stroke="#6b5a3a" stroke-width="2"/></svg><b>${fmt(j)}</b>`;
+      b.onclick = () => { if (api.done) return; b.classList.remove('pouring'); void b.offsetWidth; b.classList.add('pouring'); cur += j; SFX.pour(); upd(); if (cur===target){ setTimeout(()=>api.answer(true), 400); } else if (cur>target){ water.style.background='linear-gradient(180deg,#ff9a85,#c9452c)'; setTimeout(()=>api.answer(false, 'Ça déborde ! Il fallait '+label), 500); } }; box.appendChild(b); });
     stage.querySelector('#empty').onclick = () => { if (api.done) return; cur = 0; upd(); SFX.click(); };
     upd();
   }};
@@ -1034,7 +1085,7 @@ function drawRuler(cv, maxCm, ribbons, kanga){
     g.fillStyle = color; g.beginPath(); g.moveTo(mx, y-8); g.lineTo(mx-7, y-20); g.lineTo(mx+7, y-20); g.closePath(); g.fill();
     if (label!=null){ g.font = 'bold 15px Fredoka, Nunito, sans-serif'; const tw = g.measureText(label).width + 12; g.fillStyle = color; g.fillRect(mx-tw/2, yTop-22, tw, 20); g.fillStyle = '#1a1030'; g.textAlign='center'; g.fillText(label, mx, yTop-7); } };
   if (kanga){ const sp = SPR.hugo; const kx = x0 + kanga.pos*sc, ky = y-12 - (kanga.h||0);
-    if (kanga.flag!=null){ g.fillStyle='#ff8fb1'; g.fillRect(x0+kanga.flag*sc-2, y-40, 4, 30); g.beginPath(); g.moveTo(x0+kanga.flag*sc+2, y-40); g.lineTo(x0+kanga.flag*sc+22, y-33); g.lineTo(x0+kanga.flag*sc+2, y-26); g.fill(); }
+    if (kanga.flag!=null){ g.fillStyle='#ff8fb1'; g.fillRect(x0+kanga.flag*sc-2, y-40, 4, 30); g.beginPath(); g.moveTo(x0+kanga.flag*sc+2, y-40); g.lineTo(x0+kanga.flag*sc+22, y-33); g.lineTo(x0+kanga.flag*sc+2, y-26); g.fill(); g.font = 'bold 15px Fredoka, Nunito, sans-serif'; g.fillStyle = '#ff8fb1'; g.textAlign = 'center'; g.fillText(kanga.flag+' cm', x0+kanga.flag*sc, y-46); }
     if (kanga.start!=null) marker(kanga.start, '#7cc4ff', kanga.labels ? kanga.start+' cm' : null, 30);
     if (kanga.land!=null) marker(kanga.land, '#ffd166', kanga.labels ? kanga.land+' cm' : null, 30);
     if (sp && sp.complete) g.drawImage(sp, kx-28, ky-56, 56, 56); else { g.fillStyle='#c58a4a'; g.fillRect(kx-10, ky-30, 20, 30); } }
@@ -1077,12 +1128,17 @@ GAMES.longueurs = { intro:'Hugo le kangourou saute sur la grande règle. Mesure 
     const from = level>=3 ? rnd(1, Math.floor(max*.4)) : hugoStart(Math.floor(max*.4)); const d = rnd(2, Math.min(L(level,[9,9,12,20,30]), max-from)); const to = from+d;
     return {prompt:`Regarde bien… Hugo a sauté de <b>combien de cm</b> ?`, sub:'Touche Hugo pour revoir le saut', kind:'num', answer:d, suffix:'cm', show:d+' cm', explain:`Hugo est parti de ${from} et arrivé à ${to} : ${to} − ${from} = ${d} cm.`, render(stage){ const cv = document.createElement('canvas'); cv.className='ruler'; stage.appendChild(cv); const labels = level>=3; const play = () => hopAnim(cv, max, [], from, to, 1, null, () => drawRuler(cv, max, [], {pos:to, start:from, land:to, labels}), labels); drawRuler(cv, max, [], {pos:from, start:from, labels}); setTimeout(play, 600); cv.onclick = play; }};
   }
-  const hops = L(level, [1, rnd(2,3), rnd(2,4), rnd(3,5), rnd(3,6)]); let d = rnd(2, L(level,[8,7,7,10,15])); const from = hugoStart(Math.floor(max*(level>=3 ? .2 : .3))); while (d>1 && from + hops*d > max) d--; const to = from + hops*d;
-  const txt = hops===1 ? `Hugo part de <b>${from}</b> et saute de <b>${d} cm</b>.` : `Hugo part de <b>${from}</b> et fait <b>${hops} sauts</b> de <b>${d} cm</b>.`;
-  return {story:`${txt} Touche la règle là où il va atterrir !`, prompt: hops===1 ? `${from} + ${d} = <b>?</b>` : `${from} + ${hops} × ${d} = <b>?</b>`, kind:'custom', answer:to, show:to+' cm', explain:`${hops} saut${hops>1?'s':''} de ${d} cm = ${Array(hops).fill(d).join(' + ')} = ${hops*d} cm${from ? `, et ${from} + ${hops*d} = ${to}` : ''}.`, timeMult:1.5, render(stage, api){
+  // niveaux 1 et 2 : un seul saut ; niveau 3 : on découvre « un point de départ et plusieurs petits sauts » (départ 1 à 3, 2 ou 3 sauts de 1 à 3 cm, écrit en additions) ; niveau 4 : sauts moyens ; niveau 5 : le calcul avec ×
+  const hops = L(level, [1, 1, rnd(2,3), rnd(2,3), rnd(3,6)]); let d = L(level, [rnd(2,8), rnd(2,9), rnd(1,3), rnd(2,5), rnd(3,15)]); const from = level===3 ? rnd(1,3) : hugoStart(Math.floor(max*(level>=4 ? .2 : .3))); while (d>1 && from + hops*d > max) d--; const to = from + hops*d;
+  const txt = hops===1 ? `Hugo part de <b>${from}</b> et saute de <b>${d} cm</b>.` : level<=3 ? `Hugo part de <b>${from}</b>. Puis il fait <b>${hops} petits sauts</b> de <b>${d} cm</b>.` : `Hugo part de <b>${from}</b> et fait <b>${hops} sauts</b> de <b>${d} cm</b>.`;
+  return {story:`${txt} Touche la règle là où il va atterrir !`, prompt: hops===1 ? `${from} + ${d} = <b>?</b>` : level<=4 ? `${from} + ${Array(hops).fill(d).join(' + ')} = <b>?</b>` : `${from} + ${hops} × ${d} = <b>?</b>`, kind:'custom', answer:to, show:to+' cm', explain:`${hops} saut${hops>1?'s':''} de ${d} cm = ${Array(hops).fill(d).join(' + ')} = ${hops*d} cm${from ? `, et ${from} + ${hops*d} = ${to}` : ''}.`, timeMult:1.5, render(stage, api){
     const cv = document.createElement('canvas'); cv.className='ruler'; stage.appendChild(cv); drawRuler(cv, max, [], {pos:from, start:from, labels:true});
-    const hint = document.createElement('p'); hint.className='sub'; hint.style.marginTop='6px'; hint.textContent = 'Touche un nombre sur la règle'; stage.appendChild(hint);
-    cv.onclick = e => { if (api.done) return; api.done = true; const cm = clamp(cmFromClick(cv, max, e), 0, max); const ok = cm===to; hint.textContent = ok ? 'Hugo saute… et atterrit pile sur ton drapeau !' : `Tu as touché ${cm} cm, Hugo atterrit à ${to} cm`; hopAnim(cv, max, [], from, to, hops, cm, () => api.answer(ok, ok ? '' : `Hugo est arrivé à ${to} cm, pas à ${cm} cm`), true); };
+    const hint = document.createElement('p'); hint.className='sub'; hint.style.cssText='margin-top:6px; display:block'; hint.textContent = 'Touche la règle pour poser ton drapeau, puis valide'; stage.appendChild(hint);
+    const row = document.createElement('div'); row.className='toolrow'; const okBtn = document.createElement('button'); okBtn.className='tool go'; okBtn.textContent = '✔ Valider'; okBtn.disabled = true; row.appendChild(okBtn); stage.appendChild(row);
+    // on peut toucher plusieurs fois : le drapeau se déplace, le nombre choisi s'affiche, et on valide quand on est sûr
+    let chosen = null;
+    cv.onclick = e => { if (api.done) return; chosen = clamp(cmFromClick(cv, max, e), 0, max); drawRuler(cv, max, [], {pos:from, start:from, labels:true, flag:chosen}); hint.textContent = fr(`Drapeau à ${chosen} cm. Tu peux le déplacer, ou valider !`); okBtn.disabled = false; SFX.click(); };
+    okBtn.onclick = () => { if (api.done || chosen==null) return; api.done = true; okBtn.disabled = true; const cm = chosen; const ok = cm===to; hint.textContent = ok ? 'Hugo saute… et atterrit pile sur ton drapeau !' : `Ton drapeau est à ${cm} cm, Hugo atterrit à ${to} cm`; hopAnim(cv, max, [], from, to, hops, cm, () => api.answer(ok, ok ? '' : `Hugo est arrivé à ${to} cm, pas à ${cm} cm`), true); };
   }};
 }};
 
@@ -1355,7 +1411,8 @@ GAMES.rangement = { intro:'Dans le grenier, Meryl range les nombres du plus peti
   const maxN = L(level, [99, 99, 999, 999, 9999]); const minN = L(level, [10, 10, 100, 100, 10]);
   const num2 = () => rnd(minN, maxN);
   if (t==='compare'){ let a = num2(), b = num2(); while (b===a) b = num2(); const bigger = Math.random()<.6; const ans = bigger ? Math.max(a,b) : Math.min(a,b);
-    return bigQcm(`Quel nombre est le <b>plus ${bigger?'grand':'petit'}</b> ?`, ans, shuffle([a,b]), {story:'Meryl doit ranger deux boîtes.', explain:explainCompare(a,b), explainHtml:`<div class="lastdigit"><b>${String(Math.min(a,b))[0]}</b>${String(Math.min(a,b)).slice(1)} &lt; <b>${String(Math.max(a,b))[0]}</b>${String(Math.max(a,b)).slice(1)}</div>`, n:2}); }
+    const opts = shuffle([a,b]);
+    return bigQcm(`Quel nombre est le <b>plus ${bigger?'grand':'petit'}</b> ?`, ans, opts, {story:'Meryl doit ranger deux boîtes.', explain:explainCompare(a,b), onAnswer(stage, box){ const el = document.createElement('div'); el.className = 'cmp'; el.innerHTML = `<span>${opts[0]}</span><span class="sym">${opts[0]<opts[1] ? '&lt;' : '&gt;'}</span><span>${opts[1]}</span><small>la pointe du signe montre le plus petit, l'ouverture le plus grand</small>`; box.parentNode.insertBefore(el, box); }, explainHtml:`<div class="lastdigit"><b>${String(Math.min(a,b))[0]}</b>${String(Math.min(a,b)).slice(1)} &lt; <b>${String(Math.max(a,b))[0]}</b>${String(Math.max(a,b)).slice(1)}</div>`, n:2}); }
   if (t==='parity'){ const n = L(level, [rnd(1,20), rnd(10,99), rnd(10,99), rnd(100,999), rnd(100,9999)]); const even = n%2===0;
     const dots = n<=20 ? `<div class="pairdots">${Array.from({length:Math.floor(n/2)},()=>'<i></i><i></i>').map(x=>`<span>${x}</span>`).join('')}${n%2 ? '<span class="odd"><i></i></span>' : ''}</div>` : `<div class="lastdigit">${String(n).slice(0,-1)}<b>${n%10}</b></div>`;
     return bigQcm(`<b>${n}</b> : pair ou impair ?`, even ? 'pair' : 'impair', ['pair','impair'], {story:'Meryl range les nombres pairs à gauche, les impairs à droite.',
@@ -1409,7 +1466,9 @@ function startRoom(room){
   // 5 niveaux de contenu par salle ; le chrono se resserre un peu à chaque niveau
   run = { room:room.id, level, gen:level, tfactor:Math.pow(.92, level-1), i:0, n:room.n, errors:0, hearts:maxHearts(), billes:0, results:[], asked:0, retry:[], q:null, answered:false, t0:0 };
   lastRoom = room.rev ? lastRoom : room;
-  MUSIC.play(MUSIC_TRACKS['room_'+room.id] ? 'room_'+room.id : (room.floor===3 ? 'tower' : 'floor'+room.floor));
+  MUSIC.play(roomTrack(room));
+  // Orage : décidé à l'entrée, il éclate après la question `stormAt` ; les trois questions précédentes grondent (voir stormWarning)
+  if (!room.boss && !room.rev && freedCount()>=1 && Math.random() < stormChance()) run.stormAt = rnd(3, Math.max(3, run.n-2));
   SFX.door();
   show('room'); renderRoomHead(); nextQuestion();
 }
@@ -1428,6 +1487,7 @@ function nextQuestion(){
   if (!run || screen!=='room') return; // la salle a été quittée pendant le délai après la réponse
   if (run.i >= run.n){ return endRoom(true); }
   const room = ROOM[run.room];
+  if (run.stormAt!=null && run.i>=run.stormAt && !run.redo){ run.stormAt = null; clearInterval(timerIv); S.sinceStorm = 0; save(); return startStorm(() => { if (run && screen==='room'){ MUSIC.play(roomTrack(room)); nextQuestion(); } }, false, room.floor); }
   let q = run.retry.length && Math.random()<.5 && run.i>run.retry[0].at+1 ? run.retry.shift().q : null;
   if (!q){
     // jamais la même épreuve que les trois précédentes (Julien a eu trois fois la baignoire à 9 L)
@@ -1436,7 +1496,9 @@ function nextQuestion(){
   }
   run.q = q; run.answered = false; renderProgress(); renderQuestion(q);
   const floor = FLOORS[room.floor]; const t = (floor.timer && run.level>1) ? floor.timer * (q.timeMult||1) * run.tfactor : 0; startTimer(t); // jamais de chrono au niveau 1 d'une salle
+  if (run.stormAt!=null){ const left = run.stormAt - run.i; if (left>=1 && left<=3) stormWarning(4-left); }
 }
+const roomTrack = room => MUSIC_TRACKS['room_'+room.id] ? 'room_'+room.id : (room.floor===3 ? 'tower' : 'floor'+room.floor);
 function renderQuestion(q){
   const stage = $('#stage'); stage.innerHTML = ''; const fb = $('#stage .feedback'); if (fb) fb.remove();
   // Le calcul en très gros, l'histoire en petit au-dessus : elle n'a pas besoin de lire la phrase pour répondre
@@ -1449,7 +1511,7 @@ function renderQuestion(q){
   if (q.render){ const box = document.createElement('div'); box.className='custom'; stage.appendChild(box); q.render(box, api); }
   if (q.kind==='qcm'){
     const box = document.createElement('div'); box.className = 'opts' + (q.options.length===3 ? ' three' : q.options.length===2 ? ' two' : ''); stage.appendChild(box);
-    q.options.forEach(o => { const b = document.createElement('button'); b.className='opt'; b.textContent = o; b.onclick = () => { if (run.answered) return; const ok = String(o)===String(q.answer); b.classList.add(ok?'ok':'ko'); if (!ok) box.querySelectorAll('.opt').forEach(x => { if (String(x.textContent)===String(q.answer)) x.classList.add('ok'); }); submit(ok); }; box.appendChild(b); });
+    q.options.forEach(o => { const b = document.createElement('button'); b.className='opt'; b.textContent = o; b.onclick = () => { if (run.answered) return; const ok = String(o)===String(q.answer); b.classList.add(ok?'ok':'ko'); if (!ok) box.querySelectorAll('.opt').forEach(x => { if (String(x.textContent)===String(q.answer)) x.classList.add('ok'); }); if (q.onAnswer) q.onAnswer(stage, box); submit(ok); }; box.appendChild(b); });
   } else if (q.kind==='num'){
     const entry = document.createElement('div'); entry.className='entry'; entry.innerHTML = `<span class="val" id="val"></span>${q.suffix?'<span>'+q.suffix+'</span>':''}`; stage.appendChild(entry);
     const pad = document.createElement('div'); pad.className='pad'; stage.appendChild(pad); let val = '';
@@ -1690,8 +1752,6 @@ mapCv.addEventListener('click', e => {
 });
 function enterRoom(room){
   const d = DD[room.dd]; const rs = roomState(room.id); const level = clamp(rs.done+1,1,3);
-  // Orage surprise : jamais sur la première salle, jamais au donjon, environ une salle sur trois une fois lancé
-  if (!room.boss && freedCount()>=1 && (S.sinceStorm||0)>=2 && Math.random()<STORM_BY_FLOOR[room.floor].p){ S.sinceStorm = 0; save(); return startStorm(() => startRoom(room), false, room.floor); }
   toast(`${GAMES[room.id].intro}`, 3200);
   startRoom(room);
 }
@@ -1701,17 +1761,18 @@ function enterRoom(room){
    ========================================================= */
 let storm = null;
 // L'orage se corse avec les étages : probabilité, nombre de citrouilles, tables, vitesse
-const STORM_BY_FLOOR = [
-  {p:.07, n:4, tables:[2,10],            bmax:5, dur:9500},
-  {p:.11, n:5, tables:[2,3,5,10],        bmax:9, dur:7500},
-  {p:.15, n:6, tables:[2,3,4,5,6,7,8,9,10], bmax:9, dur:6000},
-  {p:.15, n:6, tables:[3,4,6,7,8,9],     bmax:9, dur:5500}
-];
-// Tables de l'orage : parmi celles de l'étage, les tables maîtrisées et les deux en cours d'apprentissage
-function stormTables(){ const pool = STORM_BY_FLOOR[storm.floor].tables; const act = activeTables().filter(t => pool.includes(t)); return act.length ? act : pool.slice(0,2); }
+// Fréquence : jamais sur la toute première salle ; après un orage, 0 % à la salle suivante, puis 35 %, 70 %, 100 % (donc un orage toutes les deux à trois salles)
+function stormChance(){ const s = S.sinceStorm||0; return s<=0 ? 0 : s===1 ? .35 : s===2 ? .7 : 1; }
+// Difficulté : calée sur le niveau moyen des deux salles de tables (solidification des acquis, pas apprentissage)
+function stormLevel(){ return (roomLevel('tables1') + roomLevel('tables2'))/2; }
+function stormParams(){ const l = stormLevel(); return { n: l<2 ? 4 : l<4 ? 5 : 6, bmax: l<2 ? 5 : l<3 ? 7 : 10, dur: Math.round(12000 - (l-1)*1750) }; } // 12 s par citrouille au niveau 1, 5 s au niveau 5
+// Signes avant-coureurs pendant les trois questions qui précèdent : tonnerre de plus en plus fort, éclair de plus en plus lumineux
+function stormWarning(k){ setTimeout(() => { if (!run || screen!=='room' || storm) return; thunder(.15 + k*.25); const f = $('#warn-flash'); f.style.transition = 'none'; f.style.opacity = .1 + k*.14; setTimeout(() => { f.style.transition = 'opacity .8s'; f.style.opacity = 0; }, 70 + k*50); if (k===3) setTimeout(() => { f.style.transition='none'; f.style.opacity = .3; setTimeout(() => { f.style.transition='opacity .6s'; f.style.opacity = 0; }, 60); }, 350); if (k===2) toast('🌩️ Le ciel gronde au loin…', 2200); if (k===3) toast('⛈️ Tu entends le tonnerre ? Un orage approche !', 2600); }, 800); }
+// Tables de l'orage : les tables déjà maîtrisées (au moins deux), sinon les deux premières en cours
+function stormTables(){ const done = TABLE_ORDER.filter(tableMastered); return done.length>=2 ? done : activeTables().slice(0,2); }
 function startStorm(after, test, floor){
   if (floor==null){ const cur = currentRoom(); floor = cur ? cur.floor : 2; }
-  storm = { after, test, floor, n:STORM_BY_FLOOR[floor].n, i:0, hits:0, misses:0, hearts:3, phase:'intro', q:null, done:false, bolts:[], parts:[], drops:[], shake:0, lurk:[], nextBolt:0 };
+  storm = { after, test, floor, n:stormParams().n, i:0, hits:0, misses:0, hearts:3, phase:'intro', q:null, done:false, bolts:[], parts:[], drops:[], shake:0, lurk:[], nextBolt:0 };
   const el = $('#storm'); el.hidden = false; $('#storm-opts').innerHTML = ''; $('#storm-q').textContent = ''; $('#storm-title').textContent = '⛈️ Un orage approche…';
   $('#storm-score').textContent = '🎃 0 / ' + storm.n; $('#storm-hearts').textContent = '❤️❤️❤️';
   $('#app').classList.add('dim'); MUSIC.stop();
@@ -1739,9 +1800,7 @@ function flash(op){ const f = $('#storm-flash'); f.style.transition='none'; f.st
 function launchPumpkin(){
   if (!storm || storm.done) return;
   if (storm.i >= storm.n) return endStorm();
-  const F = STORM_BY_FLOOR[storm.floor]; const [a, b] = pickFact(stormTables(), F.bmax); const ans = a*b;
-  // Temps pour répondre : calé sur le niveau moyen atteint dans les deux salles de multiplications (niveau 1 : 12 s, niveau 5 : 5 s)
-  const lvl = (roomLevel('tables1') + roomLevel('tables2'))/2; const dur = Math.round(12000 - (lvl-1)*1750);
+  const Pm = stormParams(); const [a, b] = pickFact(stormTables(), Pm.bmax); const ans = a*b; const dur = Pm.dur;
   storm.q = {a,b,ans, born:Date.now(), dur, x:.15+Math.random()*.7, hit:false};
   $('#storm-q').innerHTML = `${a} × ${b} = ?`;
   const box = $('#storm-opts'); box.innerHTML = '';
@@ -2048,5 +2107,12 @@ function settleBoot(){ if (cloudSettled) return; cloudSettled = true; $('#player
 setTimeout(settleBoot, 8000);
 (window.claude && window.claude.hot && window.claude.hot.ready) ? window.claude.hot.ready(boot) : boot();
 initCloud();
+/* ---------- Pause : après 30 minutes de jeu effectif, un écran de repos, seulement depuis la vue du château (jamais pendant une salle) ---------- */
+const PAUSE_AFTER = 30*60*1000; let playMs = 0, lastTick = Date.now();
+function tickPlay(){ const now = Date.now(); if (!document.hidden) playMs += now - lastTick; lastTick = now; if (playMs>=PAUSE_AFTER && !run && !storm && !intro && (screen==='home' || screen==='mapscreen')) showPause(); }
+setInterval(tickPlay, 4000);
+function showPause(){ playMs = 0; MUSIC.stop(); $('#pause-castle').src = IMG.castle; $('#pause-hero').src = IMG.hero; show('pause'); const b = $('#btn-pause-ok'); let left = 60; b.disabled = true;
+  const tick = () => { if (screen!=='pause') return; if (left<=0){ b.disabled = false; b.textContent = '🏰 C\'est reparti !'; return; } b.textContent = `Repos… ${left} s`; left--; setTimeout(tick, 1000); }; tick(); }
+$('#btn-pause-ok').onclick = () => { if ($('#btn-pause-ok').disabled) return; SFX.click(); playMs = 0; renderHome(); show('home'); MUSIC.play('home'); };
 document.addEventListener('pointerdown', function first(){ if (S.music && screen==='home') MUSIC.play('home'); document.removeEventListener('pointerdown', first); }, {once:true});
 </script>
