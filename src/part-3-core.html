@@ -132,6 +132,9 @@ function save(){ if (!P.current) return; S.updated = Date.now(); writeProfile(P.
 function logErr(e, where){ try{ S.lastErr = { t:new Date().toISOString(), where:where||'', msg:String(e && (e.stack||e.message||e)).slice(0,400), ua:navigator.userAgent.slice(0,80) }; save(); const el = $('#lasterr'); if (el) el.textContent = 'Dernière erreur : ' + S.lastErr.msg; }catch(_){} }
 window.addEventListener('error', e => logErr(e.error || e.message, 'window'));
 window.addEventListener('unhandledrejection', e => logErr(e.reason, 'promise'));
+// Toute variation de billes ou d'étoiles passe ici : un montant non numérique est refusé et signalé (plus jamais de NaN dans la sauvegarde)
+function addBilles(delta, where){ if (!Number.isFinite(delta)){ logErr(new Error('montant de billes invalide : ' + delta), where || 'billes'); return 0; } delta = Math.round(delta); if (!Number.isFinite(S.billes)) S.billes = 0; S.billes = Math.max(0, S.billes + delta); return delta; }
+function addStars(n, where){ if (!Number.isFinite(n)){ logErr(new Error('étoiles invalides : ' + n), where || 'stars'); return 0; } if (!Number.isFinite(S.stars)) S.stars = 0; S.stars += n; return n; }
 const roomState = id => S.rooms[id] || (S.rooms[id] = {done:0, best:null, perfect:0, found:false, level:1});
 const isDone = id => !!(S.rooms[id]||{}).found;           // retrouvé dans l'exploration en cours
 const everDone = id => (S.rooms[id]||{}).done > 0;         // retrouvé au moins une fois

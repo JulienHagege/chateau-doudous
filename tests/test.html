@@ -23,6 +23,7 @@
     for (const r of ROOMS){
       startRoom(r); let guard = 0;
       while (run && guard++<120){ const ok = Math.random()<.8; submit(ok, ok?'' :'x'); }
+      if (!Number.isFinite(S.billes) || !Number.isFinite(S.stars)) log('ERREUR compteur non numérique après', r.id, S.billes, S.stars);
       log('salle', r.id, 'écran', screen, 'billes', S.billes, 'étoiles', S.stars, 'tours', guard, 'done', JSON.stringify(S.rooms[r.id]));
     }
     log('cœurs max', maxHearts(), 'délivrés', freedCount(), 'levels', JSON.stringify(Object.fromEntries(ROOMS.map(r=>[r.id, roomLevel(r.id)]))));
@@ -47,7 +48,8 @@
     for (let lv=1; lv<=5; lv++){ let kinds = {}; for (let i=0;i<40;i++){ const q = GAMES.rangement.gen(lv); kinds[(q.prompt.match(/plus (grand|petit)|pair|entre|proche|vrai|Touche/)||['?'])[0]] = 1; if (q.kind==='qcm' && !q.options.map(String).includes(String(q.answer))) log('ERREUR rangement options', q.prompt, q.answer, q.options); } log('rangement L'+lv, Object.keys(kinds).join(',')); }
     const picks = {}; for (let i=0;i<300;i++){ const [a,b] = pickFact(activeTables()); picks[a] = (picks[a]||0)+1; } log('tirages par table', JSON.stringify(picks));
     for (let f=0; f<4; f++){ openMap(f); drawMap(); } log('carte OK');
-    startStorm(null, true); log('orage phase', storm && storm.phase); if (storm){ if (storm.phase!=='play'){ storm.phase='play'; launchPumpkin(); } stormHit(true); if (storm) { launchPumpkin(); stormHit(false); } } log('orage OK, storm =', storm ? 'actif' : 'fermé', 'billes', S.billes);
+    startStorm(null, true); log('orage phase', storm && storm.phase); if (storm){ if (storm.phase!=='play'){ storm.phase='play'; launchPumpkin(); } stormHit(true); if (storm) { launchPumpkin(); stormHit(false); } } log('orage OK, storm =', storm ? 'actif' : 'fermé', 'billes', S.billes); if (!Number.isFinite(S.billes)) log('ERREUR billes non numériques après orage');
+    const before = S.billes; addBilles(NaN, 'test'); addBilles(-1e9, 'test'); log('addBilles refuse NaN', S.billes===before || S.billes===0, 'plancher zéro', S.billes, 'lastErr', S.lastErr && S.lastErr.msg.slice(0,40)); delete S.lastErr;
     renderAlbum(); renderHome(); log('home/album OK');
     S.unlockAll = false; S.rooms = {}; hero.floor = -1; openMap(0); log('hero', JSON.stringify(hero));
     log('accès RDC', ROOMS.filter(r=>r.floor===0).map(r=>roomUnlocked(r)).join(','), '1er fermé', !roomUnlocked(ROOM.complements), 'boss fermé', !roomUnlocked(ROOM.boss)); ROOMS.filter(r=>r.floor===0).forEach(r=>{roomState(r.id).found=true;}); log('après RDC : 1er ouvert', roomUnlocked(ROOM.complements), '2e fermé', !roomUnlocked(ROOM.addition), 'hint', $('#maphint').textContent.slice(0,40));

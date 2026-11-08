@@ -701,6 +701,9 @@ function save(){ if (!P.current) return; S.updated = Date.now(); writeProfile(P.
 function logErr(e, where){ try{ S.lastErr = { t:new Date().toISOString(), where:where||'', msg:String(e && (e.stack||e.message||e)).slice(0,400), ua:navigator.userAgent.slice(0,80) }; save(); const el = $('#lasterr'); if (el) el.textContent = 'Dernière erreur : ' + S.lastErr.msg; }catch(_){} }
 window.addEventListener('error', e => logErr(e.error || e.message, 'window'));
 window.addEventListener('unhandledrejection', e => logErr(e.reason, 'promise'));
+// Toute variation de billes ou d'étoiles passe ici : un montant non numérique est refusé et signalé (plus jamais de NaN dans la sauvegarde)
+function addBilles(delta, where){ if (!Number.isFinite(delta)){ logErr(new Error('montant de billes invalide : ' + delta), where || 'billes'); return 0; } delta = Math.round(delta); if (!Number.isFinite(S.billes)) S.billes = 0; S.billes = Math.max(0, S.billes + delta); return delta; }
+function addStars(n, where){ if (!Number.isFinite(n)){ logErr(new Error('étoiles invalides : ' + n), where || 'stars'); return 0; } if (!Number.isFinite(S.stars)) S.stars = 0; S.stars += n; return n; }
 const roomState = id => S.rooms[id] || (S.rooms[id] = {done:0, best:null, perfect:0, found:false, level:1});
 const isDone = id => !!(S.rooms[id]||{}).found;           // retrouvé dans l'exploration en cours
 const everDone = id => (S.rooms[id]||{}).done > 0;         // retrouvé au moins une fois
@@ -1484,7 +1487,7 @@ function submit(ok, shown){
     fb.innerHTML = pick(['C\'est ça !','Voilà !','Oui, c\'est bien ça !']) + ' <small>On continue</small>'; SFX.ok();
   } else if (ok){
     S.tot.r++; const gain = floor.billes + 3*(run.level-1) + (run.tlen>0 ? Math.round(clamp((run.tlen-(Date.now()-run.t0))/run.tlen,0,1)*5) : 0); // bonus de rapidité seulement s'il y a un chrono (sinon division par zéro = NaN)
-    run.billes += gain; S.billes += gain; $('#room-billes').textContent = run.billes;
+    run.billes += addBilles(gain, 'submit ok'); $('#room-billes').textContent = run.billes;
     fb.innerHTML = pick(['Bravo !','Super !','Oui !','Génial !','Exact !','Trop fort !']) + ` <small>+${gain} billes</small>`; SFX.ok(); setTimeout(SFX.bille, 150); sparkle($('#room-billes'), '✨');
   } else if (run.redo){
     // deuxième erreur sur la même épreuve : on remontre la réponse et on recommence, sans nouvelle pénalité
@@ -1492,7 +1495,7 @@ function submit(ok, shown){
     stage.appendChild(fb); setTimeout(() => redoQuestion(), 2000); return;
   } else {
     S.tot.w++; run.errors++; run.hearts--; renderHearts(); SFX.ko(); setTimeout(SFX.lose, 250);
-    const loss = Math.min(S.billes, Math.ceil(floor.billes/2)); S.billes -= loss; run.billes -= loss; $('#room-billes').textContent = run.billes;
+    const loss = Math.min(S.billes, Math.ceil(floor.billes/2)); run.billes += addBilles(-loss, 'submit ko'); $('#room-billes').textContent = run.billes;
     fb.innerHTML = fr(shown || ('La réponse était ' + q.show)) + ` <small>${loss ? '−'+loss+' billes · ' : ''}Refais-la pour continuer</small>`;
     if (run.retry.length<3) run.retry.push({q, at:run.i});
     stage.appendChild(fb); renderProgress(); save();
@@ -1509,8 +1512,8 @@ function endRoom(won){
   const room = ROOM[run.room], d = room.rev ? {name:'Révision', desc:'', id:'hero'} : DD[room.dd], rs = roomState(room.id);
   const rewards = [];
   if (won){
-    const first = !rs.found; rs.done++; if (!room.rev){ rs.found = true; rs.level = Math.min(MAX_LEVEL, (rs.level||1) + 1); } const bonus = room.boss ? 300 : 50; S.billes += bonus; run.billes += bonus; rewards.push(`<span class="rw" style="color:var(--bille)">${run.billes>=0?'+':''}${run.billes} billes</span>`);
-    if (run.errors===0){ const st = room.boss ? 3 : 1; S.stars += st; rs.perfect++; rewards.push(`<span class="rw" style="color:var(--star)">⭐ ${st===1?'Une étoile : sans faute !':'Trois étoiles : sans faute !'}</span>`); }
+    const first = !rs.found; rs.done++; if (!room.rev){ rs.found = true; rs.level = Math.min(MAX_LEVEL, (rs.level||1) + 1); } const bonus = room.boss ? 300 : 50; run.billes += addBilles(bonus, 'endRoom'); rewards.push(`<span class="rw" style="color:var(--bille)">${run.billes>=0?'+':''}${run.billes} billes</span>`);
+    if (run.errors===0){ const st = room.boss ? 3 : 1; addStars(st, 'endRoom'); rs.perfect++; rewards.push(`<span class="rw" style="color:var(--star)">⭐ ${st===1?'Une étoile : sans faute !':'Trois étoiles : sans faute !'}</span>`); }
     if (rs.best===null || run.errors<rs.best) rs.best = run.errors;
     S.sinceStorm = (S.sinceStorm||0) + 1;
     $('#cage').classList.add('free');
@@ -1748,10 +1751,10 @@ function stormHit(ok){
   const q = storm.q; q.hit = true; q.hitAt = Date.now(); q.ok = ok; storm.i++; recordFact(q.a, q.b, ok); recordSkill('tables2', ok); checkTables();
   const cv = $('#storm-cv'); const W = cv.width, H = cv.height; const p = clamp((q.hitAt-q.born)/q.dur,0,1); const {x, y, sz} = pumpkinAt(p, W, H);
   if (ok){
-    storm.hits++; storm.swing = {t:Date.now(), x, y, sz}; setTimeout(SFX.squash, 180); setTimeout(SFX.bille, 320); const gain = 20; S.billes += gain; $('#storm-score').textContent = `🎃 ${storm.hits} / ${storm.n}`;
+    storm.hits++; storm.swing = {t:Date.now(), x, y, sz}; setTimeout(SFX.squash, 180); setTimeout(SFX.bille, 320); addBilles(20, 'storm hit'); $('#storm-score').textContent = `🎃 ${storm.hits} / ${storm.n}`;
     setTimeout(() => { if (!storm) return; for (let i=0;i<70;i++){ const a = Math.random()*Math.PI*2, v = 2+Math.random()*10; storm.parts.push({x, y, vx:Math.cos(a)*v, vy:Math.sin(a)*v-3, s:4+Math.random()*sz*.12, c:pick(['#ff8c00','#ffb347','#ffe066','#c45500','#5a8f29']), t:Date.now(), life:700+Math.random()*600}); } storm.shake = Math.max(storm.shake, 12); }, 180);
   } else {
-    storm.misses++; storm.hearts--; SFX.boom(); flash(.6); storm.shake = 26; storm.redAt = Date.now(); storm.knock = Date.now(); S.billes = Math.max(0, S.billes-10);
+    storm.misses++; storm.hearts--; SFX.boom(); flash(.6); storm.shake = 26; storm.redAt = Date.now(); storm.knock = Date.now(); addBilles(-10, 'storm miss');
     $('#storm-hearts').textContent = '❤️'.repeat(storm.hearts) + '🖤'.repeat(3-storm.hearts); $('#storm-q').innerHTML = `${q.a} × ${q.b} = <span style="color:#8de3c0">${q.ans}</span>`;
   }
   setTimeout(() => { if (!storm) return; if (storm.hearts<=0) endStorm(); else launchPumpkin(); }, ok ? 650 : 1400);
@@ -1813,7 +1816,7 @@ function stormFrame(){
 function endStorm(){
   if (!storm || storm.done) return; storm.done = true; const won = storm.hearts>0;
   S.storms = (S.storms||0)+1; if (won) S.stormWins = (S.stormWins||0)+1;
-  let bonus = storm.hits*20; if (won && storm.misses===0){ bonus += 60; S.billes += 60; }
+  let bonus = storm.hits*20; if (won && storm.misses===0){ bonus += 60; addBilles(60, 'storm perfect'); }
   $('#storm-q').innerHTML = won ? (storm.misses===0 ? `☀️ Orage repoussé sans faute ! +${bonus} billes` : `☀️ Orage repoussé ! +${bonus} billes`) : `🎃 Les citrouilles ont gagné cette fois… +${bonus} billes`;
   $('#storm-opts').innerHTML = ''; $('#storm-title').textContent = won ? '🌙 La lumière revient' : '🌙 Le calme revient';
   storm.q = null; storm.phase = 'end'; if (won){ SFX.freed(); for (let i=0;i<120;i++){ const cv = $('#storm-cv'); storm.parts.push({x:Math.random()*cv.width, y:cv.height*.5, vx:(Math.random()-.5)*8, vy:-4-Math.random()*8, s:4+Math.random()*8, c:pick(['#ffd166','#ff8fb1','#8de3c0','#7cc4ff','#fff']), t:Date.now(), life:2000}); } } else SFX.fail();
@@ -1952,7 +1955,7 @@ let celebrateThen = null;
 function maybeCelebrate(then){
   const q = S.celebrateQueue || [];
   if (!q.length){ if (then) then(); return; }
-  const n = q.shift(); S.billes += 100; S.stars += 1; save(); celebrateThen = then;
+  const n = q.shift(); addBilles(100, 'celebrate'); addStars(1, 'celebrate'); save(); celebrateThen = then;
   $('#celebrate-title').textContent = fr(`🎉 Table de ${n} maîtrisée !`);
   $('#celebrate-text').textContent = fr(`Tu connais maintenant toute la table de ${n}, du ${n} × 1 au ${n} × 10. Les doudous sont fiers de toi !`);
   const done = TABLE_ORDER.filter(tableMastered).length; const next = TABLE_ORDER.find(t => !tableMastered(t));
