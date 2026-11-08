@@ -2020,7 +2020,7 @@ function cloudSave(){ if (!DBREF) return; cloudDirty = true; clearTimeout(cloudT
 async function initCloud(){
   if (!window.claude || typeof window.claude.use!=='function'){ settleBoot(); return; }
   try{ const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]); if (!db || !user){ settleBoot(); return; }
-    const id = await user.id(); if (!id){ settleBoot(); return; } DBCOL = db.collection('data/users/'+id+'/profiles'); LEGACY = db.doc('data/users/'+id+'/save'); bindCloud();
+    const id = await user.id(); if (!id){ settleBoot(); return; } DBCOL = db.collection('data/users/'+id+'/profiles/list'); LEGACY = db.doc('data/users/'+id+'/save'); // chemins : collection = nombre impair de segments, document = pair bindCloud();
     const changed = await cloudPull(); setSync('ok', '☁️ Synchronisé'); if (changed) toast('☁️ Joueurs récupérés depuis ton compte'); }
   catch(e){ console.warn('synchro', e); setSync('err', '☁️ Synchro indisponible'); }
   finally{ settleBoot(); }
