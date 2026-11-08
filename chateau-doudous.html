@@ -1122,7 +1122,9 @@ function drawRuler(cv, maxCm, ribbons, kanga){
   const step = maxCm>40 ? 10 : maxCm>20 ? 5 : 1;
   for (let i=0;i<=maxCm;i++){ const x = x0+i*sc; g.beginPath(); g.moveTo(x, y-10); g.lineTo(x, y-10 + (i%10===0?24:i%5===0?18:12)); g.stroke(); if (i%step===0 || i===maxCm) g.fillText(i, x, y+34); }
   g.textAlign='left'; g.fillText('cm', x1+10, y+10); g.textAlign='center';
-  (ribbons||[]).forEach((r, k) => { g.fillStyle = r.color; const ry = 40 + k*34; g.fillRect(x0+r.a*sc, ry, (r.b-r.a)*sc, 22); g.strokeStyle='#fff'; g.lineWidth=2; g.strokeRect(x0+r.a*sc, ry, (r.b-r.a)*sc, 22); if (r.label){ g.fillStyle='#fff'; g.font='bold 16px Fredoka, sans-serif'; g.fillText(r.label, x0+(r.a+r.b)/2*sc, ry+17); } });
+  // rubans collés juste au-dessus de la règle (le premier touche presque les graduations), avec des pointillés de leurs bouts jusqu'aux traits : plus facile à lire
+  (ribbons||[]).forEach((r, k) => { const ry = y-10 - 28 - k*30; g.save(); g.setLineDash([3,3]); g.strokeStyle = r.color; g.lineWidth = 2; [r.a, r.b].forEach(cm => { g.beginPath(); g.moveTo(x0+cm*sc, ry+22); g.lineTo(x0+cm*sc, y-10); g.stroke(); }); g.restore();
+    g.fillStyle = r.color; g.fillRect(x0+r.a*sc, ry, (r.b-r.a)*sc, 22); g.strokeStyle='#fff'; g.lineWidth=2; g.strokeRect(x0+r.a*sc, ry, (r.b-r.a)*sc, 22); if (r.label){ g.fillStyle='#fff'; g.font='bold 16px Fredoka, sans-serif'; g.fillText(r.label, x0+(r.a+r.b)/2*sc, ry+17); } });
   // repères explicites : trait pointillé jusqu'à la règle, flèche et étiquette en cm (départ en bleu, arrivée en jaune)
   const marker = (cm, color, label, yTop) => { const mx = x0 + cm*sc; g.save(); g.setLineDash([4,4]); g.strokeStyle = color; g.lineWidth = 3; g.beginPath(); g.moveTo(mx, yTop); g.lineTo(mx, y-12); g.stroke(); g.restore();
     g.fillStyle = color; g.beginPath(); g.moveTo(mx, y-8); g.lineTo(mx-7, y-20); g.lineTo(mx+7, y-20); g.closePath(); g.fill();
