@@ -1,6 +1,18 @@
 # Le Château des Doudous, notes de reprise
 
-Jeu de maths pour la fille de Julien (6 ans, CP, forte en maths), créé le 2026-11-07 avec Claude Code. Pixel art PixelLab, même esprit que Hyrule Conjugaison (Hugo).
+Jeu de maths pour Meryl, la fille de Julien (6 ans, CP, forte en maths), créé les 7 et 8 novembre 2026 avec Claude Code. Pixel art PixelLab, même esprit que Hyrule Conjugaison (Hugo). Dernière mise à jour des notes : 2026-11-08.
+
+## Reprendre le projet en cinq minutes
+
+1. Sources : ce dossier (Dropbox `Applications/Chateau des Doudous`) ou le dépôt GitHub `JulienHagege/chateau-doudous` (`git clone`). Les deux contiennent la même chose, sauf `.git` absent de Dropbox.
+2. Construire : `python3 build.py` (concatène `src/part-*.html`, injecte `img/*.png` en data URI, écrit `chateau-doudous.html` pour l'artifact et `index.html` autonome).
+3. Tester : `sh tests/run-test.sh` (Chrome headless, 1 à 2 minutes, imprime les lignes de résumé et « aucune erreur »). `tests/test.html` contient le scénario ; `<!--GAME-->` y est remplacé par le jeu.
+4. Publier, toujours les trois canaux : (a) artifact claude.ai via l'outil Artifact, fichier `chateau-doudous.html`, URL https://claude.ai/artifact/M53jBPAF8NWtGTfTh3DjCP (capabilities `db` + `user` déjà déclarées) ; (b) `git add -A && git commit && git push` → https://julienhagege.github.io/chateau-doudous/ se redéploie seul en une minute ; (c) `rsync` du dossier vers Dropbox (sans `.git`, sans captures).
+5. Ne jamais mêler un appel MCP (PixelLab, Artifact) et une commande Bash dans la même réponse Claude Code : le hook rtk fait échouer la revue du mode auto.
+
+Compte PixelLab (Tier 1) : 8 jobs simultanés max, pas de `create_room`. Style des doudous ancré sur Vachou (objet pro flash 64 px, `style_image` = son URL), décors 192x128 ancrés sur l'image du château (`source_image_id 14e9cd70-b492-5cf9-af08-1e45374bbd0c`). Sprites de l'héroïne : personnage v3 48 px, id `ba857aa5-5808-41a9-9ad4-23ab9b9ee8bc` (sud, nord, est, ouest dans `img/hero*.png`).
+
+Sauvegarde : localStorage `chateau-doudous-v1` sur chaque appareil + document db `data/users/<id>/save` sur le compte claude.ai de Julien (lisible avec ArtifactData, champ `state.lastErr` pour diagnostiquer un bug à distance). Fusion : le plus grand nombre de réponses jouées gagne.
 
 ## Les trois canaux de publication (à mettre à jour ensemble)
 

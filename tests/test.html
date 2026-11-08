@@ -1,0 +1,64 @@
+<!doctype html><html><head><meta charset="utf-8"><style>[hidden]{display:none!important}</style></head><body>
+<!--GAME-->
+<pre id="testout"></pre>
+<script>
+(() => {
+  const out = []; const log = (...a) => { out.push(a.join(' ')); document.getElementById('testout').textContent = out.join('\n'); };
+  window.addEventListener('error', e => log('WINDOW ERROR', e.message, e.lineno)); log('début');
+  const _st = window.setTimeout;
+  try{
+    for (const r of ROOMS){ for (let level=1; level<=5; level++){ let kinds = {}; for (let i=0;i<25;i++){
+      const q = r.boss ? GAMES.boss.gen(level, i%15, 15) : GAMES[r.id].gen(level);
+      if (!q || !q.prompt || !q.kind) throw new Error('question invalide '+r.id);
+      kinds[q.kind] = (kinds[q.kind]||0)+1;
+      if (q.kind==='qcm'){ if (!q.options.map(String).includes(String(q.answer))) throw new Error('réponse absente '+r.id+' '+q.prompt+' '+q.answer+' '+q.options); if (new Set(q.options.map(String)).size!==q.options.length) throw new Error('doublons '+r.id+' '+q.options); }
+      if (q.kind==='num' && typeof q.answer!=='number') throw new Error('num sans nombre '+r.id);
+      const stage = document.createElement('div'); document.body.appendChild(stage);
+      try{ if (q.kind==='custom') q.render(stage, {done:false, answer(){}}); else if (q.render) q.render(stage, {done:false, answer(){}}); }catch(e){ throw new Error('render '+r.id+' L'+level+' : '+e.message); }
+      stage.remove();
+    } log('OK', r.id, level, JSON.stringify(kinds)); } }
+    // 2. moteur : les délais longs deviennent synchrones
+    S.name='Test'; S.unlockAll = true;
+    window.setTimeout = (f, ms, ...a) => { if (ms>=600){ f(...a); return 0; } return _st(f, ms, ...a); };
+    for (const r of ROOMS){
+      startRoom(r); let guard = 0;
+      while (run && guard++<120){ const ok = Math.random()<.8; submit(ok, ok?'' :'x'); }
+      log('salle', r.id, 'écran', screen, 'billes', S.billes, 'étoiles', S.stars, 'tours', guard, 'done', JSON.stringify(S.rooms[r.id]));
+    }
+    log('cœurs max', maxHearts(), 'délivrés', freedCount(), 'levels', JSON.stringify(Object.fromEntries(ROOMS.map(r=>[r.id, roomLevel(r.id)]))));
+    if (ROOMS.every(r => isDone(r.id))){ $('#btn-res-map').click(); log('cycle écran', screen, 'cycle', S.cycle, 'found', freedCount()); $('#btn-cycle-next').click(); $('#btn-cycle-next').click(); log('panneau 3 chips', document.querySelectorAll('#cycle-scene .lvl').length); $('#btn-cycle-next').click(); log('après cycle écran', screen, 'salle courante', currentRoom() && currentRoom().id); }
+    // migration d'une vieille sauvegarde
+    const old = {done:2, best:0, perfect:1}; S.rooms.formes = old; S.rooms.complements100 = {done:1,best:0,perfect:1,found:true,level:2}; delete S.rooms.des; migrate(); log('migration', JSON.stringify(S.rooms.formes), 'des', JSON.stringify(S.rooms.des), 'ancienne clé', !!S.rooms.complements100);
+    for (let b=1;b<=10;b++){ recordFact(2,b,true); recordFact(2,b,true); } checkTables(); log('table 2 maîtrisée', tableMastered(2), 'file', JSON.stringify(S.celebrateQueue), 'actives', JSON.stringify(activeTables()));
+    let celebrated = false; maybeCelebrate(() => { celebrated = true; }); log('célébration affichée', !$('#celebrate').hidden, 'titre', $('#celebrate-title').textContent); $('#btn-celebrate').click(); log('après célébration, then appelé', celebrated, 'hidden', $('#celebrate').hidden, 'file', JSON.stringify(S.celebrateQueue));
+    recordFact(3,4,false); recordSkill('bains', false); recordSkill('bains', true); renderCarnet(); log('carnet tables', document.querySelectorAll('#carnet-tables .tcard').length, 'skills', document.querySelectorAll('#carnet-skills .srow').length, 'hint', $('#carnet-hint').textContent);
+    startRoom(ROOM.revision); log('révision', run && run.room, 'q', run && run.q.prompt.slice(0,40)); let g2=0; while (run && g2++<40){ submit(true); } log('révision finie écran', screen, 'titre', $('#res-title').textContent, 'level bains', roomLevel('bains'));
+    let noex = {}; for (const r of ROOMS){ if (r.boss) continue; for (let lv=1; lv<=5; lv++) for (let i=0;i<20;i++){ const q = GAMES[r.id].gen(lv); if (!q.explain) noex[r.id+'/'+lv] = (noex[r.id+'/'+lv]||0)+1; } } log('explications manquantes', JSON.stringify(noex));
+    // anti-répétition : 30 questions d'affilée dans la baignoire niveau 1, jamais deux identiques de suite
+    startRoom(ROOM.bains); let prev = null, dup = 0; for (let i=0;i<30;i++){ const sig = run.q.prompt; if (sig===prev) dup++; prev = sig; run.answered = true; run.i = 0; nextQuestion(); } log('doublons consécutifs baignoire', dup); run = null;
+    // refaire : une erreur puis la bonne réponse
+    startRoom(ROOM.doubles); const q0 = run.q; submit(false); redoQuestion(); log('après erreur : redo', run.redo, 'bandeau', !!$('#stage .redo'), 'cœurs', run.hearts); submit(true); log('bonne réponse au refaire : redo', run.redo, 'i', run.i, 'billes', run.billes); run = null; 
+    // symétrie : les figures annoncées « non » ne doivent jamais être symétriques
+    let badSym = 0, nonCount = 0; for (let lv=2; lv<=5; lv++) for (let i=0;i<400;i++){ const q = GAMES.symetrie.gen(lv); if (q.answer===false){ nonCount++; const st = document.createElement('div'); q.render(st, {done:false, answer(){}}); const on = [...st.querySelectorAll('.c[data-k]')].filter(e => e.classList.contains('on')||e.classList.contains('on2')).map(e => e.dataset.k+':'+(e.classList.contains('on2')?2:1)); const cols = Math.max(...on.map(k=>+k.split(',')[1].split(':')[0]))+1; const horiz = !!st.querySelector('.ax-h'); const ks = [...st.querySelectorAll('.c[data-k]')].map(e=>e.dataset.k.split(',').map(Number)); const C = Math.max(...ks.map(k=>k[1]))+1, R = Math.max(...ks.map(k=>k[0]))+1; const set = new Set(on); let sym = true; for (const k of on){ const [r,c] = k.split(':')[0].split(',').map(Number); const v = k.split(':')[1]; const m = horiz ? (R-1-r)+','+c : r+','+(C-1-c); if (!set.has(m+':'+v)) sym = false; } if (sym) badSym++; } } log('symétrie non', nonCount, 'dont symétriques (bug)', badSym);
+    let split = 0, tot = 0; for (const r of ROOMS){ if (r.boss) continue; for (let lv=1; lv<=5; lv++) for (let i=0;i<10;i++){ const q = GAMES[r.id].gen(lv); tot++; if (q.story || splitPrompt(q.prompt)) split++; } } log('découpe histoire/calcul', split, 'sur', tot);
+    startRoom(ROOM.doubles); submit(true); $('#btn-quit').click(); let crashed = false; try{ nextQuestion(); maybeCelebrate(nextQuestion); }catch(e){ crashed = true; } log('quitter pendant le délai : crash', crashed, 'écran', screen, 'run', run);
+    S.unlockAll = true; startRoom(ROOM.arrondi); $('#btn-quit').click(); log('retour étage après quitter', mapFloor, 'hero', JSON.stringify(hero), 'attendu étage 2 porte', JSON.stringify(ROOM.arrondi.door)); S.unlockAll = false;
+    S.unlockAll = true; hero.floor = -1; openMap(3); log('tour marche', JSON.stringify(hero), 'porte grenier', String(walkable(3,16,7)&&walkable(3,16,7).id), 'porte donjon', String(walkable(3,7,7)&&walkable(3,7,7).id), 'couloir', walkable(3,5,8), walkable(3,10,10)); S.unlockAll = false;
+    for (let lv=1; lv<=5; lv++){ let kinds = {}; for (let i=0;i<40;i++){ const q = GAMES.rangement.gen(lv); kinds[(q.prompt.match(/plus (grand|petit)|pair|entre|proche|vrai|Touche/)||['?'])[0]] = 1; if (q.kind==='qcm' && !q.options.map(String).includes(String(q.answer))) log('ERREUR rangement options', q.prompt, q.answer, q.options); } log('rangement L'+lv, Object.keys(kinds).join(',')); }
+    const picks = {}; for (let i=0;i<300;i++){ const [a,b] = pickFact(activeTables()); picks[a] = (picks[a]||0)+1; } log('tirages par table', JSON.stringify(picks));
+    for (let f=0; f<4; f++){ openMap(f); drawMap(); } log('carte OK');
+    startStorm(null, true); log('orage phase', storm && storm.phase); if (storm){ if (storm.phase!=='play'){ storm.phase='play'; launchPumpkin(); } stormHit(true); if (storm) { launchPumpkin(); stormHit(false); } } log('orage OK, storm =', storm ? 'actif' : 'fermé', 'billes', S.billes);
+    renderAlbum(); renderHome(); log('home/album OK');
+    S.unlockAll = false; S.rooms = {}; hero.floor = -1; openMap(0); log('hero', JSON.stringify(hero));
+    log('accès RDC', ROOMS.filter(r=>r.floor===0).map(r=>roomUnlocked(r)).join(','), '1er fermé', !roomUnlocked(ROOM.complements), 'boss fermé', !roomUnlocked(ROOM.boss)); ROOMS.filter(r=>r.floor===0).forEach(r=>{roomState(r.id).found=true;}); log('après RDC : 1er ouvert', roomUnlocked(ROOM.complements), '2e fermé', !roomUnlocked(ROOM.addition), 'hint', $('#maphint').textContent.slice(0,40));
+    log('porte', String(walkable(0,3,4)&&walkable(0,3,4).id), 'corridor', walkable(0,3,5), 'locked', walkable(0,10,4));
+    heroMove(0,-1); log('vers la porte : hero', JSON.stringify(hero), 'busy', heroBusy);
+    if (run){ clearInterval(timerIv); run=null; } hero.floor=-1; openMap(0); heroMove(1,0); heroMove(1,0); heroMove(0,1); log('couloir', JSON.stringify(hero));
+    for (const k in MUSIC_TRACKS){ const E = MUSIC.events(MUSIC_TRACKS[k]); if (!E.ev.length) log('MUSIQUE vide', k); } log('musiques', Object.keys(MUSIC_TRACKS).length); toggleMusic(); log('musique coupée', S.music, $('#fab-music').textContent, MUSIC.timer); toggleMusic(); log('musique remise', S.music, $('#fab-music').textContent);
+    // 3. écran salle réel : une question de chaque type rendue dans #stage
+    window.setTimeout = _st;
+    enterRoom(ROOM.formes); log('enterRoom OK, run =', !!run, 'stage html', $('#stage').innerHTML.length);
+  }catch(e){ log('ERREUR', e.stack||e.message); }
+  window.setTimeout = _st;
+})();
+</script></body></html>
