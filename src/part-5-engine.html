@@ -86,7 +86,7 @@ function submit(ok, shown){
   if (ok && run.redo){
     fb.innerHTML = pick(['C\'est ça !','Voilà !','Oui, c\'est bien ça !']) + ' <small>On continue</small>'; SFX.ok();
   } else if (ok){
-    S.tot.r++; const gain = floor.billes + 3*(run.level-1) + (floor.timer ? Math.round(clamp((run.tlen-(Date.now()-run.t0))/run.tlen,0,1)*5) : 0);
+    S.tot.r++; const gain = floor.billes + 3*(run.level-1) + (run.tlen>0 ? Math.round(clamp((run.tlen-(Date.now()-run.t0))/run.tlen,0,1)*5) : 0); // bonus de rapidité seulement s'il y a un chrono (sinon division par zéro = NaN)
     run.billes += gain; S.billes += gain; $('#room-billes').textContent = run.billes;
     fb.innerHTML = pick(['Bravo !','Super !','Oui !','Génial !','Exact !','Trop fort !']) + ` <small>+${gain} billes</small>`; SFX.ok(); setTimeout(SFX.bille, 150); sparkle($('#room-billes'), '✨');
   } else if (run.redo){

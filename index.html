@@ -692,6 +692,8 @@ function load(){ loadPlayers(); if (P.current && selectPlayer(P.current)) return
 function migrate(){
   // 2026-11-08 : la Salle du trésor (compléments à 100) devient la Salle de jeux (dés) ; on garde l'avancement de la salle
   if (S.rooms.complements100 && !S.rooms.des){ S.rooms.des = S.rooms.complements100; delete S.rooms.complements100; } if (S.skills && S.skills.complements100 && !S.skills.des){ S.skills.des = S.skills.complements100; delete S.skills.complements100; }
+  // 2026-11-08 : un bug (bonus de rapidité sans chrono) a pu mettre NaN, devenu null, dans les compteurs ; on les remet à un nombre
+  for (const k of ['billes','stars','storms','stormWins','sinceStorm','cycle']){ if (typeof S[k]!=='number' || !Number.isFinite(S[k])) S[k] = 0; }
   for (const id in S.rooms){ const rs = S.rooms[id]; if (rs.found==null) rs.found = rs.done>0; if (rs.level==null) rs.level = Math.min(3, (rs.done||0)+1); rs.level = Math.min(MAX_LEVEL, rs.level); } }
 function save(){ if (!P.current) return; S.updated = Date.now(); writeProfile(P.current, S); cloudSave(); }
 function logErr(e, where){ try{ S.lastErr = { t:new Date().toISOString(), where:where||'', msg:String(e && (e.stack||e.message||e)).slice(0,400), ua:navigator.userAgent.slice(0,80) }; save(); const el = $('#lasterr'); if (el) el.textContent = 'Dernière erreur : ' + S.lastErr.msg; }catch(_){} }
@@ -1479,7 +1481,7 @@ function submit(ok, shown){
   if (ok && run.redo){
     fb.innerHTML = pick(['C\'est ça !','Voilà !','Oui, c\'est bien ça !']) + ' <small>On continue</small>'; SFX.ok();
   } else if (ok){
-    S.tot.r++; const gain = floor.billes + 3*(run.level-1) + (floor.timer ? Math.round(clamp((run.tlen-(Date.now()-run.t0))/run.tlen,0,1)*5) : 0);
+    S.tot.r++; const gain = floor.billes + 3*(run.level-1) + (run.tlen>0 ? Math.round(clamp((run.tlen-(Date.now()-run.t0))/run.tlen,0,1)*5) : 0); // bonus de rapidité seulement s'il y a un chrono (sinon division par zéro = NaN)
     run.billes += gain; S.billes += gain; $('#room-billes').textContent = run.billes;
     fb.innerHTML = pick(['Bravo !','Super !','Oui !','Génial !','Exact !','Trop fort !']) + ` <small>+${gain} billes</small>`; SFX.ok(); setTimeout(SFX.bille, 150); sparkle($('#room-billes'), '✨');
   } else if (run.redo){

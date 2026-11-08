@@ -55,6 +55,9 @@
     heroMove(0,-1); log('vers la porte : hero', JSON.stringify(hero), 'busy', heroBusy);
     if (run){ clearInterval(timerIv); run=null; } hero.floor=-1; openMap(0); heroMove(1,0); heroMove(1,0); heroMove(0,1); log('couloir', JSON.stringify(hero));
     for (const k in MUSIC_TRACKS){ const E = MUSIC.events(MUSIC_TRACKS[k]); if (!E.ev.length) log('MUSIQUE vide', k); } log('musiques', Object.keys(MUSIC_TRACKS).length); toggleMusic(); log('musique coupée', S.music, $('#fab-music').textContent, MUSIC.timer); toggleMusic(); log('musique remise', S.music, $('#fab-music').textContent);
+    // niveau 1 sans chrono : le gain doit rester un nombre (bug NaN du 2026-11-08)
+    S.rooms.tables1 = {done:0,best:null,perfect:0,found:false,level:1}; S.billes = 100; startRoom(ROOM.tables1); log('bannières N1 tlen', run.tlen, 'timer', $('#timer') ? $('#timer').hidden : 'n/a'); submit(true); log('gain N1 : run.billes', run.billes, 'S.billes', S.billes, 'fini', Number.isFinite(S.billes)); if (run){ clearInterval(timerIv); run = null; }
+    S.billes = NaN; S.stars = null; migrate(); log('réparation NaN', S.billes, S.stars);
     // joueurs : création, bascule, isolation des parties, suppression, migration de l'ancienne sauvegarde
     localStorage.clear(); P = {list:[], current:null}; addPlayer('t1','Alice','vachou'); choosePlayer('t1'); S.billes = 10; save(); addPlayer('t2','Bob','crabou'); choosePlayer('t2'); S.billes = 50; roomState('formes').found = true; save();
     log('joueurs', P.list.length, 'courant', P.current, 'Bob billes', S.billes); choosePlayer('t1'); log('retour Alice billes', S.billes, 'formes', !!S.rooms.formes, 'index', JSON.stringify(P.list.map(p=>[p.name,p.billes,p.freed])));
