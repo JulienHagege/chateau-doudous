@@ -324,5 +324,6 @@ canvas.ruler{width:100%; max-width:640px; height:auto; display:block; border-rad
 .modal input{width:100%; font:inherit; font-size:22px; padding:12px 14px; border-radius:12px; border:2px solid var(--line); background:rgba(0,0,0,.3); color:#fff; text-align:center; margin-bottom:12px}
 .fab{position:fixed; bottom:calc(12px + env(safe-area-inset-bottom,0px)); left:calc(12px + env(safe-area-inset-left,0px)); z-index:25; width:46px; height:46px; border-radius:50%; background:var(--panel2); border:2px solid var(--line); font-size:20px; box-shadow:var(--shadow); display:flex; align-items:center; justify-content:center}
 .fab[aria-pressed="false"]{opacity:.6; filter:grayscale(1)}
+body:has(#storm:not([hidden])) .fab{display:none}
 .toast{position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); background:var(--panel2); border:1px solid var(--gold); color:#fff; padding:10px 18px; border-radius:999px; font-weight:800; z-index:30; box-shadow:var(--shadow); animation:enter .3s ease; max-width:92vw; text-align:center}
 </style>

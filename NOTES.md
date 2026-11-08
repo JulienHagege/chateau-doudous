@@ -70,3 +70,4 @@ Sauvegarde (depuis le 2026-11-08, plusieurs joueurs) : écran « Qui joue ? » a
 - Typo FR : `fr()` pose l'espace insécable avant ! ? : dans les textes affichés.
 - Style : jamais de tiret cadratin, phrases courtes et simples (elle lit bien mais débute), typo FR.
 - 2026-11-08 : Bibliothèque, la moitié = une seule étagère avec une ligne pointillée dorée qui la coupe en deux parts égales (plus de paniers vides). Galerie des sauts : au plus deux départs à zéro par salle (`hugoStart`, compteur `run.zeros`), même au niveau 1 Hugo part d'un nombre.
+- 2026-11-08 : jamais de chrono au niveau 1 d'une salle, quel que soit l'étage (`startRoom`, `run.level>1`). Orage : la question et les réponses sont dans un panneau opaque en bas, l'héroïne se tient juste au-dessus (`storm.gy`, `pumpkinAt`), le bouton musique est masqué ; le temps pour répondre dépend du niveau moyen des deux salles de tables (`roomLevel('tables1')` et `tables2`) : 12 s au niveau 1, 5 s au niveau 5.

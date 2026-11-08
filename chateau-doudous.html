@@ -324,6 +324,7 @@ canvas.ruler{width:100%; max-width:640px; height:auto; display:block; border-rad
 .modal input{width:100%; font:inherit; font-size:22px; padding:12px 14px; border-radius:12px; border:2px solid var(--line); background:rgba(0,0,0,.3); color:#fff; text-align:center; margin-bottom:12px}
 .fab{position:fixed; bottom:calc(12px + env(safe-area-inset-bottom,0px)); left:calc(12px + env(safe-area-inset-left,0px)); z-index:25; width:46px; height:46px; border-radius:50%; background:var(--panel2); border:2px solid var(--line); font-size:20px; box-shadow:var(--shadow); display:flex; align-items:center; justify-content:center}
 .fab[aria-pressed="false"]{opacity:.6; filter:grayscale(1)}
+body:has(#storm:not([hidden])) .fab{display:none}
 .toast{position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); background:var(--panel2); border:1px solid var(--gold); color:#fff; padding:10px 18px; border-radius:999px; font-weight:800; z-index:30; box-shadow:var(--shadow); animation:enter .3s ease; max-width:92vw; text-align:center}
 </style>
 <style>
@@ -334,10 +335,10 @@ canvas.ruler{width:100%; max-width:640px; height:auto; display:block; border-rad
 #storm .ui{position:absolute; inset:0; z-index:3; display:flex; flex-direction:column; justify-content:space-between; align-items:center; pointer-events:none;
   padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px)); padding-block:max(14px, env(safe-area-inset-top,0px)) max(14px, env(safe-area-inset-bottom,0px))}
 #storm .stitle{font-family:var(--font-display); font-size:clamp(24px,5vw,44px); color:#ffb347; text-shadow:0 0 24px rgba(255,140,0,.8), 0 3px 0 #3a1a00; text-align:center; min-height:44px}
-#storm .bottom{display:flex; flex-direction:column; align-items:center; gap:10px; width:min(100%,760px); pointer-events:auto}
-#storm .sq{font-family:var(--font-display); font-size:clamp(48px,11vw,96px); color:#fff; text-align:center; min-height:50px; text-shadow:0 0 20px rgba(255,140,0,.7), 0 4px 0 rgba(0,0,0,.6)}
+#storm .bottom{display:flex; flex-direction:column; align-items:center; gap:10px; width:min(100%,760px); pointer-events:auto; background:rgba(12,8,28,.93); border:2px solid rgba(255,170,70,.55); border-radius:22px; padding:10px 14px 10px; box-shadow:0 -8px 30px rgba(0,0,0,.6), 0 0 0 6px rgba(0,0,0,.35)}
+#storm .sq{font-family:var(--font-display); font-size:clamp(44px,10vw,84px); line-height:1.1; color:#fff; text-align:center; min-height:50px; text-shadow:0 0 18px rgba(255,140,0,.6), 0 3px 0 rgba(0,0,0,.7)}
 #storm .opts{width:100%; grid-template-columns:repeat(3,minmax(0,1fr))}
-#storm .opt{background:rgba(40,20,60,.9); border-color:rgba(255,160,60,.6); font-size:clamp(28px,6vw,40px); padding:14px 8px; backdrop-filter:blur(3px)}
+#storm .opt{background:rgba(52,30,80,1); border-color:rgba(255,170,70,.7); font-size:clamp(30px,6vw,42px); padding:14px 8px}
 #storm .sinfo{display:flex; gap:16px; color:#ffd9a8; font-weight:900; font-size:17px; flex-wrap:wrap; justify-content:center; text-shadow:0 2px 0 rgba(0,0,0,.6)}
 .shake{animation:shake .35s}
 .dim{animation:dimout 2.2s ease forwards}
@@ -1427,7 +1428,7 @@ function nextQuestion(){
     if (run.seen.length>3) run.seen.shift();
   }
   run.q = q; run.answered = false; renderProgress(); renderQuestion(q);
-  const floor = FLOORS[room.floor]; const t = floor.timer ? floor.timer * (q.timeMult||1) * run.tfactor : 0; startTimer(t);
+  const floor = FLOORS[room.floor]; const t = (floor.timer && run.level>1) ? floor.timer * (q.timeMult||1) * run.tfactor : 0; startTimer(t); // jamais de chrono au niveau 1 d'une salle
 }
 function renderQuestion(q){
   const stage = $('#stage'); stage.innerHTML = ''; const fb = $('#stage .feedback'); if (fb) fb.remove();
@@ -1707,7 +1708,7 @@ function startStorm(after, test, floor){
   const el = $('#storm'); el.hidden = false; $('#storm-opts').innerHTML = ''; $('#storm-q').textContent = ''; $('#storm-title').textContent = '⛈️ Un orage approche…';
   $('#storm-score').textContent = '🎃 0 / ' + storm.n; $('#storm-hearts').textContent = '❤️❤️❤️';
   $('#app').classList.add('dim'); MUSIC.stop();
-  const cv = $('#storm-cv'); stormResize();
+  const cv = $('#storm-cv'); stormResize(); storm.gy = cv.height*.72;
   for (let i=0;i<220;i++) storm.drops.push({x:Math.random(), y:Math.random(), v:.6+Math.random()*.9, l:8+Math.random()*14});
   for (let i=0;i<5;i++) storm.lurk.push({x:.08+Math.random()*.84, y:.55+Math.random()*.3, s:18+Math.random()*22, ph:Math.random()*6});
   storm.t0 = Date.now(); storm.loop = requestAnimationFrame(stormFrame);
@@ -1732,7 +1733,8 @@ function launchPumpkin(){
   if (!storm || storm.done) return;
   if (storm.i >= storm.n) return endStorm();
   const F = STORM_BY_FLOOR[storm.floor]; const [a, b] = pickFact(stormTables(), F.bmax); const ans = a*b;
-  const dur = clamp(F.dur - freedCount()*100, 4500, F.dur);
+  // Temps pour répondre : calé sur le niveau moyen atteint dans les deux salles de multiplications (niveau 1 : 12 s, niveau 5 : 5 s)
+  const lvl = (roomLevel('tables1') + roomLevel('tables2'))/2; const dur = Math.round(12000 - (lvl-1)*1750);
   storm.q = {a,b,ans, born:Date.now(), dur, x:.15+Math.random()*.7, hit:false};
   $('#storm-q').innerHTML = `${a} × ${b} = ?`;
   const box = $('#storm-opts'); box.innerHTML = '';
@@ -1741,7 +1743,7 @@ function launchPumpkin(){
 }
 function stormHit(ok){
   const q = storm.q; q.hit = true; q.hitAt = Date.now(); q.ok = ok; storm.i++; recordFact(q.a, q.b, ok); recordSkill('tables2', ok); checkTables();
-  const cv = $('#storm-cv'); const W = cv.width, H = cv.height; const p = clamp((q.hitAt-q.born)/q.dur,0,1); const sz = 40 + p*p*H*.6; const x = W*q.x + (W/2-W*q.x)*p, y = H*.3 + p*p*H*.45;
+  const cv = $('#storm-cv'); const W = cv.width, H = cv.height; const p = clamp((q.hitAt-q.born)/q.dur,0,1); const {x, y, sz} = pumpkinAt(p, W, H);
   if (ok){
     storm.hits++; storm.swing = {t:Date.now(), x, y, sz}; setTimeout(SFX.squash, 180); setTimeout(SFX.bille, 320); const gain = 20; S.billes += gain; $('#storm-score').textContent = `🎃 ${storm.hits} / ${storm.n}`;
     setTimeout(() => { if (!storm) return; for (let i=0;i<70;i++){ const a = Math.random()*Math.PI*2, v = 2+Math.random()*10; storm.parts.push({x, y, vx:Math.cos(a)*v, vy:Math.sin(a)*v-3, s:4+Math.random()*sz*.12, c:pick(['#ff8c00','#ffb347','#ffe066','#c45500','#5a8f29']), t:Date.now(), life:700+Math.random()*600}); } storm.shake = Math.max(storm.shake, 12); }, 180);
@@ -1751,6 +1753,8 @@ function stormHit(ok){
   }
   setTimeout(() => { if (!storm) return; if (storm.hearts<=0) endStorm(); else launchPumpkin(); }, ok ? 650 : 1400);
 }
+// Trajectoire de la citrouille : du fond de la salle (petite) jusqu'au visage de l'héroïne (grosse), toujours au-dessus du panneau de réponses
+function pumpkinAt(p, W, H){ const q = storm.q; const gy = storm.gy || H*.72; const endY = gy - Math.max(64, H*.16)*.75; const maxSz = Math.min(H*.6, (gy - H*.12)*.9); return { x: W*q.x + (W/2-W*q.x)*p, y: H*.2 + p*p*(endY - H*.2), sz: 40 + p*p*maxSz }; }
 function stormFrame(){
   if (!storm) return; const cv = $('#storm-cv'), g = cv.getContext('2d'); g.imageSmoothingEnabled = false; const W = cv.width, H = cv.height; const now = Date.now();
   g.setTransform(1,0,0,1,0,0); g.clearRect(0,0,W,H);
@@ -1759,9 +1763,11 @@ function stormFrame(){
   const lit = storm.phase==='intro' ? clamp(1-(now-storm.t0)/5200, 0, 1) : 0.06;
   const sky = g.createLinearGradient(0,0,0,H); sky.addColorStop(0, `rgb(${8+lit*30},${6+lit*20},${20+lit*60})`); sky.addColorStop(1, `rgb(${4+lit*20},${3+lit*12},${10+lit*30})`); g.fillStyle = sky; g.fillRect(0,0,W,H);
   const castle = SPR.castle; if (castle && castle.complete){ g.globalAlpha = .25 + lit*.6; const cw = W, ch = cw*2/3; g.drawImage(castle, 0, H*.62-ch*.78, cw, ch); g.globalAlpha = 1; }
-  // sol de la salle (premier plan) et halo de la lanterne
-  g.fillStyle = `rgba(30,22,50,${.6+lit*.3})`; g.fillRect(0,H*.72,W,H*.28);
-  const halo = g.createRadialGradient(W/2, H*.9, 10, W/2, H*.9, W*.3); halo.addColorStop(0, 'rgba(255,200,120,.35)'); halo.addColorStop(1, 'rgba(255,200,120,0)'); g.fillStyle = halo; g.fillRect(0,0,W,H);
+  // sol de la salle (premier plan) et halo de la lanterne ; l'héroïne se tient juste au-dessus du panneau de réponses (HTML opaque), jamais derrière
+  const panel = $('#storm .bottom'); const panelH = (panel ? panel.offsetHeight + 24 : 0) * (W/innerWidth); const gy = storm.gy = clamp(H - panelH, H*.45, H*.97);
+  const hs = Math.max(64, Math.min(H*.16, (gy - H*.2)*.5));
+  g.fillStyle = `rgba(30,22,50,${.6+lit*.3})`; g.fillRect(0,gy-hs*.18,W,H);
+  const halo = g.createRadialGradient(W/2, gy-hs*.35, 10, W/2, gy-hs*.35, W*.3); halo.addColorStop(0, 'rgba(255,200,120,.35)'); halo.addColorStop(1, 'rgba(255,200,120,0)'); g.fillStyle = halo; g.fillRect(0,0,W,H);
   // citrouilles qui rôdent dans le noir (yeux qui clignotent)
   storm.lurk.forEach(L => { const ex = W*L.x, ey = H*L.y + Math.sin(now/600+L.ph)*6; const blink = (Math.sin(now/900+L.ph)>-.7) ? 1 : .1; g.fillStyle = `rgba(255,190,40,${.7*blink})`; g.beginPath(); g.moveTo(ex-L.s*.5, ey); g.lineTo(ex-L.s*.15, ey-L.s*.35); g.lineTo(ex-L.s*.15, ey+L.s*.1); g.closePath(); g.fill(); g.beginPath(); g.moveTo(ex+L.s*.5, ey); g.lineTo(ex+L.s*.15, ey-L.s*.35); g.lineTo(ex+L.s*.15, ey+L.s*.1); g.closePath(); g.fill(); });
   // pluie sur tout l'écran
@@ -1772,9 +1778,9 @@ function stormFrame(){
   storm.bolts.forEach(b => { const a = 1-(now-b.t)/420; g.lineCap='round'; g.strokeStyle = `rgba(200,220,255,${a*.5})`; g.lineWidth = 14*b.k+4; g.beginPath(); b.segs.forEach(([x1,y1,x2,y2]) => { g.moveTo(x1,y1); g.lineTo(x2,y2); }); g.stroke(); g.strokeStyle = `rgba(255,255,255,${a})`; g.lineWidth = 4*b.k+2; g.stroke(); });
   if (storm.phase==='play' && now>storm.nextBolt){ bolt(.3+Math.random()*.5); thunder(.4); storm.nextBolt = now + 3500 + Math.random()*4000; }
   // héroïne : au repos devant nous ; quand elle frappe, elle bondit vers la citrouille (vue de dos) et donne un coup de lanterne
-  const hs = Math.max(64, H*.16); let heroX = W/2, heroY = H*.97, heroSp = SPR.hero, heroRot = 0;
+  let heroX = W/2, heroY = gy, heroSp = SPR.hero, heroRot = 0;
   const sw = storm.swing; const SW = 520;
-  if (sw && now-sw.t < SW){ const k = (now-sw.t)/SW; const lunge = k<.35 ? k/.35 : k<.7 ? 1 : 1-(k-.7)/.3; const tx = sw.x, ty = sw.y + sw.sz*.45; heroX = W/2 + (tx-W/2)*lunge; heroY = H*.97 + (ty-H*.97)*lunge - Math.sin(lunge*Math.PI)*H*.12; heroSp = SPR.hero_n || SPR.hero; heroRot = Math.sin(k*Math.PI)*.35;
+  if (sw && now-sw.t < SW){ const k = (now-sw.t)/SW; const lunge = k<.35 ? k/.35 : k<.7 ? 1 : 1-(k-.7)/.3; const tx = sw.x, ty = sw.y + sw.sz*.45; heroX = W/2 + (tx-W/2)*lunge; heroY = gy + (ty-gy)*lunge - Math.sin(lunge*Math.PI)*H*.12; heroSp = SPR.hero_n || SPR.hero; heroRot = Math.sin(k*Math.PI)*.35;
     if (k>.3 && k<.6){ const a0 = -2.4 + (k-.3)/.3*2.6; g.save(); g.translate(tx, ty - sw.sz*.3); g.rotate(a0); g.strokeStyle = 'rgba(255,240,200,.95)'; g.lineWidth = Math.max(6, sw.sz*.08); g.lineCap='round'; g.beginPath(); g.arc(0, 0, sw.sz*.55, -.9, .9); g.stroke(); g.strokeStyle='rgba(255,200,80,.6)'; g.lineWidth = Math.max(14, sw.sz*.16); g.beginPath(); g.arc(0, 0, sw.sz*.55, -.6, .6); g.stroke(); g.restore(); } }
   else if (sw) storm.swing = null;
   if (storm.knock && now-storm.knock < 400){ const k = (now-storm.knock)/400; heroY += Math.sin(k*Math.PI)*H*.06; heroRot = -Math.sin(k*Math.PI)*.5; }
@@ -1784,7 +1790,7 @@ function stormFrame(){
   if (q && storm.phase==='play'){
     const p = q.hit ? clamp((q.hitAt-q.born)/q.dur,0,1) : clamp((now-q.born)/q.dur, 0, 1);
     if (!q.hit && p>=1){ stormHit(false); }
-    const sz = 40 + p*p*H*.6; const x = W*q.x + (W/2-W*q.x)*p, y = H*.3 + p*p*H*.45; const sp = SPR.pumpkin;
+    const {x, y, sz} = pumpkinAt(p, W, H); const sp = SPR.pumpkin;
     const glow = g.createRadialGradient(x, y, sz*.1, x, y, sz); glow.addColorStop(0, `rgba(255,140,0,${.45+.3*Math.sin(now/70)})`); glow.addColorStop(1, 'rgba(255,140,0,0)'); g.fillStyle = glow; g.fillRect(x-sz, y-sz, sz*2, sz*2);
     if (q.hit){ if (!q.ok){ const k = clamp((now-q.hitAt)/600, 0, 1); g.globalAlpha = 1-k; if (sp && sp.complete) g.drawImage(sp, x-sz/2, y-sz/2, sz*(1+k*.4), sz*(1+k*.4)); g.globalAlpha = 1; }
       else if (now-q.hitAt < 180){ const k = (now-q.hitAt)/180; if (sp && sp.complete) g.drawImage(sp, x-sz/2, y-sz/2 - k*8, sz, sz); } }
