@@ -1486,11 +1486,11 @@ GAMES.rangement = { intro:'Dans le grenier, Meryl range les nombres du plus peti
   }};
 }};
 
-/* ---------- Boss (Vachou) : mélange de tout le château, au niveau déjà réussi dans chaque salle ---------- */
+/* ---------- Boss (Vachou) : mélange de tout le château, toutes les épreuves au niveau choisi pour le donjon (donjon niveau 2 = épreuves de niveau 2 partout) ---------- */
 GAMES.boss = { intro:'Vachou se cache au sommet. Toutes les énigmes du château, en trois vagues !', gen(level, i, n){
   const phase = i < n/3 ? 0 : i < 2*n/3 ? 1 : 2;
   const pool = phase===0 ? ['formes','doubles','complements','longueurs','bains','rangement'] : phase===1 ? ['monnaie','horloge','tables1','soustraction','symetrie','arrondi'] : ['addition','des','tables2','rapides','tables2','rangement'];
-  const g = pick(pool); const q = GAMES[g].gen(Math.min(MAX_LEVEL, playedLevel(g))); q.from = g; return q;
+  const g = pick(pool); const q = GAMES[g].gen(clamp(level || 1, 1, MAX_LEVEL)); q.from = g; return q;
 }};
 
 /* ---------- Révision : moitié multiplications à revoir, moitié notions en cours ---------- */
