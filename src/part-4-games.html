@@ -14,6 +14,8 @@ function qcm(prompt, answer, cand, extra={}){ return Object.assign({prompt, kind
 function num(prompt, answer, extra={}){ return Object.assign({prompt, kind:'num', answer, show:String(answer)+(extra.suffix?' '+extra.suffix:'')}, extra); }
 function mkOptionsStr(answer, cand, n=4){ const set = new Set([answer]); for (const c of cand){ if (set.size>=n) break; set.add(c); } return shuffle([...set]); }
 const fmtEuro = c => (c%100===0) ? (c/100)+' €' : Math.floor(c/100)+' € '+String(c%100).padStart(2,'0');
+const SING = {livres:'livre', albums:'album', contes:'conte', coussins:'coussin', peluches:'peluche', 'étoiles au plafond':'étoile au plafond', rubans:'ruban'};
+const nw = (n, w) => n===1 ? (SING[w] || w) : w; // « 1 album », « 2 albums »
 const L = (level, arr) => arr[Math.min(arr.length, Math.max(1, level)) - 1]; // valeur selon le niveau 1..5
 
 /* ---------- Formes (Crabou, le Hall aux vitraux) ---------- */
@@ -85,11 +87,11 @@ GAMES.bains = { intro:'Poulpou veut un bain à la bonne hauteur. Verse les bons 
   if (level===1){ jugs = [100,200,500]; target = pick([300,400,600,700,800,900,1000,1200]); }
   else if (level===2){ jugs = [25,50,100]; target = pick([75,125,150,175,200,225,250,300]); }
   else if (level===3){ jugs = [10,25,50,100]; target = pick([35,60,85,110,135,160,185,210,260,310]); }
-  else if (level===4){ jugs = [5,10,25,50,100,200]; target = pick([115,230,245,315,355,430,465,520]); }
-  else { jugs = [5,20,50,100,250,500]; target = pick([275,325,370,575,620,745,825,1070]); }
+  else if (level===4){ jugs = [10,25,50,100]; target = pick([35,60,85,110,135,160,185,210,260,310]); }
+  else { jugs = [5,10,25,50,100,200]; target = pick([115,230,245,315,355,430,465,520]); }
   const fmt = cl => cl>=100 && cl%100===0 ? (cl/100)+' L' : cl>100 ? Math.floor(cl/100)+' L et '+(cl%100)+' cL' : cl+' cL';
-  // niveaux 3 et 5 : cible en cL seuls (il faut convertir) ; niveau 4 : en L et cL
-  const label = (level===3 || level===5) ? target+' cL' : fmt(target);
+  // niveaux 1 à 3 : cible en L et cL ; niveaux 4 et 5 : en cL seuls (il faut convertir, notion de CE2)
+  const label = level>=4 ? target+' cL' : fmt(target);
   const sub = level===1 ? 'Poulpou aime les bains bien pleins' : '1 L = 100 cL';
   const plan = (() => { let rest = target; const parts = []; for (const j of jugs.slice().sort((a,b)=>b-a)){ while (rest>=j){ parts.push(fmt(j)); rest -= j; } } return parts.join(' + '); })();
   return {story:`Remplis la baignoire de Poulpou jusqu'à…`, prompt:`<b>${label}</b>`, sub, kind:'custom', answer:target, show:label, explain:`${level===1 ? '' : '1 L = 100 cL. '}${label} = ${fmt(target)} : verse ${plan}.`, timeMult:2.5, render(stage, api){
@@ -146,7 +148,7 @@ const LEN_ITEMS = [['un crayon',15,'cm'],['une porte',2,'m'],['une fourmi',5,'mm
 // Départ d'Hugo : au plus deux départs à zéro par salle, sinon il part d'un nombre (même au niveau 1, sinon « 0 + 5 » revient sans arrêt)
 function hugoStart(maxFrom){ const r = (typeof run!=='undefined' && run) ? run : null; const zeroOk = !r || (r.zeros||0) < 2; if (zeroOk && Math.random()<.35){ if (r) r.zeros = (r.zeros||0)+1; return 0; } return rnd(1, Math.max(1, maxFrom)); }
 GAMES.longueurs = { intro:'Hugo le kangourou saute sur la grande règle. Mesure ses bonds !', gen(level){
-  const t = pick(L(level, [['measure','compare','jump','catch','catch'], ['measure','unit','jump','catch','catch'], ['measure','unit','convert','catch','jump','catch'], ['measure','convert','convert2','catch','jump'], ['convert2','convert2','catch','jump','unit','measure']]));
+  const t = pick(L(level, [['measure','compare','jump','catch','catch'], ['measure','unit','jump','catch','catch'], ['measure','unit','jump','catch','catch'], ['measure','convert','unit','catch','jump'], ['convert','convert2','catch','jump','unit','measure']]));
   const max = L(level, [10,20,30,50,100]);
   if (t==='measure'){
     const a = level>=3 ? rnd(1, Math.floor(max*.6)) : hugoStart(Math.floor(max*.5)); const len = rnd(2, Math.min(max-a, L(level,[10,15,15,25,40]))); const b = a+len;
@@ -161,10 +163,10 @@ GAMES.longueurs = { intro:'Hugo le kangourou saute sur la grande règle. Mesure 
       row.querySelectorAll('.opt').forEach(b => b.onclick = () => { const ok = b.dataset.v===ans; b.classList.add(ok?'ok':'ko'); api.answer(ok); });
     }};
   }
-  if (t==='unit'){ const it = pick(LEN_ITEMS); return {prompt:`${it[0].charAt(0).toUpperCase()+it[0].slice(1)} mesure <b>${it[1]} …</b>`, kind:'qcm', answer:it[2], options:['mm','cm','m','km'], show:it[1]+' '+it[2], explain:`mm = tout petit (une fourmi), cm = petit (un crayon), m = grand (une porte), km = très loin (une ville à l'autre).`}; }
+  if (t==='unit'){ const easy = level<=3; const it = pick(easy ? LEN_ITEMS.filter(x => x[2]==='cm' || x[2]==='m') : LEN_ITEMS); return {prompt:`${it[0].charAt(0).toUpperCase()+it[0].slice(1)} mesure <b>${it[1]} …</b>`, kind:'qcm', answer:it[2], options: easy ? ['cm','m'] : ['mm','cm','m','km'], show:it[1]+' '+it[2], explain:`mm = tout petit (une fourmi), cm = petit (un crayon), m = grand (une porte), km = très loin (une ville à l'autre).`}; }
   if (t==='convert'){ const c = pick([['1 m = … cm',100],['2 m = … cm',200],['1 dm = … cm',10],['1 km = … m',1000],['3 m = … cm',300],['1 cm = … mm',10],['5 m = … cm',500],['1 m = … dm',10]]); return num(c[0].replace('…','<b>?</b>'), c[1], {explain:'1 m = 100 cm = 10 dm · 1 dm = 10 cm · 1 cm = 10 mm · 1 km = 1000 m'}); }
   if (t==='convert2'){
-    const c = level>=5 ? pick([[`${rnd(1,9)} m ${rnd(1,9)*10} cm = … cm`, null],[`${rnd(2,9)} km ${rnd(1,9)*100} m = … m`, null],[`${rnd(1,9)} cm ${rnd(1,9)} mm = … mm`, null],[`${rnd(2,9)}00 cm = … m`, null]]) : pick([[`${rnd(1,9)} m ${rnd(1,9)*10} cm = … cm`, null],[`${rnd(2,9)}00 cm = … m`, null],[`${rnd(1,9)} dm ${rnd(1,9)} cm = … cm`, null]]);
+    const c = pick([[`${rnd(1,5)} m ${rnd(1,9)*10} cm = … cm`, null],[`${rnd(2,9)}00 cm = … m`, null]]);
     const txt = c[0]; const nums = txt.match(/\d+/g).map(Number); let ans;
     if (/m .* cm = … cm/.test(txt) && !/dm/.test(txt)) ans = nums[0]*100 + nums[1]; else if (/km/.test(txt)) ans = nums[0]*1000 + nums[1]; else if (/cm .* mm/.test(txt)) ans = nums[0]*10 + nums[1]; else if (/dm/.test(txt)) ans = nums[0]*10 + nums[1]; else ans = nums[0]/100;
     return num(txt.replace('…','<b>?</b>'), ans, {sub:'1 m = 100 cm · 1 km = 1000 m · 1 cm = 10 mm', explain:`${txt.replace('…', ans)} : on change les grandes unités, puis on ajoute les petites.`});
@@ -173,10 +175,11 @@ GAMES.longueurs = { intro:'Hugo le kangourou saute sur la grande règle. Mesure 
     const from = level>=3 ? rnd(1, Math.floor(max*.4)) : hugoStart(Math.floor(max*.4)); const d = rnd(2, Math.min(L(level,[9,9,12,20,30]), max-from)); const to = from+d;
     return {prompt:`Regarde bien… Hugo a sauté de <b>combien de cm</b> ?`, sub:'Touche Hugo pour revoir le saut', kind:'num', answer:d, suffix:'cm', show:d+' cm', explain:`Hugo est parti de ${from} et arrivé à ${to} : ${to} − ${from} = ${d} cm.`, render(stage){ const cv = document.createElement('canvas'); cv.className='ruler'; stage.appendChild(cv); const labels = level>=3; const play = () => hopAnim(cv, max, [], from, to, 1, null, () => drawRuler(cv, max, [], {pos:to, start:from, land:to, labels}), labels); drawRuler(cv, max, [], {pos:from, start:from, labels}); setTimeout(play, 600); cv.onclick = play; }};
   }
-  // niveaux 1 et 2 : un seul saut ; niveau 3 : on découvre « un point de départ et plusieurs petits sauts » (départ 1 à 3, 2 ou 3 sauts de 1 à 3 cm, écrit en additions) ; niveau 4 : sauts moyens ; niveau 5 : le calcul avec ×
-  const hops = L(level, [1, 1, rnd(2,3), rnd(2,3), rnd(3,6)]); let d = L(level, [rnd(2,8), rnd(2,9), rnd(1,3), rnd(2,5), rnd(3,15)]); const from = level===3 ? rnd(1,3) : hugoStart(Math.floor(max*(level>=4 ? .2 : .3))); while (d>1 && from + hops*d > max) d--; const to = from + hops*d;
+  // niveaux 1 et 2 : un seul saut ; niveau 3 : on découvre « un point de départ et plusieurs petits sauts » (départ 1 à 3, 2 ou 3 sauts de 1 à 3 cm, écrit en additions) ; niveau 4 : sauts moyens ;
+  // niveau 5 : sauts de 2, 5 ou 10 (tables connues), toujours écrits en additions, le × n'apparaît qu'en aide (pas de priorité des opérations, notion de collège)
+  const hops = L(level, [1, 1, rnd(2,3), rnd(2,3), rnd(3,5)]); let d = L(level, [rnd(2,8), rnd(2,9), rnd(1,3), rnd(2,5), pick([2,5,10])]); const from = level===3 ? rnd(1,3) : hugoStart(Math.floor(max*(level>=4 ? .2 : .3))); while (d>1 && from + hops*d > max) d--; const to = from + hops*d;
   const txt = hops===1 ? `Hugo part de <b>${from}</b> et saute de <b>${d} cm</b>.` : level<=3 ? `Hugo part de <b>${from}</b>. Puis il fait <b>${hops} petits sauts</b> de <b>${d} cm</b>.` : `Hugo part de <b>${from}</b> et fait <b>${hops} sauts</b> de <b>${d} cm</b>.`;
-  return {story:`${txt} Touche la règle là où il va atterrir !`, prompt: hops===1 ? `${from} + ${d} = <b>?</b>` : level<=4 ? `${from} + ${Array(hops).fill(d).join(' + ')} = <b>?</b>` : `${from} + ${hops} × ${d} = <b>?</b>`, kind:'custom', answer:to, show:to+' cm', explain:`${hops} saut${hops>1?'s':''} de ${d} cm = ${Array(hops).fill(d).join(' + ')} = ${hops*d} cm${from ? `, et ${from} + ${hops*d} = ${to}` : ''}.`, timeMult:1.5, render(stage, api){
+  return {story:`${txt} Touche la règle là où il va atterrir !`, prompt: hops===1 ? `${from} + ${d} = <b>?</b>` : `${from} + ${Array(hops).fill(d).join(' + ')} = <b>?</b>`, sub: level>=5 && hops>1 ? `${hops} sauts de ${d} cm : ${hops} × ${d} = ${hops*d}` : undefined, kind:'custom', answer:to, show:to+' cm', explain:`${hops} saut${hops>1?'s':''} de ${d} cm = ${Array(hops).fill(d).join(' + ')} = ${hops*d} cm${from ? `, et ${from} + ${hops*d} = ${to}` : ''}.`, timeMult:1.5, render(stage, api){
     const cv = document.createElement('canvas'); cv.className='ruler'; stage.appendChild(cv); drawRuler(cv, max, [], {pos:from, start:from, labels:true});
     const hint = document.createElement('p'); hint.className='sub'; hint.style.cssText='margin-top:6px; display:block'; hint.textContent = 'Touche la règle pour poser ton drapeau, puis valide'; stage.appendChild(hint);
     const row = document.createElement('div'); row.className='toolrow'; const okBtn = document.createElement('button'); okBtn.className='tool go'; okBtn.textContent = '✔ Valider'; okBtn.disabled = true; row.appendChild(okBtn); stage.appendChild(row);
@@ -205,15 +208,17 @@ function shelfSvg(n, label, opts={}){
 function booksScene(stage, shelves){ const d = document.createElement('div'); d.className = 'library'; d.innerHTML = shelves.map(([n, label, opts]) => shelfSvg(n, label, opts)).join(''); stage.appendChild(d); }
 GAMES.doubles = { intro:'Dans la bibliothèque, Pandou voit tout en double… ou en moitié !', gen(level){
   const what = pick(['livres','albums','BD','contes']);
-  if (level>=5 && Math.random()<.3){ const n = pick([rnd(1,25)*4]);
+  if (level>=5 && Math.random()<.3){ const n = rnd(1,10)*4; // quart jusqu'à 40, quadruple jusqu'à 10
     if (Math.random()<.5) return num(`Pandou a ${n} ${what}. Le <b>quart</b> de ${n} ?`, n/4, {sub:'le quart = partager en 4 paniers égaux', explain:`Le quart de ${n} : ${n/4} + ${n/4} + ${n/4} + ${n/4} = ${n}, donc ${n/4}.`, render(st){ booksScene(st, [[n, `${n} ${what}`, {tens:true}], [0,'panier 1',{empty:true}], [0,'panier 2',{empty:true}], [0,'panier 3',{empty:true}], [0,'panier 4',{empty:true}]]); }});
-    return num(`Le <b>quadruple</b> de ${n/4} ${what} ?`, n, {sub:'4 fois plus', explain:`Le quadruple de ${n/4} = ${n/4} × 4 = ${n}.`, render(st){ booksScene(st, [[n/4,'Pandou'],[n/4,'son jumeau'],[n/4,'sa cousine'],[n/4,'son cousin']]); }}); }
-  if (level>=4 && Math.random()<.3){ const n = rnd(2,30); return num(`Pandou empile 3 fois ${n} ${what}. Le <b>triple</b> de ${n} ?`, n*3, {sub:`${n} + ${n} + ${n}`, explain:`Le triple de ${n} = ${n} + ${n} + ${n} = ${n*3}.`, render(st){ booksScene(st, [[n,'étagère 1'],[n,'étagère 2'],[n,'étagère 3']]); }}); }
+    return num(`Le <b>quadruple</b> de ${n/4} ${nw(n/4, what)} ?`, n, {sub:'4 fois plus', explain:`Le quadruple de ${n/4} = ${n/4} × 4 = ${n}.`, render(st){ booksScene(st, [[n/4,'Pandou'],[n/4,'son jumeau'],[n/4,'sa cousine'],[n/4,'son cousin']]); }}); }
+  if (level>=4 && Math.random()<.25){ const n = rnd(2,10); return num(`Pandou empile 3 fois ${n} ${what}. Le <b>triple</b> de ${n} ?`, n*3, {sub:`${n} + ${n} + ${n}`, explain:`Le triple de ${n} = ${n} + ${n} + ${n} = ${n*3}.`, render(st){ booksScene(st, [[n,'étagère 1'],[n,'étagère 2'],[n,'étagère 3']]); }}); }
   if (Math.random()<.5){
-    const n = L(level, [rnd(1,10), pick([rnd(1,15),20,25,30,40,50]), pick([rnd(11,50),rnd(1,30)*2,100]), rnd(26,99), pick([rnd(100,250), rnd(51,99)*2])]);
-    return num(`Pandou a ${n} ${what} et son jumeau autant. Le <b>double</b> de ${n} ?`, n*2, {sub:`${n} + ${n}`, explain:`Le double de ${n}, c'est ${n} + ${n} = ${n*2}.`, render(st){ booksScene(st, [[n,`Pandou : ${n}`],[n,`son jumeau : ${n}`]]); }});
+    // N1 : doubles jusqu'à 5 + 5 ; N2 : jusqu'à 10 + 10 ; N3 : dizaines rondes et nombres sans retenue (11 à 44) ; N4 : avec retenue jusqu'à 50 ; N5 : jusqu'à 100, et quelques centaines
+    const n = L(level, [rnd(1,5), rnd(1,10), pick([rnd(1,5)*10, rnd(1,4)*10+rnd(1,4)]), pick([rnd(15,50), 25, 35, 45]), pick([rnd(26,99), 60, 75, 100, 150])]);
+    return num(`Pandou a ${n} ${nw(n, what)} et son jumeau autant. Le <b>double</b> de ${n} ?`, n*2, {sub:`${n} + ${n}`, explain:`Le double de ${n}, c'est ${n} + ${n} = ${n*2}.`, render(st){ booksScene(st, [[n,`Pandou : ${n}`],[n,`son jumeau : ${n}`]]); }});
   }
-  const n = L(level, [rnd(1,10)*2, pick([rnd(1,20)*2,50,100]), rnd(10,50)*2, rnd(25,100)*2, rnd(50,250)*2]);
+  // N1 : moitiés de 2 à 10 ; N2 : de 2 à 20 ; N3 : dizaines paires et nombres faciles (42, 64, 86…) ; N4 : jusqu'à 100 (30, 50, 70, 58…) ; N5 : jusqu'à 200
+  const n = L(level, [rnd(1,5)*2, rnd(1,10)*2, pick([rnd(1,5)*20, rnd(1,4)*20 + rnd(1,4)*2]), rnd(10,50)*2, pick([rnd(50,100)*2, 120, 160, 200])]);
   return num(`Pandou partage ${n} ${what} en deux piles égales. La <b>moitié</b> de ${n} ?`, n/2, {sub:'la moitié = couper en 2 parts égales', explain:`La moitié de ${n} : ${n/2} + ${n/2} = ${n}, donc ${n/2}.`, render(st){ const d = document.createElement('p'); d.className = 'sync'; d.style.cssText = 'text-align:center; margin:0 0 4px; color:var(--gold)'; d.textContent = fr(`${n} ${what} sur l'étagère : la ligne les sépare en deux parts égales.`); st.appendChild(d); booksScene(st, [[n, '', {tens:n>20, split:true}]]); }});
 }};
 
@@ -269,11 +274,12 @@ function buildSym(grid, cols, rows, horiz, on, onTap){
 GAMES.complements = { intro:'Rose compte ses coussins. Combien en manque-t-il ?', gen(level){
   const what = pick(['coussins','peluches','étoiles au plafond','rubans']);
   let a, T;
-  if (level===1){ T = pick([10,10,20]); a = T===10 ? rnd(0,9) : rnd(10,19); return qcm(`Rose a ${a} ${what}, il en faut ${T}. ${a} + <b>?</b> = ${T}`, T-a, [T-a+1,T-a-1,T-a+2,T-a+10,a], {explain:`De ${a}, compte jusqu'à ${T} : il manque ${T-a}. ${a} + ${T-a} = ${T}.`}); }
-  if (level===2){ T = pick([20,30,30]); a = rnd(T-19, T-1); return num(`Rose a ${a} ${what}, il en faut ${T}. ${a} + <b>?</b> = ${T}`, T-a, {explain:`De ${a}, compte jusqu'à ${T} : il manque ${T-a}. ${a} + ${T-a} = ${T}.`}); }
+  if (level===1){ T = 10; a = rnd(1,9); return qcm(`Rose a ${a} ${nw(a, what)}, il en faut ${T}. ${a} + <b>?</b> = ${T}`, T-a, [T-a+1,T-a-1,T-a+2,T-a+10,a], {explain:`De ${a}, compte jusqu'à ${T} : il manque ${T-a}. ${a} + ${T-a} = ${T}.`}); }
+  if (level===2){ T = 20; a = Math.random()<.6 ? rnd(10,19) : rnd(5,9); return num(`Rose a ${a} ${what}, il en faut ${T}. ${a} + <b>?</b> = ${T}`, T-a, {explain:`De ${a}, compte jusqu'à ${T} : il manque ${T-a}. ${a} + ${T-a} = ${T}.`}); }
   if (level===3){ a = rnd(11,98); while (a%10===0) a = rnd(11,98); T = Math.ceil(a/10)*10; return num(`${a} + <b>?</b> = ${T}`, T-a, {sub:'la dizaine juste au-dessus', explain:`${a} se termine par ${a%10} : il manque ${T-a} pour arriver à ${T}.`}); }
-  if (level===4){ a = rnd(11,99); while (a%10===0) a = rnd(11,99); return num(`Rose a ${a} ${what}, il en faut 100. ${a} + <b>?</b> = 100`, 100-a, {sub:"d'abord la dizaine, puis le reste", explain:`${a} + ${10-a%10} = ${a+10-a%10}, puis ${a+10-a%10} + ${90-(a-a%10)} = 100. En tout ${100-a}.`}); }
-  a = rnd(101,899); while (a%100===0) a = rnd(101,899); T = Math.ceil(a/100)*100; return num(`${a} + <b>?</b> = ${T}`, T-a, {sub:'la centaine juste au-dessus', explain:`${a} + ${T-a} = ${T} : monte d'abord à la dizaine, puis à la centaine.`});
+  if (level===4){ a = Math.random()<.5 ? rnd(1,9)*10 : rnd(1,9)*10 + 5; return num(`Rose a ${a} ${what}, il en faut 100. ${a} + <b>?</b> = 100`, 100-a, {sub: a%10 ? "d'abord la dizaine, puis le reste" : 'compte en dizaines', explain: a%10 ? `${a} + 5 = ${a+5}, puis ${a+5} + ${95-a} = 100. En tout ${100-a}.` : `${a/10} dizaines + ${10-a/10} dizaines = 10 dizaines = 100. Il manque ${100-a}.`}); }
+  if (Math.random()<.65){ a = rnd(11,99); while (a%10===0) a = rnd(11,99); return num(`Rose a ${a} ${what}, il en faut 100. ${a} + <b>?</b> = 100`, 100-a, {sub:"d'abord la dizaine, puis le reste", explain:`${a} + ${10-a%10} = ${a+10-a%10}, puis ${a+10-a%10} + ${90-(a-a%10)} = 100. En tout ${100-a}.`}); }
+  a = rnd(1,8)*100 + rnd(1,9)*10; T = Math.ceil(a/100)*100; return num(`${a} + <b>?</b> = ${T}`, T-a, {sub:'la centaine juste au-dessus', explain:`${a} + ${T-a} = ${T} : monte d'abord à la dizaine, puis à la centaine.`});
 }};
 
 /* ---------- Monnaie (Orange, la Boutique) ---------- */
@@ -282,9 +288,9 @@ GAMES.monnaie = { intro:'Dans la boutique, Orange rend la monnaie. Donne les bon
   let price, paid, coins;
   if (level===1){ price = rnd(1,9)*100; paid = 1000; coins = [100,200,500]; }
   else if (level===2){ price = rnd(2,19)*100; paid = 2000; coins = [100,200,500,1000]; }
-  else if (level===3){ price = pick([rnd(1,19)*100, rnd(1,19)*100+50, rnd(2,49)*100]); paid = price<2000 ? 2000 : 5000; coins = [50,100,200,500,1000,2000]; }
-  else if (level===4){ price = rnd(1,9)*100 + pick([10,20,30,40,50,60,70,80,90]); paid = 1000; coins = [10,20,50,100,200,500]; }
-  else { price = rnd(11,98)*100 + pick([5,10,20,25,50,75,90]); paid = 10000; coins = [5,10,20,50,100,200,500,1000,2000,5000]; }
+  else if (level===3){ price = pick([rnd(11,19)*100, rnd(21,45)*100]); paid = price<2000 ? 2000 : 5000; coins = [100,200,500,1000,2000]; }
+  else if (level===4){ price = pick([rnd(1,9)*100+50, rnd(10,18)*100+50]); paid = price<1000 ? 1000 : 2000; coins = [50,100,200,500,1000]; }
+  else { price = rnd(1,9)*100 + pick([10,20,30,40,50,60,70,80,90]); paid = 1000; coins = [10,20,50,100,200,500]; }
   const change = paid - price; const item = pick(SHOP_ITEMS);
   const plan = (() => { let rest = change; const parts = []; for (const c of coins.slice().sort((x,y)=>y-x)){ while (rest>=c){ parts.push(c<100 ? c+' c' : (c/100)+' €'); rest -= c; } } return parts.join(' + '); })();
   return {story:`Ça coûte ${fmtEuro(price)}, on te donne ${fmtEuro(paid)}. Rends la monnaie !`, prompt:`${fmtEuro(paid)} − ${fmtEuro(price)} = <b>?</b>`, kind:'custom', answer:change, show:fmtEuro(change), explain:`${fmtEuro(paid)} − ${fmtEuro(price)} = ${fmtEuro(change)} : rends ${plan}.`, timeMult:2.5, render(stage, api){
@@ -317,11 +323,11 @@ const fmtTime = (h,m) => m===0 ? `${h} h` : `${h} h ${String(m).padStart(2,'0')}
 const DAYS = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
 const MONTHS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
 GAMES.horloge = { intro:"Peso règle l'horloge de la tour. Quelle heure est-il ?", gen(level){
-  const mins = L(level, [[0,30],[0,15,30,45],[0,5,10,15,20,25,30,35,40,45,50,55],[0,5,10,15,20,25,30,35,40,45,50,55],[0,5,10,15,20,25,30,35,40,45,50,55]]);
-  const t = pick(L(level, [['read','read','pick','days'], ['read','pick','days','months','dur'], ['read','pick','dur','dur','units','months'], ['read','durmin','durmin','pm','units'], ['pm','pm','durmin','between','between']]));
+  const mins = L(level, [[0],[0,30],[0,15,30,45],[0,5,10,15,20,25,30,35,40,45,50,55],[0,5,10,15,20,25,30,35,40,45,50,55]]);
+  const t = pick(L(level, [['read','read','pick','days'], ['read','pick','days','dur'], ['read','pick','months','dur','units'], ['read','pick','durmin','units','months'], ['read','pm','durmin','between','durmin']]));
   const randT = () => [rnd(1,12), pick(mins)];
   if (t==='read'){
-    const [h,m] = randT(); const cand = [[h,(m+30)%60],[(h%12)+1,m],[h===1?12:h-1,m],[h,(m+15)%60]].map(x=>fmtTime(x[0],x[1]));
+    const [h,m] = randT(); const cand = (level===1 ? [[(h%12)+1,0],[h===1?12:h-1,0],[(h+1)%12+1,0]] : level===2 ? [[h,(m+30)%60],[(h%12)+1,m],[h===1?12:h-1,m]] : [[h,(m+30)%60],[(h%12)+1,m],[h===1?12:h-1,m],[h,(m+15)%60]]).map(x=>fmtTime(x[0],x[1]));
     return {prompt:`Quelle heure est-il à la tour de Peso ?`, kind:'qcm', answer:fmtTime(h,m), options:mkOptionsStr(fmtTime(h,m), cand), show:fmtTime(h,m), explain:`La petite aiguille montre les heures (${h}), la grande les minutes (${m===0 ? 'sur le 12 = pile' : m===30 ? 'sur le 6 = et demie' : m+' min, chaque chiffre vaut 5 min'}).`, render(stage){ const d = document.createElement('div'); d.className='clocks'; const cv = document.createElement('canvas'); cv.className='single'; drawClock(cv,h,m,240); d.appendChild(cv); stage.appendChild(d); }};
   }
   if (t==='pick'){
@@ -342,22 +348,25 @@ GAMES.horloge = { intro:"Peso règle l'horloge de la tour. Quelle heure est-il ?
 }};
 
 /* ---------- Tables (Sose puis Pengouins), pilotées par les acquis ---------- */
-function tableQ(tables, form){
-  // form : 'direct' | 'inverted' (? × a = ans) | 'division' (ans ÷ a = ?)
-  const [a, b] = pickFact(tables); const ans = a*b;
+function tableQ(tables, form, bmax){
+  // form : 'direct' | 'inverted' (? × a = ans) | 'division' (ans : a = ?, le signe de la division à l'école en France)
+  const [a, b] = pickFact(tables, bmax || 10); const ans = a*b;
   const cand = [a*(b+1), a*(b-1), (a+1)*b, (a-1)*b, a+b, ans+2, ans-2];
   let q;
-  if (form==='division' && b>1) q = qcm(`${ans} ÷ ${a} = <b>?</b>`, b, [b+1,b-1,b+2,a,ans-a]);
+  if (form==='division' && b>1) q = qcm(`${ans} : ${a} = <b>?</b>`, b, [b+1,b-1,b+2,a,ans-a], {story:`On partage ${ans} en ${a} parts égales. Combien dans chaque part ?`});
   else if (form==='inverted' && b>1) q = qcm(`<b>?</b> × ${a} = ${ans}`, b, [b+1,b-1,b+2,a,ans-a]);
   else q = Math.random()<.5 ? qcm(`${a} × ${b} = <b>?</b>`, ans, cand) : qcm(`${b} × ${a} = <b>?</b>`, ans, cand);
-  q.fact = [a,b]; q.explain = b<=5 ? `${a} × ${b} = ${Array(b).fill(a).join(' + ')} = ${ans}.` : `${a} × ${b} : compte de ${a} en ${a} : ${Array.from({length:b},(_,i)=>a*(i+1)).join(', ')}.`; if (form==='division' && b>1) q.explain = `${ans} ÷ ${a} = ${b}, parce que ${a} × ${b} = ${ans}.`; return q;
+  q.fact = [a,b]; q.explain = b<=5 ? `${a} × ${b} = ${Array(b).fill(a).join(' + ')} = ${ans}.` : `${a} × ${b} : compte de ${a} en ${a} : ${Array.from({length:b},(_,i)=>a*(i+1)).join(', ')}.`; if (form==='division' && b>1) q.explain = `${ans} : ${a} = ${b}, parce que ${a} × ${b} = ${ans}.`; return q;
 }
 const EASY_TABLES = [2,10,5,3,4];
-const tableForm = level => level<=2 ? 'direct' : level===3 ? (Math.random()<.4 ? 'inverted' : 'direct') : level===4 ? pick(['direct','inverted','division']) : pick(['inverted','division','division']);
+const tableForm = level => level<=2 ? 'direct' : level===3 ? (Math.random()<.25 ? 'inverted' : 'direct') : level===4 ? pick(['direct','direct','inverted']) : pick(['direct','inverted','division']);
+const tableMax = level => level===1 ? 5 : 10; // niveau 1 : de ×1 à ×5 seulement
+// niveau 1 : l'addition répétée sert d'aide (2 × 3 = 2 + 2 + 2)
+const tableHelp = (q, level) => { if (level===1 && q.fact){ const [a,b] = q.fact; q.sub = b===1 ? `${a} une seule fois` : Array(b).fill(a).join(' + '); } return q; };
 // Sose : les tables faciles maîtrisées ou en cours (jamais une table pas encore commencée hors ordre)
-GAMES.tables1 = { intro:'Sose accroche les bannières. Trouve vite le bon résultat !', gen(level){ const t = activeTables().filter(x => EASY_TABLES.includes(x)); const q = tableQ(t.length ? t : [2,10], tableForm(level)); q.sub = 'Les bannières de Sose'; return q; } };
+GAMES.tables1 = { intro:'Sose accroche les bannières. Trouve vite le bon résultat !', gen(level){ const t = activeTables().filter(x => EASY_TABLES.includes(x)); const q = tableQ(t.length ? t : [2,10], tableForm(level), tableMax(level)); q.sub = 'Les bannières de Sose'; return tableHelp(q, level); } };
 // Pengouins : toutes les tables actives (maîtrisées + les deux en cours)
-GAMES.tables2 = { intro:'Dans la salle du trône, toutes les tables se mélangent. Courage !', gen(level){ return tableQ(activeTables(), tableForm(level)); } };
+GAMES.tables2 = { intro:'Dans la salle du trône, toutes les tables se mélangent. Courage !', gen(level){ return tableHelp(tableQ(activeTables(), tableForm(level), tableMax(level)), level); } };
 
 /* ---------- Soustractions (Lamantou, l'Aquarium) : bulles ---------- */
 GAMES.soustraction = { intro:"Dans l'aquarium, les bulles portent des nombres. Touche la bonne !", gen(level){
@@ -365,7 +374,7 @@ GAMES.soustraction = { intro:"Dans l'aquarium, les bulles portent des nombres. T
   if (level===1){ a = rnd(3,10); b = rnd(1,a); } else if (level===2){ a = rnd(10,20); b = rnd(1,9); } else if (level===3){ a = rnd(20,99); b = rnd(2,9); }
   else if (level===4){ a = rnd(30,99); b = rnd(11, a-1); while ((a%10) < (b%10)) b = rnd(11, a-1); } else { a = rnd(30,98); while (a%10===9) a = rnd(30,98); b = rnd(11, a-1); while ((a%10) >= (b%10)) b = rnd(11, a-1); }
   const ans = a-b; const opts = mkOptions(ans, [ans+1,ans-1,ans+2,ans-2,ans+10,ans-10,a+b], 4);
-  return {prompt:`Lamantou avait ${a} bulles, ${b} ont éclaté. ${a} − ${b} = <b>?</b>`, kind:'custom', answer:ans, show:String(ans), explain: b<10 ? `De ${a}, j'enlève ${b} : ${a} − ${b} = ${ans}. (${ans} + ${b} = ${a})` : `${a} − ${b} : j'enlève d'abord ${b-(b%10)} (${a-(b-(b%10))}), puis ${b%10} : ${ans}.`, render(stage, api){
+  return {prompt:`Lamantou avait ${a} bulles, ${b} ${b===1 ? 'a' : 'ont'} éclaté. ${a} − ${b} = <b>?</b>`, kind:'custom', answer:ans, show:String(ans), explain: b<10 ? `De ${a}, j'enlève ${b} : ${a} − ${b} = ${ans}. (${ans} + ${b} = ${a})` : `${a} − ${b} : j'enlève d'abord ${b-(b%10)} (${a-(b-(b%10))}), puis ${b%10} : ${ans}.`, render(stage, api){
     stage.innerHTML = `<div class="aqua" id="aqua"></div>`; const aq = stage.querySelector('#aqua');
     opts.forEach((o, i) => { const bb = document.createElement('button'); bb.className='bubble'; bb.textContent = o; bb.style.left = (6 + i*23 + rnd(0,6)) + '%'; bb.style.top = (20 + rnd(0,45)) + '%'; bb.style.animationDelay = (-i*.9)+'s'; bb.onclick = () => { if (api.done) return; const ok = o===ans;
       if (ok){ api.done = true; popBubble(aq, bb); SFX.pop(); setTimeout(() => api.answer(true), 350); }
@@ -386,12 +395,12 @@ function popBubble(aq, bb){
 /* ---------- Additions (Chioune, la Cour des os) ---------- */
 GAMES.addition = { intro:'Chioune enterre ses os et les compte. Aide-le à additionner !', gen(level){
   let a, b, c = 0;
-  if (level===1){ a = rnd(10,88); while (a%10===9) a = rnd(10,88); b = rnd(1, 9-(a%10)); }
-  else if (level===2){ a = rnd(11,89); b = rnd(1,9); while ((a%10)+b<10) { a = rnd(11,89); b = rnd(1,9); } }
-  else if (level===3){ a = rnd(20,90); b = rnd(2,9); c = Math.random()<.5 ? rnd(2,9) : 0; }
+  if (level===1){ a = rnd(10,48); while (a%10===9) a = rnd(10,48); b = rnd(1, 9-(a%10)); } // sans retenue, jusqu'à 50
+  else if (level===2){ a = rnd(11,59); b = rnd(1,9); while ((a%10)+b<10) { a = rnd(11,59); b = rnd(1,9); } } // on passe la dizaine
+  else if (level===3){ if (Math.random()<.5){ a = rnd(11,69); b = rnd(1,3)*10; } else { a = rnd(12,68); while (a%10===0) a = rnd(12,68); b = 10-(a%10); c = rnd(1,6); } } // + des dizaines, ou « faire 10 » puis ajouter
   else if (level===4){ a = rnd(11,88); b = rnd(11, 99-a); while ((a%10)+(b%10)>9) b = rnd(11, 99-a); }
-  else { a = rnd(15,95); b = rnd(15,95); while ((a%10)+(b%10)<10) { a = rnd(15,95); b = rnd(15,95); } }
-  const ex = c ? `${a} + ${b} = ${a+b}, puis ${a+b} + ${c} = ${a+b+c}.` : b<10 ? `${a%10} + ${b} = ${a%10+b}, donc ${a} + ${b} = ${a+b}.` : `${a} + ${b} : d'abord les dizaines ${a-(a%10)} + ${b-(b%10)} = ${a-(a%10)+b-(b%10)}, puis les unités ${a%10} + ${b%10} = ${a%10+b%10} : ${a+b}.`;
+  else { a = rnd(15,80); b = rnd(11, 99-a); let g = 0; while ((a%10)+(b%10)<10 && g++<50) { a = rnd(15,80); b = rnd(11, 99-a); } } // avec retenue, total jusqu'à 100
+  const ex = c ? `${a} + ${b} = ${a+b}, une dizaine ronde ! Puis ${a+b} + ${c} = ${a+b+c}.` : b%10===0 ? `On ajoute ${b/10} dizaine${b>10?'s':''} : ${a} + ${b} = ${a+b}, les unités ne bougent pas.` : b<10 ? `${a%10} + ${b} = ${a%10+b}, donc ${a} + ${b} = ${a+b}.` : `${a} + ${b} : d'abord les dizaines ${a-(a%10)} + ${b-(b%10)} = ${a-(a%10)+b-(b%10)}, puis les unités ${a%10} + ${b%10} = ${a%10+b%10} : ${a+b}.`;
   return num(c ? `Chioune a ${a} os, il en trouve ${b} puis ${c}. ${a} + ${b} + ${c} = <b>?</b>` : `Chioune a ${a} os, il en trouve ${b}. ${a} + ${b} = <b>?</b>`, a+b+c, {explain:ex, timeMult: level===1 ? 1.5 : 1}); // niveau 1 : 50 % de temps en plus (demande de Julien)
 }};
 
@@ -399,7 +408,7 @@ GAMES.addition = { intro:'Chioune enterre ses os et les compte. Aide-le à addit
 GAMES.arrondi = { intro:"À l'observatoire, Pegs range les étoiles près de la dizaine la plus proche.", gen(level){
   const hundreds = level===4 || (level===5 && Math.random()<.5); const span = hundreds ? 1000 : 100; const step = hundreds ? 100 : 10;
   const base = (level===3 || (level===5 && !hundreds)) ? pick([0,100,200,500]) : 0;
-  let n = base + rnd(1, span-1); const bad = x => (x%step===0) || (level===1 && x%10===5) || (hundreds && x%100===50 && level<5); while (bad(n)) n = base + rnd(1, span-1);
+  let n = base + rnd(1, span-1); const bad = x => (x%step===0) || (level===1 && (x<11 || x>49 || [4,5,6].includes(x%10))) || (level===2 && x<10) || (hundreds && x%100===50 && level<5); while (bad(n)) n = base + rnd(1, span-1);
   const ans = Math.round(n/step)*step; const tie = n%step===step/2; // pile au milieu : les deux arrondis sont acceptés
   const lo2 = Math.floor(n/step)*step, hi2 = lo2+step;
   return {story:`Pegs a compté ${n} étoiles. Arrondis à la ${hundreds?'centaine':'dizaine'} la plus proche.`, prompt:`<b>${n}</b> → ${hundreds?'centaine':'dizaine'} ?`, sub: level>=2 ? (hundreds ? 'pile à 50, les deux sont justes' : 'pile à 5, les deux sont justes') : '', kind:'custom', answer:ans, show: tie ? `${lo2} ou ${hi2}` : String(ans), explain: tie ? `${n} est juste au milieu entre ${lo2} et ${hi2} : les deux réponses sont justes.` : `${n} est entre ${lo2} et ${hi2}, plus près de ${ans}.`, render(stage, api){
@@ -440,7 +449,7 @@ GAMES.des = { intro:'Dans la salle de jeux, Fanfan lance les dés. Additionne le
 
 /* ---------- Additions éclair (Minion, la Forge) ---------- */
 GAMES.rapides = { intro:'À la forge, Minion frappe vite. Réponds en un éclair !', gen(level){
-  if (level>=5 && Math.random()<.5){ const a = rnd(5,19), b = rnd(1,9); return qcm(`${a} − ${b}`, a-b, [a-b+1,a-b-1,a-b+2,a+b], {n:3, explain:`${a} − ${b} = ${a-b}.`}); }
+  if (level>=5 && Math.random()<.5){ const a = rnd(5,19), b = rnd(1, Math.min(9, a-1)); return qcm(`${a} − ${b}`, a-b, [a-b+1,a-b-1,a-b+2,a+b], {n:3, explain:`${a} − ${b} = ${a-b}.`}); }
   if (level>=3 && Math.random()<(level===3?.5:.7)){ const a = rnd(1,9), b = rnd(1,9), c = rnd(1,9); return qcm(`${a} + ${b} + ${c}`, a+b+c, [a+b+c+1,a+b+c-1,a+b+c+2,a+b], {n:3, explain:`${a} + ${b} = ${a+b}, puis + ${c} = ${a+b+c}.`}); }
   if (level>=4 && Math.random()<.5){ const a = rnd(10,19), b = rnd(2,9); return qcm(`${a} + ${b}`, a+b, [a+b+1,a+b-1,a+b+2,a+b-2], {n:3, explain:`${a} + ${b} = ${a+b}.`}); }
   const max = level===1 ? 10 : 18; let a = rnd(1,9), b = rnd(1,9); while (a+b>max){ a = rnd(1,9); b = rnd(1,9); }
@@ -468,7 +477,7 @@ GAMES.rangement = { intro:'Dans le grenier, Meryl range les nombres du plus peti
     return bigQcm(`Quel nombre est le <b>plus proche de ${target}</b> ?`, ans, mkOptions(ans, cand, 4), {story:'Meryl range près de la grande boîte ' + target + '.', explain:`${ans} est à ${Math.abs(ans-target)} de ${target}, les autres sont plus loin.`}); }
   if (t==='truefalse'){ let a = num2(), b = num2(); while (b===a) b = num2(); const sign = pick(['>','<']); const truth = sign==='>' ? a>b : a<b; const claim = Math.random()<.5;
     const shown = claim===truth ? sign : (sign==='>' ? '<' : '>'); const isTrue = shown==='>' ? a>b : a<b;
-    return bigQcm(`<b>${a} ${shown} ${b}</b> : vrai ou faux ?`, isTrue ? 'vrai' : 'faux', ['vrai','faux'], {story:'Le signe ouvert regarde vers le plus grand.', explain:`${explainCompare(a,b)} Donc ${a} ${a>b?'>':'<'} ${b}.`}); }
+    return bigQcm(`<b>${a} ${shown==='>' ? '&gt;' : '&lt;'} ${b}</b> : vrai ou faux ?`, isTrue ? 'vrai' : 'faux', ['vrai','faux'], {story:'Le signe ouvert regarde vers le plus grand.', explain:`${explainCompare(a,b)} Donc ${a} ${a>b?'>':'<'} ${b}.`}); }
   // order3 / order4 / order5 : toucher les boîtes du plus petit au plus grand
   const k = t==='order3' ? 3 : t==='order4' ? 4 : 5; const set = new Set(); while (set.size<k) set.add(level>=5 ? pick([rnd(10,99), rnd(100,999), rnd(1000,9999)]) : num2()); const nums = [...set]; const sorted = nums.slice().sort((x,y)=>x-y); const asc = level<=3 || Math.random()<.6; const target = asc ? sorted : sorted.slice().reverse();
   // explication : d'abord le nombre de chiffres, puis le premier chiffre, puis le suivant

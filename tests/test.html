@@ -73,6 +73,18 @@
       startRoom(ROOM.boss, 1); clearInterval(timerIv); run.errors = 0; endRoom(true); log('après donjon gagné : niveau donjon', roomLevel('boss'), 'niveau symétrie', roomLevel('symetrie')); if (roomLevel('boss')!==1 || roomLevel('symetrie')!==2) log('ERREUR le donjon a débloqué un niveau');
       z.level = 3; z.lv[2] = {n:1,best:0,perfect:1}; log('symétrie réussie au N2 : donjon', roomLevel('boss')); if (roomLevel('boss')!==2) log('ERREUR donjon pas monté');
       S.rooms = JSON.parse(saved); show('home'); }
+    // bornes de difficulté par niveau (programme CP → CE2, vérifié le 2026-11-13) : 300 tirages par salle et par niveau
+    { const bad = []; const chk = (room, lv, cond, label) => { for (let i=0;i<300;i++){ const q = GAMES[room].gen(lv); if (!cond(q)){ bad.push(`${room} N${lv} ${label} : ${String(q.prompt).replace(/<[^>]+>/g,'')} = ${q.answer}`); return; } } };
+      chk('doubles', 1, q => q.answer<=10, 'résultat ≤ 10'); chk('doubles', 2, q => q.answer<=20, 'résultat ≤ 20'); chk('doubles', 3, q => q.answer<=100, 'résultat ≤ 100'); chk('doubles', 4, q => q.answer<=100, 'résultat ≤ 100');
+      chk('complements', 1, q => /= 10$/.test(String(q.prompt).replace(/<[^>]+>/g,'').trim()), 'complément à 10'); chk('complements', 2, q => /= 20$/.test(String(q.prompt).replace(/<[^>]+>/g,'').trim()), 'complément à 20');
+      chk('addition', 1, q => q.answer<=50, 'somme ≤ 50'); chk('addition', 2, q => q.answer<=70, 'somme ≤ 70'); for (const lv of [3,4,5]) chk('addition', lv, q => q.answer<=100, 'somme ≤ 100');
+      chk('tables1', 1, q => q.fact && q.fact[1]<=5, 'facteur ≤ 5'); chk('tables2', 1, q => q.fact && q.fact[1]<=5, 'facteur ≤ 5'); for (const lv of [1,2,3,4]) { chk('tables1', lv, q => !/:/.test(String(q.prompt)), 'pas de division'); }
+      for (let lv=1; lv<=5; lv++){ chk('rapides', lv, q => q.answer>=0, 'jamais négatif'); chk('soustraction', lv, q => q.answer>=0, 'jamais négatif'); }
+      chk('horloge', 1, q => !/h \d/.test(String(q.answer)), 'heures pile'); chk('horloge', 2, q => !/h (15|45|\d5|\d0)/.test(String(q.answer).replace('h 30','h')), 'heures et demies');
+      for (const lv of [1,2,3]) chk('monnaie', lv, q => q.answer%100===0, 'euros entiers'); chk('monnaie', 4, q => q.answer%50===0, 'demi-euros');
+      for (const lv of [1,2,3,4,5]) chk('longueurs', lv, q => !/×/.test(String(q.prompt)), 'pas de × dans le calcul'); for (const lv of [1,2,3]) chk('longueurs', lv, q => !/= .*\?$/.test(String(q.prompt).replace(/<[^>]+>/g,'').trim()) || /\+/.test(String(q.prompt)), 'pas de conversion');
+      chk('arrondi', 1, q => q.answer>=10 && q.answer<=50, 'nombres jusqu\'à 50, jamais 0'); chk('bains', 3, q => !/^\d+ cL$/.test(q.show) || q.answer<100, 'pas de conversion avant le niveau 4');
+      log('bornes par niveau', bad.length ? bad.length + ' écarts' : 'OK'); bad.forEach(b => log('ERREUR niveau', b)); }
     // couronnes : gagnée une fois par niveau du donjon, cérémonie, migration des anciennes victoires
     { const saved = JSON.stringify(S.rooms), savedC = S.crowns; S.rooms = {}; S.crowns = []; ROOMS.filter(r=>!r.boss).forEach(r => { const rs = roomState(r.id); rs.done = 1; rs.found = true; rs.level = 3; rs.lv = {1:{n:1,best:0,perfect:1},2:{n:1,best:0,perfect:1}}; });
       startRoom(ROOM.boss, 2); clearInterval(timerIv); run.errors = 0; endRoom(true); log('couronne gagnée', JSON.stringify(S.crowns), 'écran', screen, 'récompense', /Couronne de bronze/.test($('#res-rewards').textContent)); if (screen!=='crown' || !S.crowns.includes(2)) log('ERREUR couronne non donnée');
