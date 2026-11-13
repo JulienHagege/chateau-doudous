@@ -150,7 +150,12 @@ function addStars(n, where){ if (!Number.isFinite(n)){ logErr(new Error('étoile
 const roomState = id => S.rooms[id] || (S.rooms[id] = {done:0, best:null, perfect:0, found:false, level:1});
 const isDone = id => !!(S.rooms[id]||{}).found;           // retrouvé dans l'exploration en cours
 const everDone = id => (S.rooms[id]||{}).done > 0;         // retrouvé au moins une fois
-const roomLevel = id => (S.rooms[id]||{}).level || 1;      // prochain niveau à jouer dans la salle
+// Plus haut niveau réussi dans une salle (0 si jamais réussie) : statistiques par niveau, sinon niveau débloqué - 1
+const wonLevel = id => { const rs = S.rooms[id]; if (!rs || !(rs.done>0)) return 0; const lv = Object.keys(rs.lv||{}).filter(k => rs.lv[k] && rs.lv[k].n>0).map(Number); return Math.min(MAX_LEVEL, Math.max(1, (rs.level||1)-1, ...lv)); };
+// Donjon : il n'a pas de progression propre (demande de Julien, 2026-11-13). Son niveau N s'ouvre quand toutes les salles ont été réussies au moins au niveau N ;
+// gagner le donjon ne débloque rien. La progression se fait seulement salle par salle.
+const bossLevel = () => clamp(Math.min(...ROOMS.filter(r => !r.boss).map(r => wonLevel(r.id))), 1, MAX_LEVEL);
+const roomLevel = id => id==='boss' ? bossLevel() : (S.rooms[id]||{}).level || 1;      // prochain niveau à jouer dans la salle (donjon : plus haut niveau ouvert)
 const playedLevel = id => Math.max(1, roomLevel(id) - 1);  // dernier niveau réussi (1 si jamais joué)
 const maxHearts = () => clamp(BASE_HEARTS + Math.floor((S.stars||0)/4), BASE_HEARTS, MAX_HEARTS);
 const freedCount = () => ROOMS.filter(r => isDone(r.id)).length;

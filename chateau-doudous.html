@@ -799,7 +799,12 @@ function addStars(n, where){ if (!Number.isFinite(n)){ logErr(new Error('étoile
 const roomState = id => S.rooms[id] || (S.rooms[id] = {done:0, best:null, perfect:0, found:false, level:1});
 const isDone = id => !!(S.rooms[id]||{}).found;           // retrouvé dans l'exploration en cours
 const everDone = id => (S.rooms[id]||{}).done > 0;         // retrouvé au moins une fois
-const roomLevel = id => (S.rooms[id]||{}).level || 1;      // prochain niveau à jouer dans la salle
+// Plus haut niveau réussi dans une salle (0 si jamais réussie) : statistiques par niveau, sinon niveau débloqué - 1
+const wonLevel = id => { const rs = S.rooms[id]; if (!rs || !(rs.done>0)) return 0; const lv = Object.keys(rs.lv||{}).filter(k => rs.lv[k] && rs.lv[k].n>0).map(Number); return Math.min(MAX_LEVEL, Math.max(1, (rs.level||1)-1, ...lv)); };
+// Donjon : il n'a pas de progression propre (demande de Julien, 2026-11-13). Son niveau N s'ouvre quand toutes les salles ont été réussies au moins au niveau N ;
+// gagner le donjon ne débloque rien. La progression se fait seulement salle par salle.
+const bossLevel = () => clamp(Math.min(...ROOMS.filter(r => !r.boss).map(r => wonLevel(r.id))), 1, MAX_LEVEL);
+const roomLevel = id => id==='boss' ? bossLevel() : (S.rooms[id]||{}).level || 1;      // prochain niveau à jouer dans la salle (donjon : plus haut niveau ouvert)
 const playedLevel = id => Math.max(1, roomLevel(id) - 1);  // dernier niveau réussi (1 si jamais joué)
 const maxHearts = () => clamp(BASE_HEARTS + Math.floor((S.stars||0)/4), BASE_HEARTS, MAX_HEARTS);
 const freedCount = () => ROOMS.filter(r => isDone(r.id)).length;
@@ -1507,7 +1512,7 @@ GAMES.revision = { intro:'On revoit ce qui a posé problème.', gen(level, i, n)
    ========================================================= */
 let run = null, timerIv = null, lastRoom = null;
 function startRoom(room, wanted){
-  const rs = roomState(room.id); const top = Math.min(MAX_LEVEL, rs.level || 1); const level = room.rev ? 1 : clamp(wanted || top, 1, top); // on peut rejouer un niveau déjà débloqué
+  const rs = roomState(room.id); const top = Math.min(MAX_LEVEL, roomLevel(room.id)); const level = room.rev ? 1 : clamp(wanted || top, 1, top); // on peut rejouer un niveau déjà débloqué
   // 5 niveaux de contenu par salle ; le chrono se resserre un peu à chaque niveau
   run = { room:room.id, level, gen:level, tfactor:Math.pow(.92, level-1), i:0, n:room.n, errors:0, hearts:maxHearts(), billes:0, results:[], asked:0, retry:[], q:null, answered:false, t0:0 };
   lastRoom = room.rev ? lastRoom : room;
@@ -1620,7 +1625,7 @@ function endRoom(won){
   const room = ROOM[run.room], d = room.rev ? {name:'Révision', desc:'', id:'hero'} : DD[room.dd], rs = roomState(room.id);
   const rewards = [];
   if (won){
-    const first = !rs.found; rs.done++; if (!room.rev){ rs.found = true; if (run.level >= (rs.level||1)) rs.level = Math.min(MAX_LEVEL, run.level + 1); // rejouer un niveau plus bas ne change pas le niveau débloqué
+    const first = !rs.found; rs.done++; if (!room.rev){ rs.found = true; if (!room.boss && run.level >= (rs.level||1)) rs.level = Math.min(MAX_LEVEL, run.level + 1); // rejouer un niveau plus bas ne change pas le niveau débloqué
       rs.lv = rs.lv || {}; const lv = rs.lv[run.level] || (rs.lv[run.level] = {n:0, best:null, perfect:0}); lv.n++; if (lv.best===null || run.errors<lv.best) lv.best = run.errors; if (run.errors===0) lv.perfect++; } const bonus = room.boss ? 300 : 50; run.billes += addBilles(bonus, 'endRoom'); rewards.push(`<span class="rw" style="color:var(--bille)">${run.billes>=0?'+':''}${run.billes} billes</span>`);
     if (run.errors===0){ const st = room.boss ? 3 : 1; addStars(st, 'endRoom'); rs.perfect++; rewards.push(`<span class="rw" style="color:var(--star)">⭐ ${st===1?'Une étoile : sans faute !':'Trois étoiles : sans faute !'}</span>`); }
     if (rs.best===null || run.errors<rs.best) rs.best = run.errors;
@@ -1801,18 +1806,19 @@ const LEVEL_NAMES = ['Découverte','Apprenti','Confirmé','Expert','Champion'];
 function levelStars(lv){ if (!lv || !lv.n) return 0; if (lv.best===null) return 1; return lv.best===0 ? 3 : lv.best<=2 ? 2 : 1; }
 let levelsRoom = null;
 function enterRoom(room){
-  levelsRoom = room; const d = DD[room.dd]; const rs = roomState(room.id); const top = Math.min(MAX_LEVEL, rs.level||1);
+  levelsRoom = room; const d = DD[room.dd]; const rs = roomState(room.id); const top = Math.min(MAX_LEVEL, roomLevel(room.id));
   $('#lv-img').src = IMG[d.id]; $('#lv-cage').classList.toggle('free', !!rs.found || rs.done>0); $('#lv-name').textContent = room.name; $('#lv-skill').textContent = room.skill + ' · ' + (rs.done>0 ? d.name + (rs.found ? ' est avec toi' : ' se cache encore') : d.name + ' se cache ici');
   $('#lv-intro').textContent = fr(GAMES[room.id].intro);
   const cards = []; for (let l=1; l<=MAX_LEVEL; l++){ const lv = (rs.lv||{})[l]; const st = levelStars(lv); const cls = l===top ? 'cur' : l<top ? 'done' : 'locked';
     const stars = '⭐'.repeat(st) + '<i>⭐</i>'.repeat(3-st);
-    const info = cls==='locked' ? '🔒 Réussis le niveau ' + (l-1) : lv && lv.n ? (lv.best===null ? 'Réussi' : lv.best===0 ? 'Sans faute !' : lv.best + ' erreur' + (lv.best>1?'s':'') + ' au mieux') + ' · joué ' + lv.n + ' fois' : (l===top && top>1 ? 'Nouveau niveau à découvrir' : 'Pas encore joué');
+    const behind = room.boss ? ROOMS.filter(r => !r.boss && wonLevel(r.id) < l).length : 0;
+    const info = cls==='locked' ? (room.boss ? `🔒 Réussis le niveau ${l} dans toutes les salles (encore ${behind})` : '🔒 Réussis le niveau ' + (l-1)) : lv && lv.n ? (lv.best===null ? 'Réussi' : lv.best===0 ? 'Sans faute !' : lv.best + ' erreur' + (lv.best>1?'s':'') + ' au mieux') + ' · joué ' + lv.n + ' fois' : (l===top && top>1 ? (room.boss ? 'Réussi dans toutes les salles' : 'Nouveau niveau à découvrir') : 'Pas encore joué');
     const go = cls==='cur' ? '<span class="go">' + (lv && lv.n ? 'Rejouer' : 'À débloquer') + ' ▶</span>' : cls==='done' ? '<span class="go">Rejouer ▶</span>' : '';
     cards.push(`<button class="lvcard ${cls}" data-l="${l}" ${cls==='locked' ? 'disabled' : ''}><span class="lab">${LEVEL_NAMES[l-1]}</span><b>Niveau ${l}</b><span class="stars">${stars}</span><small>${info}</small>${go}</button>`); }
   $('#lvlcards').innerHTML = cards.join('');
   $$('#lvlcards .lvcard:not(.locked)').forEach(b => { b.onclick = () => { SFX.click(); const l = +b.dataset.l; show('room'); toast(l<top ? `Niveau ${l} : on révise !` : GAMES[room.id].intro, 3000); startRoom(room, l); }; });
   const ss = room.boss ? 'new' : skillStatus(room.id); const hint = $('#lv-hint'); hint.className = 'lvlhint ' + ss;
-  hint.textContent = fr(ss==='ok' ? '✅ Notion acquise ! Rejoue un niveau pour le plaisir, ou vise le suivant.' : ss==='learning' ? '📚 Notion en cours : rejouer un niveau déjà réussi, c\'est une très bonne façon de s\'entraîner.' : room.boss ? 'Toutes les énigmes du château, mélangées.' : '✨ Première visite : commence par le niveau 1.');
+  hint.textContent = fr(ss==='ok' ? '✅ Notion acquise ! Rejoue un niveau pour le plaisir, ou vise le suivant.' : ss==='learning' ? '📚 Notion en cours : rejouer un niveau déjà réussi, c\'est une très bonne façon de s\'entraîner.' : room.boss ? 'Toutes les énigmes du château, mélangées. Un niveau du donjon s\'ouvre quand tu l\'as réussi dans toutes les salles.' : '✨ Première visite : commence par le niveau 1.');
   show('levels'); MUSIC.play(roomTrack(room));
 }
 $('#btn-levels-back').onclick = () => { SFX.click(); const room = levelsRoom; levelsRoom = null; if (room && !room.rev) openMap(room.floor, room); else { renderHome(); show('home'); } };
@@ -1967,7 +1973,7 @@ function renderAlbum(){
   const g = $('#album-grid'); g.innerHTML = '';
   DOUDOUS.forEach(d => { const room = ROOMS.find(r => r.dd===d.id); const rs = S.rooms[room.id]; const done = rs && rs.done>0; const hidden = done && !rs.found;
     const el = document.createElement('div'); el.className = 'dd' + (done?'':' locked');
-    el.innerHTML = `<img src="${IMG[d.id]}" alt="" class="px"><b>${done ? d.name : '?'}</b><small>${done ? d.desc + ' · ' + room.name + (hidden ? ' · reparti se cacher' : '') : 'perdu dans ' + room.name}</small><span class="stars">${done ? (('⭐'.repeat(Math.min(3,rs.perfect)) + ' niveau '+rs.level).trim()) : ''}</span>`;
+    el.innerHTML = `<img src="${IMG[d.id]}" alt="" class="px"><b>${done ? d.name : '?'}</b><small>${done ? d.desc + ' · ' + room.name + (hidden ? ' · reparti se cacher' : '') : 'perdu dans ' + room.name}</small><span class="stars">${done ? (('⭐'.repeat(Math.min(3,rs.perfect)) + ' niveau '+roomLevel(room.id)).trim()) : ''}</span>`;
     g.appendChild(el); });
 }
 $('#btn-enter').onclick = () => { SFX.click(); if (!S.introSeen) startIntro(() => openMap()); else openMap(); };
@@ -2054,7 +2060,7 @@ function startCycle(){
   cyc = { i:0, panels:[
     {scene:`<img class="bg px" src="${IMG.castle}" alt=""><div class="night"></div><div class="row">${all}</div>`, text:`Tous les doudous sont réunis ! Mais ils adorent jouer à cache-cache…`, fx:'party'},
     {scene:`<img class="bg px" src="${IMG.castle}" alt="" style="filter:brightness(.6)"><div class="row flee">${all}</div>`, text:`Hop ! Un par un, ils repartent se cacher dans le château.`, fx:'flee'},
-    {scene:`<div class="lvlgrid">${ROOMS.map((r,i) => `<span class="lvl" style="animation-delay:${(i*.12).toFixed(2)}s; --acc:${r.acc}"><b>${DD[r.dd].name}</b><i>${before[r.id]} ➜ <em>${roomLevel(r.id)}</em></i></span>`).join('')}</div>`, text:`Le château monte de niveau ! Chaque salle est un peu plus difficile qu'avant.`, fx:'levelup', last:true}
+    {scene:`<div class="lvlgrid">${ROOMS.map((r,i) => `<span class="lvl" style="animation-delay:${(i*.12).toFixed(2)}s; --acc:${r.acc}"><b>${DD[r.dd].name}</b><i>${r.boss ? `niv. <em>${roomLevel(r.id)}</em>` : `${before[r.id]} ➜ <em>${roomLevel(r.id)}</em>`}</i></span>`).join('')}</div>`, text:`Dans chaque salle, le niveau suivant t'attend. Tu peux aussi rejouer un niveau déjà réussi pour t'entraîner.`, fx:'levelup', last:true}
   ]};
   S.cycle = (S.cycle||0) + 1; ROOMS.forEach(r => { roomState(r.id).found = false; }); S.sinceStorm = 0; save();
   show('cycle'); MUSIC.play('home'); renderCycle();
