@@ -2168,12 +2168,18 @@ function settleBoot(){ if (cloudSettled) return; cloudSettled = true; $('#player
 setTimeout(settleBoot, 8000);
 (window.claude && window.claude.hot && window.claude.hot.ready) ? window.claude.hot.ready(boot) : boot();
 initCloud();
-/* ---------- Pause : après 30 minutes de jeu effectif, un écran de repos, seulement depuis la vue du château (jamais pendant une salle) ---------- */
-const PAUSE_AFTER = 30*60*1000; let playMs = 0, lastTick = Date.now();
-function tickPlay(){ const now = Date.now(); if (!document.hidden) playMs += now - lastTick; lastTick = now; if (playMs>=PAUSE_AFTER && !run && !storm && !intro && (screen==='home' || screen==='mapscreen')) showPause(); }
-setInterval(tickPlay, 4000);
+/* ---------- Pause : après 30 minutes de jeu effectif, un écran de repos, seulement sur la carte du château (jamais pendant une salle) ---------- */
+/* Jeu effectif = onglet visible, quelqu'un a touché l'écran ou le clavier depuis moins de 2 minutes, et un intervalle normal entre deux tics.
+   Un iPad en veille ou une page gelée en arrière-plan reprend avec un énorme écart de temps : on l'ignore (sinon la pause tombait dès l'ouverture). */
+const PAUSE_AFTER = 30*60*1000, PAUSE_TICK = 4000, IDLE_AFTER = 2*60*1000; let playMs = 0, lastTick = Date.now(), lastInput = Date.now();
+['pointerdown','keydown','touchstart'].forEach(ev => addEventListener(ev, () => { lastInput = Date.now(); }, {capture:true, passive:true}));
+document.addEventListener('visibilitychange', () => { lastTick = Date.now(); });
+function tickPlay(){ const now = Date.now(), dt = now - lastTick; lastTick = now;
+  if (!document.hidden && P.current && dt>0 && dt<=3*PAUSE_TICK && now-lastInput<IDLE_AFTER) playMs += dt;
+  if (playMs>=PAUSE_AFTER && !run && !storm && !intro && screen==='mapscreen') showPause(); }
+setInterval(tickPlay, PAUSE_TICK);
 function showPause(){ playMs = 0; MUSIC.stop(); $('#pause-castle').src = IMG.castle; $('#pause-hero').src = IMG.hero; show('pause'); const b = $('#btn-pause-ok'); let left = 60; b.disabled = true;
   const tick = () => { if (screen!=='pause') return; if (left<=0){ b.disabled = false; b.textContent = '🏰 C\'est reparti !'; return; } b.textContent = `Repos… ${left} s`; left--; setTimeout(tick, 1000); }; tick(); }
-$('#btn-pause-ok').onclick = () => { if ($('#btn-pause-ok').disabled) return; SFX.click(); playMs = 0; renderHome(); show('home'); MUSIC.play('home'); };
+$('#btn-pause-ok').onclick = () => { if ($('#btn-pause-ok').disabled) return; SFX.click(); playMs = 0; lastTick = Date.now(); openMap(mapFloor); };
 document.addEventListener('pointerdown', function first(){ if (S.music && screen==='home') MUSIC.play('home'); document.removeEventListener('pointerdown', first); }, {once:true});
 </script>
