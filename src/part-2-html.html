@@ -8,7 +8,7 @@
     <div class="castle-art"><img id="castle-img" alt="Le grand château la nuit" class="px"><div class="parade" id="parade"></div></div>
     <h1>Le Château des Doudous</h1>
     <div class="tag" id="home-tag">Les doudous se sont perdus dans le château</div>
-    <div class="who"><img id="who-img" alt="" class="px"><b id="who-name"></b><button class="btn ghost" id="btn-switch">👤 Changer de joueur</button></div>
+    <div class="who"><img id="who-img" alt="" class="px"><img id="who-crown" alt="" class="px wcrown" hidden><b id="who-name"></b><button class="btn ghost" id="btn-switch">👤 Changer de joueur</button></div>
     <div class="hud">
       <span class="chip bille"><i class="bille-ico"></i><span id="h-billes" class="tabular">0</span><span class="lab">billes</span></span>
       <span class="chip star">⭐ <span id="h-stars" class="tabular">0</span><span class="lab">étoiles</span></span>
@@ -102,6 +102,17 @@
     <p class="text" id="cycle-text"></p>
     <div class="dots" id="cycle-dots"></div>
     <div class="actions"><button class="btn big" id="btn-cycle-next">Suivant ▶</button></div>
+  </div>
+</section>
+
+<!-- ===== Couronne : victoire au donjon ===== -->
+<section id="crown" class="screen" hidden>
+  <div class="intro">
+    <div class="scene crownscene" id="crown-scene"></div>
+    <h2 class="crowntitle later" id="crown-title"></h2>
+    <p class="text later" id="crown-text"></p>
+    <div class="crownshelf later" id="crown-shelf"></div>
+    <div class="actions"><button class="btn big" id="btn-crown-next" disabled>Continuer ▶</button></div>
   </div>
 </section>
 

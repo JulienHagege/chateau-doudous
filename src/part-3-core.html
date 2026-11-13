@@ -107,7 +107,7 @@ let S = DEFAULT();
 let P = {list:[], current:null};
 const lsGet = k => { try{ const raw = localStorage.getItem(k); return raw ? JSON.parse(raw) : null; }catch(e){ return null; } };
 const lsSet = (k, v) => { try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} };
-const summarize = st => ({ name:st.name||'', emblem:st.emblem||'vachou', updated:st.updated||0, billes:st.billes||0, cycle:st.cycle||0, freed:Object.values(st.rooms||{}).filter(r => r.found).length });
+const summarize = st => ({ name:st.name||'', emblem:st.emblem||'vachou', updated:st.updated||0, billes:st.billes||0, cycle:st.cycle||0, crown:Math.max(0, ...(Array.isArray(st.crowns) ? st.crowns : [])), freed:Object.values(st.rooms||{}).filter(r => r.found).length });
 function savePlayers(){ lsSet(PKEY, P); }
 function playerState(id){ const st = lsGet(pkey(id)); return st ? repairCounters(Object.assign(DEFAULT(), st)) : null; }
 // Un bug (bonus de rapidité sans chrono, 2026-11-08) a pu mettre NaN, devenu null, dans les compteurs : on remet un nombre et on marque `repaired`, la synchro reprendra alors les billes du nuage si elles sont plus élevées
@@ -139,6 +139,8 @@ function migrate(){
   if (S.rooms.complements100 && !S.rooms.des){ S.rooms.des = S.rooms.complements100; delete S.rooms.complements100; } if (S.skills && S.skills.complements100 && !S.skills.des){ S.skills.des = S.skills.complements100; delete S.skills.complements100; }
   // 2026-11-08 : un bug (bonus de rapidité sans chrono) a pu mettre NaN, devenu null, dans les compteurs ; on les remet à un nombre
   repairCounters(S);
+  // 2026-11-13 : couronnes du donjon (une par niveau gagné). Les anciennes victoires au donjon donnent leurs couronnes, avec une cérémonie au prochain lancement
+  if (!Array.isArray(S.crowns)){ const b = S.rooms && S.rooms.boss; S.crowns = []; if (b && b.done>0){ S.crowns = Object.keys(b.lv||{}).filter(k => b.lv[k] && b.lv[k].n>0).map(Number).filter(n => n>=1 && n<=MAX_LEVEL); if (!S.crowns.length) S.crowns = [1]; S.crownPending = Math.max(...S.crowns); } }
   for (const id in S.rooms){ const rs = S.rooms[id]; if (rs.found==null) rs.found = rs.done>0; if (rs.level==null) rs.level = Math.min(3, (rs.done||0)+1); rs.level = Math.min(MAX_LEVEL, rs.level); fillLevelStats(rs); } }
 function save(){ if (!P.current) return; S.updated = Date.now(); writeProfile(P.current, S); cloudSave(); }
 function logErr(e, where){ try{ S.lastErr = { t:new Date().toISOString(), where:where||'', msg:String(e && (e.stack||e.message||e)).slice(0,400), ua:navigator.userAgent.slice(0,80) }; save(); const el = $('#lasterr'); if (el) el.textContent = 'Dernière erreur : ' + S.lastErr.msg; }catch(_){} }
@@ -342,7 +344,7 @@ const MUSIC = {
 
 /* ---------- UI utilitaires ---------- */
 let screen = 'home';
-function show(id){ ['home','players','pause','levels','intro','cycle','carnet','album','mapscreen','room','result'].forEach(s => { $('#'+s).hidden = (s!==id); }); screen = id; window.scrollTo(0,0); }
+function show(id){ ['home','players','pause','levels','intro','cycle','crown','carnet','album','mapscreen','room','result'].forEach(s => { $('#'+s).hidden = (s!==id); }); screen = id; window.scrollTo(0,0); if (typeof syncCrown==='function') syncCrown(); }
 let toastT = null;
 function toast(msg, ms=2600){ let t = $('.toast'); if (!t){ t = document.createElement('div'); t.className='toast'; document.body.appendChild(t); } t.textContent = fr(msg); t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms); }
 function sparkle(el, txt='✨'){ try{ const r = el.getBoundingClientRect(); for (let i=0;i<5;i++){ const s = document.createElement('span'); s.className='sparkle'; s.textContent = txt; s.style.left = (r.left + Math.random()*r.width) + 'px'; s.style.top = (r.top + r.height/2) + 'px'; s.style.position='fixed'; s.style.zIndex = 40; document.body.appendChild(s); setTimeout(()=>s.remove(), 900); } }catch(e){} }

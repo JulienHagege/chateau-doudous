@@ -73,6 +73,15 @@
       startRoom(ROOM.boss, 1); clearInterval(timerIv); run.errors = 0; endRoom(true); log('après donjon gagné : niveau donjon', roomLevel('boss'), 'niveau symétrie', roomLevel('symetrie')); if (roomLevel('boss')!==1 || roomLevel('symetrie')!==2) log('ERREUR le donjon a débloqué un niveau');
       z.level = 3; z.lv[2] = {n:1,best:0,perfect:1}; log('symétrie réussie au N2 : donjon', roomLevel('boss')); if (roomLevel('boss')!==2) log('ERREUR donjon pas monté');
       S.rooms = JSON.parse(saved); show('home'); }
+    // couronnes : gagnée une fois par niveau du donjon, cérémonie, migration des anciennes victoires
+    { const saved = JSON.stringify(S.rooms), savedC = S.crowns; S.rooms = {}; S.crowns = []; ROOMS.filter(r=>!r.boss).forEach(r => { const rs = roomState(r.id); rs.done = 1; rs.found = true; rs.level = 3; rs.lv = {1:{n:1,best:0,perfect:1},2:{n:1,best:0,perfect:1}}; });
+      startRoom(ROOM.boss, 2); clearInterval(timerIv); run.errors = 0; endRoom(true); log('couronne gagnée', JSON.stringify(S.crowns), 'écran', screen, 'récompense', /Couronne de bronze/.test($('#res-rewards').textContent)); if (screen!=='crown' || !S.crowns.includes(2)) log('ERREUR couronne non donnée');
+      log('cérémonie titre', $('#crown-title').textContent, 'étagère', $$('#crown-shelf figure').length, 'nouvelle', $$('#crown-shelf figure.new').length);
+      startRoom(ROOM.boss, 2); clearInterval(timerIv); run.errors = 1; endRoom(true); log('rejouer N2 : écran', screen, 'couronnes', JSON.stringify(S.crowns)); if (screen!=='result' || S.crowns.length!==1) log('ERREUR couronne en double');
+      enterRoom(ROOM.boss); log('cartes donjon couronnes', $$('#lvlcards img.lvcrown').length, 'éteintes', $$('#lvlcards img.lvcrown.off').length);
+      const mig = {rooms:{boss:{done:2, level:3, lv:{1:{n:1,best:0,perfect:1},2:{n:1,best:2,perfect:0}}}}}; const keep = S; S = Object.assign(DEFAULT(), mig); migrate(); log('migration couronnes', JSON.stringify(S.crowns), 'cérémonie en attente', S.crownPending); if (JSON.stringify(S.crowns)!=='[1,2]' || S.crownPending!==2) log('ERREUR migration couronnes'); S = keep;
+      log('icône', crownIcon(4).slice(0,22), 'résumé', summarize({crowns:[1,3]}).crown);
+      S.rooms = JSON.parse(saved); S.crowns = savedC; show('home'); }
     // donjon : toutes les épreuves au niveau du donjon
     { const seenLv = {}; const orig = {}; ROOMS.filter(r=>!r.boss && !r.rev).forEach(r => { orig[r.id] = GAMES[r.id].gen; GAMES[r.id].gen = function(lv, ...a){ seenLv[lv] = (seenLv[lv]||0)+1; return orig[r.id].call(this, lv, ...a); }; });
       for (const L of [1,2,3,5]){ for (const k in seenLv) delete seenLv[k]; for (let i=0;i<60;i++) GAMES.boss.gen(L, i%15, 15); const lvls = Object.keys(seenLv).map(Number); log('donjon niveau', L, 'épreuves de niveau', lvls.join(',')); if (lvls.length!==1 || lvls[0]!==L) log('ERREUR donjon niveau', L, 'mélange', lvls.join(',')); }
@@ -118,5 +127,9 @@
     if (!/Réussi · joué 1 fois/.test(cards[3].textContent) || !/Sans faute/.test(cards[0].textContent) || !/Rejouer/.test(cards[4].textContent)) log('ERREUR cartes migrées');
   }catch(e){ log('ERREUR', e.stack||e.message); }
   window.setTimeout = _st;
+  // asynchrone : sprite couronné (pixel blanc de la couronne d'argent) puis cérémonie complète
+  _st(() => { try{ S.crowns = [3]; show('home'); _st(() => { const im = new Image(); im.onload = () => { const c = document.createElement('canvas'); c.width = c.height = 48; const g = c.getContext('2d'); g.drawImage(im, 0, 0); const d = g.getImageData(24, 6, 1, 1).data; log('sprite couronné argent', IMG.hero!==HERO0.hero, Array.from(d).join(',')); if (d[0]!==255 || d[1]!==255 || d[2]!==255 || d[3]!==255) log('ERREUR couronne absente du sprite');
+      S.crowns = [1,2]; crownCeremony(2, () => log('après cérémonie : rappel ok'));
+      _st(() => { log('cérémonie', screen, 'posée', $('#crown-scene').classList.contains('landed'), 'bouton actif', !$('#btn-crown-next').disabled, 'titre visible', $('#crown-title').classList.contains('shown')); if (!$('#crown-scene').classList.contains('landed') || $('#btn-crown-next').disabled) log('ERREUR cérémonie'); $('#btn-crown-next').click(); log('FIN ASYNC'); }, 5600); }; im.src = IMG.hero; }, 1000); }catch(e){ log('ERREUR async', e.message); } }, 50);
 })();
 </script></body></html>

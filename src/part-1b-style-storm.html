@@ -46,4 +46,40 @@
 .intro .dots{display:flex; gap:8px}
 .intro .dots i{width:12px; height:12px; border-radius:50%; background:rgba(255,255,255,.2)}
 .intro .dots i.on{background:var(--gold); box-shadow:0 0 8px var(--gold)}
+
+/* ---------- Couronne : victoire au donjon ---------- */
+.crownscene img.bg{filter:brightness(.38)}
+.crownscene .night{background:radial-gradient(300px 220px at 50% 45%, rgba(255,220,140,.22), transparent 70%)}
+.crownscene .spot{position:absolute; left:50%; top:-8%; width:52%; height:110%; transform:translateX(-50%); background:linear-gradient(180deg, rgba(255,240,190,.5), rgba(255,240,190,0) 88%); clip-path:polygon(38% 0, 62% 0, 100% 100%, 0 100%); opacity:0; transition:opacity 1.2s; pointer-events:none}
+.crownscene.go .spot{opacity:1}
+.crownscene .rays{position:absolute; left:50%; top:55%; width:160%; aspect-ratio:1; transform:translate(-50%,-50%); border-radius:50%; background:repeating-conic-gradient(rgba(255,220,120,.34) 0 8deg, transparent 8deg 20deg); -webkit-mask-image:radial-gradient(circle, #000 18%, transparent 62%); mask-image:radial-gradient(circle, #000 18%, transparent 62%); opacity:0; transition:opacity .8s; pointer-events:none}
+.crownscene.landed .rays{opacity:1; animation:crownrays 10s linear infinite}
+@keyframes crownrays{to{transform:translate(-50%,-50%) rotate(360deg)}}
+.crownscene .queen{position:absolute; left:50%; bottom:4%; height:62%; aspect-ratio:1; transform:translateX(-50%)}
+.crownscene .queen img.me{position:absolute; inset:0; width:100%; height:100%; filter:drop-shadow(0 0 16px rgba(255,210,130,.7))}
+.crownscene .queen img.falling{position:absolute; left:37.5%; top:4.1667%; width:27.0833%; height:16.6667%; opacity:0; filter:drop-shadow(0 0 10px rgba(255,240,180,.9))}
+.crownscene.go .queen img.falling{animation:crownfall 3s cubic-bezier(.3,.7,.4,1) forwards}
+@keyframes crownfall{0%{opacity:0; transform:translateY(-340%) rotate(-30deg) scale(1.9)} 12%{opacity:1} 35%{transform:translateY(-240%) rotate(22deg) scale(1.7)} 60%{transform:translateY(-130%) rotate(-14deg) scale(1.35)} 82%{transform:translateY(-30%) rotate(6deg) scale(1.08)} 100%{opacity:1; transform:none}}
+.crownscene.landed .queen img.falling{display:none}
+.crownscene.landed .queen{animation:queenhop .5s ease-out 3}
+@keyframes queenhop{0%,100%{transform:translateX(-50%)} 45%{transform:translateX(-50%) translateY(-11%)}}
+.crownscene .flash{position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none}
+.crownscene.landed .flash{animation:cflash .8s ease-out}
+@keyframes cflash{0%{opacity:.95} 100%{opacity:0}}
+.crownscene.landed .side{animation:cheer .42s ease-in-out infinite alternate}
+@keyframes cheer{from{transform:translateY(0) rotate(-5deg)} to{transform:translateY(-24px) rotate(6deg)}}
+.crownscene .tw{position:absolute; font-size:20px; color:#fff6c8; opacity:0; text-shadow:0 0 8px currentColor; animation:twinkle 1.4s ease-in-out infinite; pointer-events:none}
+@keyframes twinkle{0%,100%{opacity:0; transform:scale(.4) rotate(0)} 50%{opacity:1; transform:scale(1.25) rotate(45deg)}}
+.crowntitle{font-family:var(--font-display); font-size:clamp(26px,6vw,40px); color:var(--gold); text-shadow:0 0 22px rgba(255,209,102,.5), 0 3px 0 #6a4a0a; margin:0}
+#crown .later{opacity:0; transform:translateY(10px); transition:opacity .6s, transform .6s}
+#crown .later.shown{opacity:1; transform:none}
+.crownshelf{display:flex; gap:14px; justify-content:center; align-items:flex-end; flex-wrap:wrap}
+.crownshelf figure{margin:0; display:flex; flex-direction:column; align-items:center; gap:3px; font-size:12px; font-weight:800; color:var(--muted)}
+.crownshelf img{width:52px; height:32px}
+.crownshelf figure.off img{opacity:.45}
+.crownshelf figure.new{color:var(--gold)}
+.crownshelf figure.new img{animation:bounce 1s ease-in-out infinite; filter:drop-shadow(0 0 10px rgba(255,220,120,.9))}
+.who img.wcrown{width:39px; height:24px}
+.pcard img.pcrown{width:52px; height:32px; animation:none; margin-bottom:-6px}
+.lvcard img.lvcrown{width:52px; height:32px} .lvcard img.lvcrown.off{opacity:.4}
 </style>

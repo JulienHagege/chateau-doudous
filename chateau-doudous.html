@@ -431,6 +431,42 @@ body:has(#storm:not([hidden])) .fab{display:none}
 .intro .dots{display:flex; gap:8px}
 .intro .dots i{width:12px; height:12px; border-radius:50%; background:rgba(255,255,255,.2)}
 .intro .dots i.on{background:var(--gold); box-shadow:0 0 8px var(--gold)}
+
+/* ---------- Couronne : victoire au donjon ---------- */
+.crownscene img.bg{filter:brightness(.38)}
+.crownscene .night{background:radial-gradient(300px 220px at 50% 45%, rgba(255,220,140,.22), transparent 70%)}
+.crownscene .spot{position:absolute; left:50%; top:-8%; width:52%; height:110%; transform:translateX(-50%); background:linear-gradient(180deg, rgba(255,240,190,.5), rgba(255,240,190,0) 88%); clip-path:polygon(38% 0, 62% 0, 100% 100%, 0 100%); opacity:0; transition:opacity 1.2s; pointer-events:none}
+.crownscene.go .spot{opacity:1}
+.crownscene .rays{position:absolute; left:50%; top:55%; width:160%; aspect-ratio:1; transform:translate(-50%,-50%); border-radius:50%; background:repeating-conic-gradient(rgba(255,220,120,.34) 0 8deg, transparent 8deg 20deg); -webkit-mask-image:radial-gradient(circle, #000 18%, transparent 62%); mask-image:radial-gradient(circle, #000 18%, transparent 62%); opacity:0; transition:opacity .8s; pointer-events:none}
+.crownscene.landed .rays{opacity:1; animation:crownrays 10s linear infinite}
+@keyframes crownrays{to{transform:translate(-50%,-50%) rotate(360deg)}}
+.crownscene .queen{position:absolute; left:50%; bottom:4%; height:62%; aspect-ratio:1; transform:translateX(-50%)}
+.crownscene .queen img.me{position:absolute; inset:0; width:100%; height:100%; filter:drop-shadow(0 0 16px rgba(255,210,130,.7))}
+.crownscene .queen img.falling{position:absolute; left:37.5%; top:4.1667%; width:27.0833%; height:16.6667%; opacity:0; filter:drop-shadow(0 0 10px rgba(255,240,180,.9))}
+.crownscene.go .queen img.falling{animation:crownfall 3s cubic-bezier(.3,.7,.4,1) forwards}
+@keyframes crownfall{0%{opacity:0; transform:translateY(-340%) rotate(-30deg) scale(1.9)} 12%{opacity:1} 35%{transform:translateY(-240%) rotate(22deg) scale(1.7)} 60%{transform:translateY(-130%) rotate(-14deg) scale(1.35)} 82%{transform:translateY(-30%) rotate(6deg) scale(1.08)} 100%{opacity:1; transform:none}}
+.crownscene.landed .queen img.falling{display:none}
+.crownscene.landed .queen{animation:queenhop .5s ease-out 3}
+@keyframes queenhop{0%,100%{transform:translateX(-50%)} 45%{transform:translateX(-50%) translateY(-11%)}}
+.crownscene .flash{position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none}
+.crownscene.landed .flash{animation:cflash .8s ease-out}
+@keyframes cflash{0%{opacity:.95} 100%{opacity:0}}
+.crownscene.landed .side{animation:cheer .42s ease-in-out infinite alternate}
+@keyframes cheer{from{transform:translateY(0) rotate(-5deg)} to{transform:translateY(-24px) rotate(6deg)}}
+.crownscene .tw{position:absolute; font-size:20px; color:#fff6c8; opacity:0; text-shadow:0 0 8px currentColor; animation:twinkle 1.4s ease-in-out infinite; pointer-events:none}
+@keyframes twinkle{0%,100%{opacity:0; transform:scale(.4) rotate(0)} 50%{opacity:1; transform:scale(1.25) rotate(45deg)}}
+.crowntitle{font-family:var(--font-display); font-size:clamp(26px,6vw,40px); color:var(--gold); text-shadow:0 0 22px rgba(255,209,102,.5), 0 3px 0 #6a4a0a; margin:0}
+#crown .later{opacity:0; transform:translateY(10px); transition:opacity .6s, transform .6s}
+#crown .later.shown{opacity:1; transform:none}
+.crownshelf{display:flex; gap:14px; justify-content:center; align-items:flex-end; flex-wrap:wrap}
+.crownshelf figure{margin:0; display:flex; flex-direction:column; align-items:center; gap:3px; font-size:12px; font-weight:800; color:var(--muted)}
+.crownshelf img{width:52px; height:32px}
+.crownshelf figure.off img{opacity:.45}
+.crownshelf figure.new{color:var(--gold)}
+.crownshelf figure.new img{animation:bounce 1s ease-in-out infinite; filter:drop-shadow(0 0 10px rgba(255,220,120,.9))}
+.who img.wcrown{width:39px; height:24px}
+.pcard img.pcrown{width:52px; height:32px; animation:none; margin-bottom:-6px}
+.lvcard img.lvcrown{width:52px; height:32px} .lvcard img.lvcrown.off{opacity:.4}
 </style>
 <canvas id="stars" aria-hidden="true"></canvas>
 <button id="fab-music" class="fab" aria-pressed="true" title="Couper ou remettre la musique">🎵</button>
@@ -442,7 +478,7 @@ body:has(#storm:not([hidden])) .fab{display:none}
     <div class="castle-art"><img id="castle-img" alt="Le grand château la nuit" class="px"><div class="parade" id="parade"></div></div>
     <h1>Le Château des Doudous</h1>
     <div class="tag" id="home-tag">Les doudous se sont perdus dans le château</div>
-    <div class="who"><img id="who-img" alt="" class="px"><b id="who-name"></b><button class="btn ghost" id="btn-switch">👤 Changer de joueur</button></div>
+    <div class="who"><img id="who-img" alt="" class="px"><img id="who-crown" alt="" class="px wcrown" hidden><b id="who-name"></b><button class="btn ghost" id="btn-switch">👤 Changer de joueur</button></div>
     <div class="hud">
       <span class="chip bille"><i class="bille-ico"></i><span id="h-billes" class="tabular">0</span><span class="lab">billes</span></span>
       <span class="chip star">⭐ <span id="h-stars" class="tabular">0</span><span class="lab">étoiles</span></span>
@@ -536,6 +572,17 @@ body:has(#storm:not([hidden])) .fab{display:none}
     <p class="text" id="cycle-text"></p>
     <div class="dots" id="cycle-dots"></div>
     <div class="actions"><button class="btn big" id="btn-cycle-next">Suivant ▶</button></div>
+  </div>
+</section>
+
+<!-- ===== Couronne : victoire au donjon ===== -->
+<section id="crown" class="screen" hidden>
+  <div class="intro">
+    <div class="scene crownscene" id="crown-scene"></div>
+    <h2 class="crowntitle later" id="crown-title"></h2>
+    <p class="text later" id="crown-text"></p>
+    <div class="crownshelf later" id="crown-shelf"></div>
+    <div class="actions"><button class="btn big" id="btn-crown-next" disabled>Continuer ▶</button></div>
   </div>
 </section>
 
@@ -756,7 +803,7 @@ let S = DEFAULT();
 let P = {list:[], current:null};
 const lsGet = k => { try{ const raw = localStorage.getItem(k); return raw ? JSON.parse(raw) : null; }catch(e){ return null; } };
 const lsSet = (k, v) => { try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} };
-const summarize = st => ({ name:st.name||'', emblem:st.emblem||'vachou', updated:st.updated||0, billes:st.billes||0, cycle:st.cycle||0, freed:Object.values(st.rooms||{}).filter(r => r.found).length });
+const summarize = st => ({ name:st.name||'', emblem:st.emblem||'vachou', updated:st.updated||0, billes:st.billes||0, cycle:st.cycle||0, crown:Math.max(0, ...(Array.isArray(st.crowns) ? st.crowns : [])), freed:Object.values(st.rooms||{}).filter(r => r.found).length });
 function savePlayers(){ lsSet(PKEY, P); }
 function playerState(id){ const st = lsGet(pkey(id)); return st ? repairCounters(Object.assign(DEFAULT(), st)) : null; }
 // Un bug (bonus de rapidité sans chrono, 2026-11-08) a pu mettre NaN, devenu null, dans les compteurs : on remet un nombre et on marque `repaired`, la synchro reprendra alors les billes du nuage si elles sont plus élevées
@@ -788,6 +835,8 @@ function migrate(){
   if (S.rooms.complements100 && !S.rooms.des){ S.rooms.des = S.rooms.complements100; delete S.rooms.complements100; } if (S.skills && S.skills.complements100 && !S.skills.des){ S.skills.des = S.skills.complements100; delete S.skills.complements100; }
   // 2026-11-08 : un bug (bonus de rapidité sans chrono) a pu mettre NaN, devenu null, dans les compteurs ; on les remet à un nombre
   repairCounters(S);
+  // 2026-11-13 : couronnes du donjon (une par niveau gagné). Les anciennes victoires au donjon donnent leurs couronnes, avec une cérémonie au prochain lancement
+  if (!Array.isArray(S.crowns)){ const b = S.rooms && S.rooms.boss; S.crowns = []; if (b && b.done>0){ S.crowns = Object.keys(b.lv||{}).filter(k => b.lv[k] && b.lv[k].n>0).map(Number).filter(n => n>=1 && n<=MAX_LEVEL); if (!S.crowns.length) S.crowns = [1]; S.crownPending = Math.max(...S.crowns); } }
   for (const id in S.rooms){ const rs = S.rooms[id]; if (rs.found==null) rs.found = rs.done>0; if (rs.level==null) rs.level = Math.min(3, (rs.done||0)+1); rs.level = Math.min(MAX_LEVEL, rs.level); fillLevelStats(rs); } }
 function save(){ if (!P.current) return; S.updated = Date.now(); writeProfile(P.current, S); cloudSave(); }
 function logErr(e, where){ try{ S.lastErr = { t:new Date().toISOString(), where:where||'', msg:String(e && (e.stack||e.message||e)).slice(0,400), ua:navigator.userAgent.slice(0,80) }; save(); const el = $('#lasterr'); if (el) el.textContent = 'Dernière erreur : ' + S.lastErr.msg; }catch(_){} }
@@ -991,7 +1040,7 @@ const MUSIC = {
 
 /* ---------- UI utilitaires ---------- */
 let screen = 'home';
-function show(id){ ['home','players','pause','levels','intro','cycle','carnet','album','mapscreen','room','result'].forEach(s => { $('#'+s).hidden = (s!==id); }); screen = id; window.scrollTo(0,0); }
+function show(id){ ['home','players','pause','levels','intro','cycle','crown','carnet','album','mapscreen','room','result'].forEach(s => { $('#'+s).hidden = (s!==id); }); screen = id; window.scrollTo(0,0); if (typeof syncCrown==='function') syncCrown(); }
 let toastT = null;
 function toast(msg, ms=2600){ let t = $('.toast'); if (!t){ t = document.createElement('div'); t.className='toast'; document.body.appendChild(t); } t.textContent = fr(msg); t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms); }
 function sparkle(el, txt='✨'){ try{ const r = el.getBoundingClientRect(); for (let i=0;i<5;i++){ const s = document.createElement('span'); s.className='sparkle'; s.textContent = txt; s.style.left = (r.left + Math.random()*r.width) + 'px'; s.style.top = (r.top + r.height/2) + 'px'; s.style.position='fixed'; s.style.zIndex = 40; document.body.appendChild(s); setTimeout(()=>s.remove(), 900); } }catch(e){} }
@@ -1623,24 +1672,26 @@ function submit(ok, shown){
 function endRoom(won){
   if (!run) return; clearInterval(timerIv); window.onkeydown = null;
   const room = ROOM[run.room], d = room.rev ? {name:'Révision', desc:'', id:'hero'} : DD[room.dd], rs = roomState(room.id);
-  const rewards = [];
+  const rewards = []; let newCrown = 0;
   if (won){
     const first = !rs.found; rs.done++; if (!room.rev){ rs.found = true; if (!room.boss && run.level >= (rs.level||1)) rs.level = Math.min(MAX_LEVEL, run.level + 1); // rejouer un niveau plus bas ne change pas le niveau débloqué
       rs.lv = rs.lv || {}; const lv = rs.lv[run.level] || (rs.lv[run.level] = {n:0, best:null, perfect:0}); lv.n++; if (lv.best===null || run.errors<lv.best) lv.best = run.errors; if (run.errors===0) lv.perfect++; } const bonus = room.boss ? 300 : 50; run.billes += addBilles(bonus, 'endRoom'); rewards.push(`<span class="rw" style="color:var(--bille)">${run.billes>=0?'+':''}${run.billes} billes</span>`);
     if (run.errors===0){ const st = room.boss ? 3 : 1; addStars(st, 'endRoom'); rs.perfect++; rewards.push(`<span class="rw" style="color:var(--star)">⭐ ${st===1?'Une étoile : sans faute !':'Trois étoiles : sans faute !'}</span>`); }
+    if (room.boss){ S.crowns = Array.isArray(S.crowns) ? S.crowns : []; if (!S.crowns.includes(run.level)){ S.crowns.push(run.level); newCrown = run.level; rewards.push(`<span class="rw" style="color:var(--gold)">👑 Couronne ${CROWNS[run.level].name} !</span>`); } }
     if (rs.best===null || run.errors<rs.best) rs.best = run.errors;
     S.sinceStorm = (S.sinceStorm||0) + 1;
     $('#cage').classList.add('free');
     $('#res-img').src = IMG[d.id]; $('#res-title').textContent = room.rev ? (run.errors===0 ? 'Révision parfaite !' : 'Révision terminée !') : first ? `Tu as retrouvé ${d.name} !` : `${d.name} est ravi${d.id==='vachou'?'e':''} !`;
     $('#res-text').textContent = room.rev ? `${run.errors===0 ? 'Tout est juste, bravo !' : run.errors+' erreur'+(run.errors>1?'s':'')+', regarde ton carnet pour voir ce qui reste à travailler.'}` : first ? `${d.name}, ${d.desc}, sort de sa cachette et saute dans tes bras. ${room.boss ? 'Tous les doudous sont réunis, le château est sauvé !' : 'Une nouvelle porte vient de s\'ouvrir sur la carte.'}` : `Niveau ${run.level} réussi. ${run.errors===0 ? 'Sans aucune faute !' : run.errors+' erreur'+(run.errors>1?'s':'')+', tu progresses !'}`;
     const prevH = maxHearts(); save(); if (maxHearts()>prevH){ rewards.push('<span class="rw" style="color:var(--heart)">❤️ Un cœur de plus !</span>'); setTimeout(SFX.heart, 1200); }
-    SFX.freed(); confetti(); if (room.boss){ setTimeout(MUSIC.play.bind(MUSIC,'home'), 100); $('#btn-res-map').textContent = '🎉 Et maintenant ?'; $('#btn-res-again').hidden = true; } else { $('#btn-res-map').textContent = '🗺️ Retour à la carte'; $('#btn-res-again').hidden = false; }
+    if (!newCrown){ SFX.freed(); confetti(); } if (room.boss){ if (!newCrown) setTimeout(MUSIC.play.bind(MUSIC,'home'), 100); $('#btn-res-map').textContent = '🎉 Et maintenant ?'; $('#btn-res-again').hidden = true; } else { $('#btn-res-map').textContent = '🗺️ Retour à la carte'; $('#btn-res-again').hidden = false; }
   } else {
     rewards.push(`<span class="rw" style="color:var(--bille)">${run.billes>=0?'+':''}${run.billes} billes</span>`);
     $('#res-img').src = IMG[d.id]; $('#res-title').textContent = 'Plus de cœurs…'; $('#res-text').textContent = room.rev ? 'La révision s\'arrête là. Repose-toi et réessaie plus tard !' : `${d.name} t'attend encore dans ${room.name}. Repose-toi et réessaie, tu vas y arriver !`;
     SFX.fail(); save(); $('#btn-res-map').textContent = '🗺️ Retour à la carte'; $('#btn-res-again').hidden = false;
   }
-  $('#res-rewards').innerHTML = rewards.join(''); $('#res-title').textContent = fr($('#res-title').textContent); $('#res-text').textContent = fr($('#res-text').textContent); show('result'); run = null;
+  $('#res-rewards').innerHTML = rewards.join(''); $('#res-title').textContent = fr($('#res-title').textContent); $('#res-text').textContent = fr($('#res-text').textContent); run = null;
+  if (newCrown) crownCeremony(newCrown); else show('result');
 }
 
 /* =========================================================
@@ -1649,6 +1700,65 @@ function endRoom(won){
 let mapFloor = 0; const TILE = 32, MW = 20, MH = 12; let hero = {x:10, y:11, dir:'s', floor:-1};
 const mapCv = $('#map'); const SPR = {};
 function loadSprites(){ for (const k in IMG){ const im = new Image(); im.src = IMG[k]; SPR[k] = im; im.onload = () => { if (screen==='mapscreen') drawMap(); }; } }
+
+/* =========================================================
+   COURONNES : une par niveau gagné au donjon (bois, bronze, argent, or, diamant).
+   L'héroïne porte la plus belle sur son sprite, partout (carte, orage, pause, intro) : on redessine ses quatre sprites.
+   ========================================================= */
+const CROWNS = [null,
+  {name:'de bois',    short:'Bois',    pal:{K:'#3a2412', D:'#6b4423', M:'#a0703f', L:'#dcad74', J:'#7fd06a'}},
+  {name:'de bronze',  short:'Bronze',  pal:{K:'#4a2810', D:'#8a4f22', M:'#c47a3a', L:'#f3bb84', J:'#3fb6e0'}},
+  {name:'d\'argent',  short:'Argent',  pal:{K:'#363c4a', D:'#7d879a', M:'#c3cbd8', L:'#ffffff', J:'#6a8cff'}},
+  {name:'d\'or',      short:'Or',      pal:{K:'#5a3a00', D:'#c98a10', M:'#ffcc33', L:'#fff3a0', J:'#ff3b5c'}},
+  {name:'de diamant', short:'Diamant', pal:{K:'#1e4a6a', D:'#4fb8e0', M:'#a8f2ff', L:'#ffffff', J:'#ff7ad9'}}];
+const CROWN_OFF = {K:'#2a2450', D:'#2a2450', M:'#3d3577', L:'#3d3577', J:'#3d3577'};
+const CROWN_FRONT = ['.K....K....K.', 'KJK..KJK..KJK', 'KLK.KLMMK.KMK', 'KLMKLMMMMKMMK', 'KLLLLLLLLLLMK', 'KMJMMMJMMMJDK', 'KDDDDDDDDDDDK', '.KKKKKKKKKKK.'];
+const CROWN_SIDE  = ['.K..K..K.', 'KJKKJKKJK', 'KLMKLMKMK', 'KLMMMMMMK', 'KLLLLLLMK', 'KMJMMMJDK', 'KDDDDDDDK', '.KKKKKKK.'];
+// place de la couronne sur chaque sprite 48 x 48 ; le personnage est descendu de 3 px (ses pieds touchent alors le bas) pour lui faire de la place
+const CROWN_AT = { hero:{pat:CROWN_FRONT, x:18, y:2}, hero_n:{pat:CROWN_FRONT, x:18, y:2}, hero_e:{pat:CROWN_SIDE, x:20, y:2}, hero_w:{pat:CROWN_SIDE, x:19, y:2} };
+const HERO_KEYS = ['hero','hero_n','hero_e','hero_w']; const HERO0 = {}; HERO_KEYS.forEach(k => { HERO0[k] = IMG[k]; });
+const crownLevel = st => { st = st || S; return Math.max(0, ...((st && Array.isArray(st.crowns)) ? st.crowns : []).filter(n => n>=1 && n<=MAX_LEVEL)); };
+function crownPixels(g, pat, pal, ox, oy, s){ s = s || 1; pat.forEach((row, y) => { for (let x=0; x<row.length; x++){ const c = row[x]; if (c==='.') continue; g.fillStyle = pal[c]; g.fillRect((ox+x)*s, (oy+y)*s, s, s); } }); }
+const CROWN_ICON = {};
+function crownIcon(lv, off){ const key = (off ? 'off' : '') + lv; if (CROWN_ICON[key]) return CROWN_ICON[key]; const c = document.createElement('canvas'); c.width = 13; c.height = 8; crownPixels(c.getContext('2d'), CROWN_FRONT, off ? CROWN_OFF : CROWNS[lv].pal, 0, 0); return (CROWN_ICON[key] = c.toDataURL()); }
+function heroURL(k, lv){ return new Promise(res => { const base = new Image(); base.onload = () => { const c = document.createElement('canvas'); c.width = c.height = 48; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(base, 0, 3); if (lv){ const a = CROWN_AT[k]; crownPixels(g, a.pat, CROWNS[lv].pal, a.x, a.y); } res(c.toDataURL()); }; base.onerror = () => res(HERO0[k]); base.src = HERO0[k]; }); }
+let crownWorn = 0;
+function setHeroSprite(k, url){ IMG[k] = url; const im = new Image(); im.onload = () => { if (screen==='mapscreen') drawMap(); }; im.src = url; SPR[k] = im; }
+function syncCrown(){ const lv = P.current ? crownLevel() : 0; if (lv===crownWorn) return; crownWorn = lv;
+  HERO_KEYS.forEach(k => { if (!lv) return setHeroSprite(k, HERO0[k]); heroURL(k, lv).then(url => { if (crownWorn===lv) setHeroSprite(k, url); }); });
+  const w = $('#who-crown'); if (w){ w.hidden = !lv; if (lv){ w.src = crownIcon(lv); w.alt = 'Couronne ' + CROWNS[lv].name; } } }
+// Cérémonie : projecteur, roulement de tambour, la couronne descend en tournoyant et se pose sur sa tête, puis fanfare, rayons et confettis
+let crownAfter = null;
+function crownCeremony(lv, after){
+  crownAfter = after || (() => { show('result'); MUSIC.play('home'); });
+  MUSIC.stop(); const C = CROWNS[lv]; const side = S.emblem && S.emblem!=='vachou' ? S.emblem : 'fanfan';
+  const sc = $('#crown-scene'); sc.className = 'scene crownscene'; sc.innerHTML = `<img class="bg px" src="${IMG.castle}" alt="">`;
+  $$('#crown .later').forEach(e => e.classList.remove('shown')); const btn = $('#btn-crown-next'); btn.disabled = true; btn.textContent = 'Continuer ▶';
+  $('#crown-title').textContent = fr(`Couronne ${C.name} !`);
+  $('#crown-text').textContent = fr(`Tu as réussi le niveau ${lv} dans tout le château. Vachou te pose la couronne ${C.name} sur la tête. Tu la garderas pendant toute ton aventure !`);
+  $('#crown-shelf').innerHTML = CROWNS.slice(1).map((c, i) => { const n = i+1, has = (S.crowns||[]).includes(n); return `<figure class="${n===lv ? 'new' : has ? '' : 'off'}"><img class="px" src="${crownIcon(n, !has)}" alt="${c.short}"><figcaption>${has ? c.short : 'Niveau ' + n}</figcaption></figure>`; }).join('');
+  show('crown');
+  Promise.all([heroURL('hero', 0), heroURL('hero', lv)]).then(([plain, crowned]) => {
+    if (screen!=='crown') return;
+    sc.innerHTML = `<img class="bg px" src="${IMG.castle}" alt=""><div class="night"></div><div class="rays"></div><div class="spot"></div>
+      <img class="side px" style="left:7%" src="${IMG.vachou}" alt="Vachou"><img class="side px" style="right:7%; animation-delay:.25s" src="${IMG[side]}" alt="">
+      <div class="queen"><img class="me px" src="${plain}" alt="${esc(S.name||'')}"><img class="falling px" src="${crownIcon(lv)}" alt=""></div><div class="flash"></div>`;
+    void sc.offsetWidth; sc.classList.add('go');
+    // roulement de tambour qui accélère
+    if (S.sound){ let t = 0, gap = .2; while (t < 2.8){ const at = t; setTimeout(() => { if (screen==='crown') noise(.06, .22 + at/10, 700); }, at*1000); t += gap; gap = Math.max(.05, gap*.88); } }
+    setTimeout(() => {
+      if (screen!=='crown') return;
+      sc.classList.add('landed'); sc.querySelector('img.me').src = crowned;
+      if (S.sound){ [523,659,784,1047,1319,1568].forEach((f,i) => tone(f, i*.08, .35, 'triangle', .14)); [523,659,784].forEach(f => tone(f, .55, 1.4, 'sine', .07)); tone(2093, .7, .9, 'sine', .05); }
+      confetti();
+      const pal = C.pal; for (let i=0;i<16;i++){ const s = document.createElement('span'); s.className = 'tw'; s.textContent = i%3 ? '✦' : '✧'; s.style.left = (30 + Math.random()*40) + '%'; s.style.top = (12 + Math.random()*55) + '%'; s.style.color = i%2 ? pal.L : pal.M; s.style.animationDelay = (Math.random()*1.4).toFixed(2) + 's'; sc.appendChild(s); }
+    }, 3000);
+    setTimeout(() => { if (screen!=='crown') return; $('#crown-title').classList.add('shown'); $('#crown-text').classList.add('shown'); }, 3600);
+    setTimeout(() => { if (screen!=='crown') return; $('#crown-shelf').classList.add('shown'); if (S.sound) SFX.star(); btn.disabled = false; }, 4400);
+  });
+}
+$('#btn-crown-next').onclick = () => { if ($('#btn-crown-next').disabled) return; SFX.click(); const f = crownAfter; crownAfter = null; if (f) f(); };
+function maybePendingCrown(){ if (!S.crownPending || screen!=='home') return; const lv = S.crownPending; delete S.crownPending; save(); crownCeremony(lv, () => { renderHome(); show('home'); MUSIC.play('home'); }); }
 function hash(x,y){ let h = (x*374761393 + y*668265263) ^ 0x5bd1e995; h = (h ^ (h>>13)) * 1274126177; return ((h ^ (h>>16)) >>> 0) / 4294967295; }
 function floorLayout(f){
   const rooms = ROOMS.filter(r => r.floor===f);
@@ -1814,11 +1924,12 @@ function enterRoom(room){
     const behind = room.boss ? ROOMS.filter(r => !r.boss && wonLevel(r.id) < l).length : 0;
     const info = cls==='locked' ? (room.boss ? `🔒 Réussis le niveau ${l} dans toutes les salles (encore ${behind})` : '🔒 Réussis le niveau ' + (l-1)) : lv && lv.n ? (lv.best===null ? 'Réussi' : lv.best===0 ? 'Sans faute !' : lv.best + ' erreur' + (lv.best>1?'s':'') + ' au mieux') + ' · joué ' + lv.n + ' fois' : (l===top && top>1 ? (room.boss ? 'Réussi dans toutes les salles' : 'Nouveau niveau à découvrir') : 'Pas encore joué');
     const go = cls==='cur' ? '<span class="go">' + (lv && lv.n ? 'Rejouer' : 'À débloquer') + ' ▶</span>' : cls==='done' ? '<span class="go">Rejouer ▶</span>' : '';
-    cards.push(`<button class="lvcard ${cls}" data-l="${l}" ${cls==='locked' ? 'disabled' : ''}><span class="lab">${LEVEL_NAMES[l-1]}</span><b>Niveau ${l}</b><span class="stars">${stars}</span><small>${info}</small>${go}</button>`); }
+    const crownImg = room.boss ? `<img class="px lvcrown${(S.crowns||[]).includes(l) ? '' : ' off'}" src="${crownIcon(l, !(S.crowns||[]).includes(l))}" alt="Couronne ${CROWNS[l].name}">` : '';
+    cards.push(`<button class="lvcard ${cls}" data-l="${l}" ${cls==='locked' ? 'disabled' : ''}><span class="lab">${LEVEL_NAMES[l-1]}</span>${crownImg}<b>Niveau ${l}</b><span class="stars">${stars}</span><small>${info}</small>${go}</button>`); }
   $('#lvlcards').innerHTML = cards.join('');
   $$('#lvlcards .lvcard:not(.locked)').forEach(b => { b.onclick = () => { SFX.click(); const l = +b.dataset.l; show('room'); toast(l<top ? `Niveau ${l} : on révise !` : GAMES[room.id].intro, 3000); startRoom(room, l); }; });
   const ss = room.boss ? 'new' : skillStatus(room.id); const hint = $('#lv-hint'); hint.className = 'lvlhint ' + ss;
-  hint.textContent = fr(ss==='ok' ? '✅ Notion acquise ! Rejoue un niveau pour le plaisir, ou vise le suivant.' : ss==='learning' ? '📚 Notion en cours : rejouer un niveau déjà réussi, c\'est une très bonne façon de s\'entraîner.' : room.boss ? 'Toutes les énigmes du château, mélangées. Un niveau du donjon s\'ouvre quand tu l\'as réussi dans toutes les salles.' : '✨ Première visite : commence par le niveau 1.');
+  hint.textContent = fr(ss==='ok' ? '✅ Notion acquise ! Rejoue un niveau pour le plaisir, ou vise le suivant.' : ss==='learning' ? '📚 Notion en cours : rejouer un niveau déjà réussi, c\'est une très bonne façon de s\'entraîner.' : room.boss ? 'Toutes les énigmes du château, mélangées. Gagne un niveau du donjon pour recevoir sa couronne ! Il s\'ouvre quand tu as réussi ce niveau dans toutes les salles.' : '✨ Première visite : commence par le niveau 1.');
   show('levels'); MUSIC.play(roomTrack(room));
 }
 $('#btn-levels-back').onclick = () => { SFX.click(); const room = levelsRoom; levelsRoom = null; if (room && !room.rev) openMap(room.floor, room); else { renderHome(); show('home'); } };
@@ -1964,7 +2075,7 @@ function renderHome(){
   const cyc = S.cycle ? ` · ${S.cycle+1}e exploration` : '';
   $('#home-tag').textContent = fr(S.name ? (freedCount()===ROOMS.length ? `${S.name} a sauvé tous les doudous !` : freedCount() ? `${S.name}, ${ROOMS.length-freedCount()} doudous attendent encore${cyc}` : S.cycle ? `${S.name}, les doudous sont repartis se cacher${cyc}` : `${S.name}, les doudous se sont perdus dans le château`) : 'Les doudous se sont perdus dans le château');
   $('#btn-enter').textContent = freedCount() ? '🏰 Continuer l\'exploration' : '🏰 Entrer dans le château';
-  $('#who-img').src = IMG[S.emblem] || IMG.vachou; $('#who-name').textContent = S.name; $('#btn-switch').hidden = P.list.length<1;
+  $('#who-img').src = IMG[S.emblem] || IMG.vachou; $('#who-name').textContent = S.name; $('#btn-switch').hidden = P.list.length<1; const wl = crownLevel(); $('#who-crown').hidden = !wl; if (wl) $('#who-crown').src = crownIcon(wl);
   const par = $('#parade'); par.innerHTML = ROOMS.filter(r => isDone(r.id)).map(r => `<img src="${IMG[r.dd]}" alt="${DD[r.dd].name}" class="px">`).join('');
   $('#tg-sound').setAttribute('aria-pressed', !!S.sound); $('#tg-music').setAttribute('aria-pressed', !!S.music); $('#fab-music').setAttribute('aria-pressed', !!S.music); $('#fab-music').textContent = S.music ? '🎵' : '🔇';
   $('#lasterr').textContent = S.lastErr ? 'Dernière erreur : ' + S.lastErr.msg : ''; $('#btn-clearerr').hidden = !S.lastErr;
@@ -2027,7 +2138,7 @@ let emblemSel = 'vachou';
 function renderPlayers(){
   $('#players-castle').src = IMG.castle;
   const list = P.list.slice().sort((a,b) => (b.updated||0)-(a.updated||0));
-  $('#plist').innerHTML = list.map(p => { const r = rank(p.billes||0).cur[1]; return `<button class="pcard" data-id="${esc(p.id)}"><img src="${IMG[p.emblem]||IMG.vachou}" alt="" class="px"><b>${esc(p.name)}</b><small>${r}<br>${p.billes||0} billes · ${p.freed||0} / ${ROOMS.length} doudous${p.cycle ? ` · ${p.cycle+1}e exploration` : ''}</small><span class="go">Jouer ▶</span></button>`; }).join('');
+  $('#plist').innerHTML = list.map(p => { const r = rank(p.billes||0).cur[1]; return `<button class="pcard" data-id="${esc(p.id)}">${p.crown ? `<img src="${crownIcon(p.crown)}" alt="Couronne ${CROWNS[p.crown].name}" class="px pcrown">` : ''}<img src="${IMG[p.emblem]||IMG.vachou}" alt="" class="px"><b>${esc(p.name)}</b><small>${r}<br>${p.billes||0} billes · ${p.freed||0} / ${ROOMS.length} doudous${p.cycle ? ` · ${p.cycle+1}e exploration` : ''}</small><span class="go">Jouer ▶</span></button>`; }).join('');
   $$('#plist .pcard').forEach(b => { b.onclick = () => { SFX.click(); choosePlayer(b.dataset.id); }; });
   $('#players-tag').textContent = list.length ? 'Choisis ton joueur ou crée-en un nouveau' : 'Crée ton premier joueur pour entrer dans le château';
   $('#pform').hidden = list.length>0 && !pformOpen; if (!$('#pform').hidden) renderEmblems();
@@ -2035,7 +2146,7 @@ function renderPlayers(){
 }
 let pformOpen = false;
 function renderEmblems(){ $('#emblems').innerHTML = DOUDOUS.map(d => `<img src="${IMG[d.id]}" alt="${d.name}" title="${d.name}" data-id="${d.id}" class="px${d.id===emblemSel?' sel':''}">`).join(''); $$('#emblems img').forEach(im => { im.onclick = () => { emblemSel = im.dataset.id; SFX.click(); renderEmblems(); }; }); }
-function choosePlayer(id){ if (!selectPlayer(id)) return; bindCloud(); cloudSave(); renderHome(); show('home'); MUSIC.play('home'); toast(fr(`Bonjour ${S.name} ! Les doudous t'attendent.`)); }
+function choosePlayer(id){ if (!selectPlayer(id)) return; bindCloud(); cloudSave(); renderHome(); show('home'); MUSIC.play('home'); toast(fr(`Bonjour ${S.name} ! Les doudous t'attendent.`)); setTimeout(maybePendingCrown, 900); }
 $('#btn-newplayer').onclick = () => { SFX.click(); pformOpen = true; emblemSel = pick(DOUDOUS).id; renderPlayers(); $('#inp-pname').value = ''; $('#inp-pname').focus(); };
 $('#btn-pcancel').onclick = () => { SFX.click(); pformOpen = false; renderPlayers(); };
 $('#pform').onsubmit = e => { e.preventDefault(); const v = $('#inp-pname').value.trim(); if (!v) return; pformOpen = false; const id = newPlayerId(); addPlayer(id, v, emblemSel); SFX.star(); choosePlayer(id); };
@@ -2168,7 +2279,7 @@ addEventListener('pagehide', () => { cloudFlush(); });
 function drawStars(){ const cv = $('#stars'); const g = cv.getContext('2d'); const W = cv.width = innerWidth, H = cv.height = innerHeight; g.clearRect(0,0,W,H); for (let i=0;i<120;i++){ g.fillStyle = `rgba(255,240,200,${.2+Math.random()*.6})`; const s = Math.random()<.15 ? 3 : 2; g.fillRect(Math.random()*W, Math.random()*H, s, s); } }
 addEventListener('resize', drawStars); drawStars();
 load(); loadSprites();
-function boot(){ if (P.current && S.name){ renderHome(); show('home'); } else { renderPlayers(); show('players'); $('#players-sync').textContent = 'Recherche des joueurs sur ton compte…'; } }
+function boot(){ if (P.current && S.name){ renderHome(); show('home'); setTimeout(maybePendingCrown, 900); } else { renderPlayers(); show('players'); $('#players-sync').textContent = 'Recherche des joueurs sur ton compte…'; } }
 let cloudSettled = false;
 function settleBoot(){ if (cloudSettled) return; cloudSettled = true; $('#players-sync').textContent = ''; if (screen==='players') renderPlayers(); }
 setTimeout(settleBoot, 8000);
